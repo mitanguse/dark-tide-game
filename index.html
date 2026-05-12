@@ -118,7 +118,7 @@ body{background:#0b0b14;color:#ccc;font-family:-apple-system,sans-serif;font-siz
 <script>
 // ============ DATA ============
 const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;const P=a=>a[Math.floor(Math.random()*a.length)];const C=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
-const G={money:1500,intel:5,influence:10,safety:60,notoriety:0,turn:1,baseLv:1,maxHand:5,phase:0,apPT:3,members:[],mid:0,enemies:[],districts:[],specOps:[],intelLogs:[],intelTier:0,prot:10,gameOver:false};
+const G={money:1500,intel:5,influence:10,safety:60,notoriety:0,turn:1,baseLv:1,maxHand:5,phase:0,apPT:3,members:[],mid:0,enemies:[],districts:[],specOps:[],intelLogs:[],intelTier:0,collected:0,prot:10,gameOver:false};
 const PHS=[{n:'码头恶犬',i:'💀',g:'影响力≥40',c:g=>g.influence>=40},{n:'酒馆之王',i:'⚔️',g:'影响力≥80+据点≥3',c:g=>g.influence>=80&&g.baseLv>=3},{n:'暗夜贵族',i:'🏛️',g:'影响力≥120+据点≥5',c:g=>g.influence>=120&&g.baseLv>=5},{n:'无冕之王',i:'👑',g:'已至巅峰',c:g=>false},{n:'霸主',i:'🔥',g:'影响力≥200+据点满级',c:g=>false}];
 const TNAMES=['街头流言','区域情报','城市机密','高层黑料'];const TMUL=[1,2,4,8];
 const TALES=[['街头传言码头帮在运军火','巷子里有人倒卖警用装备','黑市在卖偷来的货','铁血盟在招兵买马'],['码头帮据点在3号仓库','警方下周在北区扫毒','黑水社在收购武器','暗影会的洗钱通道曝光'],['市议员跟黑帮有往来','军用加密设备在黑市流通','警方高层参与洗钱','G20期间全城戒严'],['三家银行涉及洗钱网络','国安渗透了金融系统','国际刑警已盯上这座城市','一场大清洗即将到来']];
@@ -231,7 +231,7 @@ function enemyAct(){const a=G.enemies.filter(e=>e.alive);if(!a.length)return;con
 
 // ============ NEXT TURN ============
 let _evCD=0;
-function nextTurn(){if(G.gameOver)return;if(G.prot>0)G.prot--;G.turn++;resetAp();const inc=G.influence*3+G.baseLv*30+R(0,20);G.money+=inc;if(G.safety<50)G.safety=C(G.safety+1,0,100);if(G.notoriety>0)G.notoriety=Math.max(0,G.notoriety-1);live().forEach(m=>{if(Math.random()<.08)m.loyal=C(m.loyal-R(1,3),0,100)});live().forEach(m=>{if(m.loyal<=10&&Math.random()<.2){m.alive=false;showModal('🏃 叛逃',`${m.name}忠诚过低叛逃了`)}});// 自动保护费（减半效率）
+function nextTurn(){if(G.gameOver)return;if(G.prot>0)G.prot--;G.turn++;G.collected=0;resetAp();const inc=G.influence*3+G.baseLv*30+R(0,20);G.money+=inc;if(G.safety<50)G.safety=C(G.safety+1,0,100);if(G.notoriety>0)G.notoriety=Math.max(0,G.notoriety-1);live().forEach(m=>{if(Math.random()<.08)m.loyal=C(m.loyal-R(1,3),0,100)});live().forEach(m=>{if(m.loyal<=10&&Math.random()<.2){m.alive=false;showModal('🏃 叛逃',`${m.name}忠诚过低叛逃了`)}});// 自动保护费（减半效率）
 const di=distIncome();if(di>0){const auto=Math.floor(di*0.15);G.money+=auto;addLog(`自动保护费 +$${auto}`,'g')}// 安全恢复
 playerDists().forEach(d=>d.sec=C(d.sec+Math.floor((40-d.sec)/25),0,100));// 敌对行动（更频繁）
 if(G.turn%2===0)enemyAct();else if(Math.random()<0.3)enemyAct();// 刷新敌对
