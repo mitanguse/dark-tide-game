@@ -256,7 +256,7 @@ function ui(){
   document.getElementById('rInf').className='val'+(G.influence>=80?' good':'');
   document.getElementById('rIntel').className='val'+(G.intel<=0?' danger':'');
 }
-function modal(h){document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('active');}
+function modal(h){document.getElementById('modalContent').innerHTML=h+'<div class="mt-8"><button class="btn btn-light btn-sm" onclick="closeM()">确定</button></div>';document.getElementById('modalOverlay').classList.add('active');}
 function closeM(){document.getElementById('modalOverlay').classList.remove('active');}
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeM();});
 
@@ -403,19 +403,21 @@ function trigEvent(){
   let tw=0;p.forEach(e=>tw+=e.w);let r=Math.random()*tw,ev=p[0];
   for(const e of p){r-=e.w;if(r<=0){ev=e;break;}}
   if(!ev)return;
-  if(ev.ex){if(G.hands>=1&&Math.random()<0.5){const g=R(500,1500);G.money+=g;G.notoriety+=5;log(`🏦 浑水摸鱼捞了$${g}`,'g');}else log('🏦 银行劫案，静观其变。','i');return;}
+  if(ev.ex){if(G.hands>=1&&Math.random()<0.5){const g=R(500,1500);G.money+=g;G.notoriety+=5;log(`🏦 银行夜影：浑水摸鱼捞了$${g}`,'g');modal('<h3>🏦 银行夜影</h3><p>你的手下趁乱摸进了金库，捞了$'+g+'出来。</p>');}else log('🏦 银行夜影：静观其变。','i');return;}
   const ef=ev.e;
-  let m=ev.d,mt='i';
-  if(ef.m){G.money+=ef.m;mt=ef.m>0?'g':'b';m+=ef.m>0?' (+$'+ef.m+')':' ($'+ef.m+')';}
-  if(ef.s){G.safety=C(G.safety+ef.s,0,100);m+=ef.s>0?' 安全+'+ef.s:' 安全'+ef.s;}
-  if(ef.f){G.influence+=ef.f;m+=ef.f>0?' 影响+'+ef.f:' 影响'+ef.f;}
-  if(ef.i){G.intel=Math.max(0,G.intel+ef.i);m+=ef.i>0?' 情报+'+ef.i:' 情报'+ef.i;}
+  let m='',mt='i';
+  if(ef.m){G.money+=ef.m;mt=ef.m>0?'g':'b';m+=ef.m>0?' 💰+$'+ef.m:' 💰-'+(-ef.m);}
+  if(ef.s){G.safety=C(G.safety+ef.s,0,100);m+=ef.s>0?' 🛡️+'+ef.s:' 🛡️-'+(-ef.s);}
+  if(ef.f){G.influence+=ef.f;m+=ef.f>0?' 👑+'+ef.f:' 👑-'+(-ef.f);}
+  if(ef.i){G.intel=Math.max(0,G.intel+ef.i);m+=ef.i>0?' 📡+'+ef.i:' 📡-'+(-ef.i);}
+  if(ef.no){G.notoriety+=ef.no;m+=' 💀+'+ef.no;}
   if(ef.h){
-    if(ef.h>0){const n=newMember();n.loyalty=85;G.members.push(n);G.hands=Math.min(G.handLimit,G.hands+1);m+=' 新人:'+n.name;mt='g';}
-    else{const a=G.members.filter(m=>m.alive);if(a.length>0){const v=a[R(0,a.length-1)];v.alive=0;G.hands=Math.max(0,G.hands-1);m+=' '+v.name+'牺牲';}mt='b';}
+    if(ef.h>0){const n=newMember();n.loyalty=85;G.members.push(n);G.hands=Math.min(G.handLimit,G.hands+1);m+=' 👤+'+n.name;mt='g';}
+    else{const a=G.members.filter(m=>m.alive);if(a.length>0){const v=a[R(0,a.length-1)];v.alive=0;G.hands=Math.max(0,G.hands-1);m+=' 💀'+v.name+'牺牲';}mt='b';}
   }
-  if(ef.no){G.notoriety+=ef.no;m+=' 恶名+'+ef.no;}
-  log(`🌍 ${ev.n}: ${m}`,mt);
+  log(`🌍 ${ev.n}: ${ev.d} ${m}`,mt);
+  let stats='';if(ef.m)stats+='<br>'+((ef.m>0?'💰 +$'+ef.m:'💰 -'+(-ef.m)));if(ef.s)stats+='<br>🛡️ '+(ef.s>0?'+'+ef.s:'-'+(-ef.s));if(ef.f)stats+='<br>👑 '+(ef.f>0?'+'+ef.f:'-'+(-ef.f));if(ef.i)stats+='<br>📡 '+(ef.i>0?'+'+ef.i:'-'+(-ef.i));if(ef.no)stats+='<br>💀 +'+ef.no;if(ef.h&&ef.h<0)stats+='<br>💀 损失一员';if(ef.h&&ef.h>0)stats+='<br>👤 新成员加入';
+  modal('<h3>'+ev.n+'</h3><p>'+ev.d+'</p>'+stats);
 }
 
 // ============================================================
