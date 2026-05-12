@@ -2,755 +2,713 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>暗潮 · 组织模拟器</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>暗潮·组织模拟器</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{background:#0b0b14;color:#ccc;font-family:-apple-system,'Noto Sans SC',sans-serif;min-height:100vh;font-size:15px;overflow-x:hidden}
-.header{background:#0f0f1e;border-bottom:1px solid #1e1e38;padding:12px 14px;display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:100}
-.header h1{font-size:1.1em;font-weight:700;color:#a78bfa;letter-spacing:1px}
-.header .badge{font-size:0.7em;padding:2px 10px;border-radius:10px;border:1px solid #a78bfa;color:#a78bfa}
-.header .turn{font-size:0.8em;color:#666}
-.res-bar{background:#0f0f1e;border-bottom:1px solid #1e1e38;padding:8px 14px;display:flex;gap:10px;overflow-x:auto;position:sticky;top:48px;z-index:99}
-.res-item{display:flex;align-items:center;gap:4px;font-size:0.78em;white-space:nowrap;flex-shrink:0}
-.res-item .v{font-weight:600;color:#e0e0ff}
-.res-item .v.gold{color:#fbbf24}.res-item .v.pink{color:#f472b6}.res-item .v.blue{color:#60a5fa}.res-item .v.purple{color:#a78bfa}.res-item .v.green{color:#34d399}.res-item .v.red{color:#f87171}
-.log-section{background:#0f0f1e;border-bottom:1px solid #1e1e38;padding:6px 14px;position:sticky;top:82px;z-index:98}
-.log-scroll{display:flex;gap:8px;overflow-x:auto;padding:4px 0;scrollbar-width:thin;max-height:48px}
-.log-scroll::-webkit-scrollbar{height:2px}.log-scroll::-webkit-scrollbar-thumb{background:#333;border-radius:1px}
-.log-chip{flex-shrink:0;font-size:0.68em;padding:3px 8px;border-radius:4px;white-space:nowrap;border:1px solid #1e1e38}
-.log-chip.info{border-color:#334;color:#888}.log-chip.success{border-color:#065f46;color:#34d399}
-.log-chip.warning{border-color:#78350f;color:#fbbf24}.log-chip.event{border-color:#5b21b6;color:#a78bfa}
-.content{padding:10px 14px 80px;max-width:600px;margin:0 auto}
-.ov{text-align:center;padding:20px 0}.ov .icon{font-size:2.5em;margin-bottom:8px}.ov .title{font-size:0.9em;color:#a78bfa}.ov .desc{font-size:0.75em;color:#555;line-height:1.6}
-.ov .goal-box{margin-top:12px;border:1px solid #1e1e38;border-radius:8px;padding:10px;text-align:left;font-size:0.78em}.ov .goal-box .gl{color:#60a5fa;margin-bottom:4px}
-.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;justify-content:center}
-.btn{display:inline-flex;align-items:center;gap:4px;padding:7px 14px;border-radius:6px;border:1px solid #333;background:transparent;color:#ccc;font-size:0.78em;cursor:pointer;transition:all .15s;font-family:inherit}
-.btn:hover{background:rgba(255,255,255,0.05);border-color:#555}.btn:active{transform:scale(0.97)}
-.btn.primary{border-color:#60a5fa;color:#60a5fa}.btn.primary:hover{background:rgba(96,165,250,0.08)}
-.btn.warn{border-color:#fbbf24;color:#fbbf24}.btn.warn:hover{background:rgba(251,191,36,0.08)}
-.btn.danger{border-color:#f87171;color:#f87171}.btn.danger:hover{background:rgba(248,113,113,0.08)}
-.btn.purple{border-color:#a78bfa;color:#a78bfa}.btn.purple:hover{background:rgba(167,139,250,0.08)}
-.btn.green{border-color:#34d399;color:#34d399}.btn.green:hover{background:rgba(52,211,153,0.08)}
-.btn.gray{border-color:#555;color:#888}.btn.gray:hover{background:rgba(255,255,255,0.05)}
-.btn:disabled{opacity:0.25;cursor:not-allowed}.btn:disabled:hover{background:transparent}
-.card{border:1px solid #1e1e38;border-radius:8px;padding:12px;margin-bottom:8px;transition:all .15s}
-.card:hover{border-color:#2a2a50}.card h4{font-size:0.85em;margin-bottom:3px;color:#e0e0ff}
-.card .desc{font-size:0.72em;color:#555;margin-bottom:6px;line-height:1.5}.card .extra{font-size:0.68em;color:#555;margin-bottom:6px}
-.tab{display:none}.tab.active{display:block}
-.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:#0f0f1e;border-top:1px solid #1e1e38;display:flex;z-index:200}
-.nav-item{flex:1;padding:8px 0;text-align:center;font-size:0.65em;color:#555;cursor:pointer;transition:all .15s;border-bottom:2px solid transparent}
-.nav-item .ni{font-size:1.2em;display:block}.nav-item.active{color:#a78bfa;border-bottom-color:#a78bfa}.nav-item:hover{color:#888}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:500;justify-content:center;align-items:flex-start;padding-top:60px}
-.modal-overlay.show{display:flex}
-.modal{background:#12121f;border:1px solid #2a2a50;border-radius:12px;padding:20px 22px;max-width:380px;width:90%;animation:slideUp .2s;max-height:80vh;overflow-y:auto}
-.modal h3{font-size:0.9em;color:#a78bfa;margin-bottom:10px}
-.modal p{font-size:0.82em;color:#bbb;line-height:1.7;margin-bottom:14px}
-.modal .btn-row{justify-content:flex-end}
-@keyframes slideUp{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
-.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:6px}
-.member-card{border:1px solid #1e1e38;border-radius:6px;padding:8px;text-align:center;font-size:0.72em;position:relative;cursor:pointer;transition:all .15s}
-.member-card:hover{border-color:#a78bfa}
-.member-card .av{font-size:1.4em}.member-card .nm{font-weight:600;color:#ddd}.member-card .rl{color:#666;font-size:0.9em}
-.member-card .st{color:#555;font-size:0.9em;margin-top:2px}
-.member-card .lb{height:2px;background:#1e1e38;border-radius:1px;margin-top:4px;overflow:hidden}
-.member-card .lf{height:100%;border-radius:1px}
-.member-card .op{font-size:0.6em;color:#888;margin-top:4px;display:none}
-.member-card:hover .op{display:block}
-.enemy-grid{display:grid;gap:6px}
-.enemy-card{border:1px solid #1e1e38;border-radius:6px;padding:10px;display:flex;justify-content:space-between;align-items:center}
-.enemy-card .enm h4{font-size:0.82em;color:#f87171}.enemy-card .enm .ed{font-size:0.68em;color:#555;margin-top:2px}
-.enemy-card .epw{font-size:0.75em}.ew-l{color:#34d399}.ew-m{color:#fbbf24}.ew-h{color:#f87171}
-.member-select-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:6px;margin-bottom:10px}
-.ms-card{border:1px solid #1e1e38;border-radius:6px;padding:10px;text-align:center;cursor:pointer;transition:all .15s;font-size:0.75em}
-.ms-card:hover{border-color:#a78bfa;background:rgba(167,139,250,0.05)}
-.ms-card .ms-av{font-size:1.3em}.ms-card .ms-nm{font-weight:600;color:#ddd;margin-top:2px}
-.ms-card .ms-rl{color:#555;font-size:0.85em}.ms-card .ms-st{color:#555;font-size:0.85em}
-.ms-card .ms-tag{display:inline-block;padding:1px 6px;border-radius:6px;font-size:0.75em;margin-top:3px}
-.tag-match{background:rgba(52,211,153,0.15);color:#34d399;border:1px solid #34d399}
-.tag-nomatch{background:rgba(248,113,113,0.15);color:#f87171;border:1px solid #f87171}
-@media(max-width:400px){.res-bar{font-size:0.75em;gap:6px}.content{padding:8px 10px 70px}}
+*{margin:0;padding:0;box-sizing:border-box;user-select:none}
+body{background:#0a0a0f;color:#c8c8d0;font-family:'Microsoft YaHei','PingFang SC',sans-serif;min-height:100vh;overflow-x:hidden}
+#app{max-width:800px;margin:0 auto;padding:10px}
+.top-bar{background:linear-gradient(135deg,#1a1a2e,#16213e);border:1px solid #2a2a4e;border-radius:10px;padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px;position:sticky;top:8px;z-index:100;backdrop-filter:blur(10px)}
+.res-item{display:flex;align-items:center;gap:4px;font-size:13px;padding:3px 8px;background:rgba(255,255,255,.05);border-radius:6px;white-space:nowrap}
+.res-item .icon{font-size:16px}
+.res-item .val{color:#fff;font-weight:700;min-width:28px;text-align:center}
+.res-item .val.danger{color:#ff4757;animation:pulse 1s infinite}
+.res-item .val.good{color:#2ed573}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.res-item .label{color:#888;font-size:11px;margin-left:2px}
+.stage-badge{background:linear-gradient(135deg,#e74c3c,#f39c12);padding:2px 10px;border-radius:12px;font-size:11px;font-weight:700;color:#fff;margin-left:auto}
+.log-bar{background:rgba(20,20,40,.9);border:1px solid #2a2a4e;border-radius:8px;padding:8px 12px;margin-bottom:8px;min-height:38px;max-height:60px;overflow-y:auto;font-size:13px;position:relative}
+.log-bar .log-text{color:#aaa;word-break:break-all}
+.log-bar .log-time{color:#666;font-size:11px;margin-right:6px}
+.log-bar .log-good{color:#2ed573}
+.log-bar .log-bad{color:#ff4757}
+.log-bar .log-info{color:#70a1ff}
+.nav-bar{display:flex;gap:4px;margin-bottom:8px;flex-wrap:wrap}
+.nav-btn{padding:8px 16px;border:1px solid #2a2a4e;background:#1a1a2e;color:#888;border-radius:8px;cursor:pointer;font-size:13px;transition:.2s;flex:1;text-align:center;min-width:60px}
+.nav-btn:hover{background:#2a2a4e;color:#ddd}
+.nav-btn.active{background:#e74c3c;color:#fff;border-color:#e74c3c;box-shadow:0 0 15px rgba(231,76,60,.3)}
+.panel{background:linear-gradient(180deg,#1a1a2e,#12121e);border:1px solid #2a2a4e;border-radius:10px;padding:16px;min-height:300px;display:none;animation:fadeIn .3s}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.panel h2{font-size:18px;color:#e74c3c;margin-bottom:12px;border-bottom:1px solid #2a2a4e;padding-bottom:8px}
+.panel h3{font-size:15px;color:#f39c12;margin:12px 0 8px}
+.card{background:rgba(255,255,255,.03);border:1px solid #2a2a4e;border-radius:8px;padding:12px;margin-bottom:8px;transition:.2s}
+.card:hover{border-color:#3a3a5e}
+.card-title{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px}
+.card-sub{font-size:12px;color:#888}
+.card-info{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;font-size:12px}
+.card-info span{color:#aaa}
+.card-action{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.btn{padding:6px 14px;border:none;border-radius:6px;cursor:pointer;font-size:12px;transition:.2s;color:#fff;font-weight:600}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-primary{background:#e74c3c}
+.btn-primary:hover:not(:disabled){background:#c0392b;box-shadow:0 0 10px rgba(231,76,60,.4)}
+.btn-success{background:#27ae60}
+.btn-success:hover:not(:disabled){background:#219a52;box-shadow:0 0 10px rgba(39,174,96,.4)}
+.btn-warning{background:#f39c12}
+.btn-warning:hover:not(:disabled){background:#d68910;box-shadow:0 0 10px rgba(243,156,18,.4)}
+.btn-info{background:#2980b9}
+.btn-info:hover:not(:disabled){background:#2471a3;box-shadow:0 0 10px rgba(41,128,185,.4)}
+.btn-danger{background:#8e44ad}
+.btn-danger:hover:not(:disabled){background:#7d3c98;box-shadow:0 0 10px rgba(142,68,173,.4)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.btn-light{background:rgba(255,255,255,.1);color:#ccc}
+.btn-light:hover:not(:disabled){background:rgba(255,255,255,.2)}
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);z-index:999;display:none;justify-content:center;align-items:center;animation:fadeIn .2s}
+.modal-overlay.active{display:flex}
+.modal{background:#1a1a2e;border:1px solid #3a3a5e;border-radius:12px;padding:20px;max-width:420px;width:90%;max-height:80vh;overflow-y:auto}
+.modal h3{color:#e74c3c;margin-bottom:12px;font-size:16px}
+.modal p{font-size:13px;color:#aaa;margin-bottom:10px;line-height:1.6}
+.modal .btn{margin-right:6px;margin-top:6px}
+.modal select,.modal input[type=number]{width:100%;padding:8px;background:#12121e;border:1px solid #2a2a4e;border-radius:6px;color:#fff;font-size:13px;margin-bottom:8px}
+.modal select option{background:#1a1a2e}
+.member-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px}
+.member-card{background:rgba(255,255,255,.03);border:1px solid #2a2a4e;border-radius:8px;padding:10px;cursor:pointer;transition:.2s;text-align:center}
+.member-card:hover{border-color:#e74c3c;background:rgba(231,76,60,.08)}
+.member-card .avatar{font-size:32px;margin-bottom:4px}
+.member-card .mname{font-size:13px;color:#fff;font-weight:700}
+.member-card .mjob{font-size:11px;color:#f39c12}
+.member-card .mstats{font-size:11px;color:#888;margin-top:4px}
+.member-card .mstatus{font-size:11px;margin-top:2px}
+.enemy-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px}
+.enemy-card{background:rgba(255,0,0,.03);border:1px solid #3a1a1a;border-radius:8px;padding:10px}
+.enemy-card .ename{font-size:14px;font-weight:700;color:#ff6b6b}
+.enemy-card .einfo{font-size:11px;color:#888;margin-top:4px}
+.enemy-card .ethreat{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;margin-top:4px}
+.threat-low{background:rgba(39,174,96,.2);color:#2ed573}
+.threat-mid{background:rgba(243,156,18,.2);color:#f39c12}
+.threat-high{background:rgba(231,76,60,.2);color:#ff4757}
+.intel-action-area{background:rgba(243,156,18,.05);border:1px solid #3a3a1a;border-radius:8px;padding:12px;margin-top:10px}
+.intel-action-area .ia-title{font-size:14px;color:#f39c12;font-weight:700;margin-bottom:8px}
+.unlock-info{background:rgba(39,174,96,.05);border:1px solid #1a3a1a;border-radius:8px;padding:10px;margin:8px 0;font-size:12px;color:#2ed573}
+.unlock-info .ui-title{font-weight:700;font-size:13px;margin-bottom:4px}
+.unlock-info .ui-list{color:#aaa;line-height:1.6}
+.progress-bar{height:6px;background:#2a2a4e;border-radius:3px;overflow:hidden;margin:6px 0}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s}
+.progress-fill.red{background:linear-gradient(90deg,#e74c3c,#c0392b)}
+.progress-fill.green{background:linear-gradient(90deg,#27ae60,#2ed573)}
+.progress-fill.blue{background:linear-gradient(90deg,#2980b9,#3498db)}
+.progress-fill.gold{background:linear-gradient(90deg,#f39c12,#e67e22)}
+.ending-card{background:linear-gradient(135deg,#1a0a1a,#0a0a15);border:2px solid #e74c3c;border-radius:12px;padding:20px;text-align:center;margin-top:10px}
+.ending-card .ending-title{font-size:22px;color:#e74c3c;font-weight:700;margin-bottom:8px}
+.ending-card .ending-desc{font-size:13px;color:#aaa;line-height:1.6;margin-bottom:12px}
+.ending-card .ending-stats{font-size:12px;color:#888;margin-bottom:12px;line-height:1.8}
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#3a3a5e;border-radius:2px}
+::-webkit-scrollbar-thumb:hover{background:#5a5a7e}
+.text-center{text-align:center}
+.mt-8{margin-top:8px}
+.mt-12{margin-top:12px}
+.gap-6{display:flex;gap:6px;flex-wrap:wrap}
+.flex-between{display:flex;justify-content:space-between;align-items:center}
+.faint{color:#555;font-size:11px}
 </style>
 </head>
 <body>
-<div class="header">
-  <h1>✦ 暗潮</h1>
-  <div><span class="badge" id="ph-badge">街头帮派</span><span class="turn"> 第<span id="turn-n">1</span>回合</span></div>
+<div id="app">
+  <div class="top-bar" id="topBar">
+    <div class="res-item"><span class="icon">💰</span><span class="val" id="rMoney">0</span><span class="label">$</span></div>
+    <div class="res-item"><span class="icon">📜</span><span class="val" id="rIntel">0</span><span class="label">情报</span></div>
+    <div class="res-item"><span class="icon">👑</span><span class="val" id="rInf">0</span><span class="label">影响力</span></div>
+    <div class="res-item"><span class="icon">🛡️</span><span class="val" id="rSafe">0</span><span class="label">安全度</span></div>
+    <div class="res-item"><span class="icon">👥</span><span class="val" id="rHand">0</span><span class="label">人手</span></div>
+    <div class="res-item"><span class="icon">😈</span><span class="val" id="rNoto">0</span><span class="label">恶名</span></div>
+    <div class="res-item"><span class="icon">🏛️</span><span class="val" id="rBase">1</span><span class="label">据点Lv</span></div>
+    <div class="stage-badge" id="stageBadge">街头帮派</div>
+  </div>
+
+  <div class="log-bar" id="logBar"><span class="log-text">🔊 欢迎来到暗潮·组织模拟器。建立你的地下帝国...</span></div>
+
+  <div class="nav-bar" id="navBar">
+    <div class="nav-btn active" data-tab="overview">📊 概况</div>
+    <div class="nav-btn" data-tab="intel">📜 情报</div>
+    <div class="nav-btn" data-tab="action">⚡ 行动</div>
+    <div class="nav-btn" data-tab="members">👥 成员</div>
+    <div class="nav-btn" data-tab="enemy">⚔️ 敌对</div>
+    <div class="nav-btn" data-tab="develop">🏗️ 发展</div>
+  </div>
+
+  <div class="panel active" id="panel-overview"><h2>📊 组织概况</h2><div id="overviewContent"></div></div>
+  <div class="panel" id="panel-intel"><h2>📜 情报局</h2><div id="intelMarket"></div><div id="intelActions"></div><div id="intelSpecial"></div></div>
+  <div class="panel" id="panel-action"><h2>⚡ 行动指挥</h2><div id="actionList"></div></div>
+  <div class="panel" id="panel-members">
+    <h2>👥 成员管理</h2><div id="memberList"></div>
+    <div class="text-center mt-12"><button class="btn btn-info" onclick="recruitMember()">➕ 招募新人 ($500)</button></div>
+  </div>
+  <div class="panel" id="panel-enemy"><h2>⚔️ 敌对势力</h2><div id="enemyList"></div></div>
+  <div class="panel" id="panel-develop"><h2>🏗️ 组织发展</h2><div id="developContent"></div></div>
+
+  <div class="modal-overlay" id="modalOverlay"><div class="modal" id="modalContent"></div></div>
 </div>
-<div class="res-bar">
-  <span class="res-item"><span>💰</span><span class="v gold" id="r-money">0</span></span>
-  <span class="res-item"><span>👤</span><span class="v pink" id="r-hands">0</span></span>
-  <span class="res-item"><span>📡</span><span class="v blue" id="r-intel">0</span></span>
-  <span class="res-item"><span>👑</span><span class="v purple" id="r-inf">0</span></span>
-  <span class="res-item"><span>🛡️</span><span class="v green" id="r-saf">0</span></span>
-  <span class="res-item"><span>💀</span><span class="v red" id="r-not">0</span></span>
-</div>
-<div class="log-section"><div class="log-scroll" id="log-scroll"></div></div>
-
-<div class="content">
-  <div class="tab active" id="tab-overview">
-    <div class="ov">
-      <div class="icon" id="ov-icon">💀</div>
-      <div class="title" id="ov-title">街头帮派</div>
-      <div class="desc" id="ov-desc">霓虹灯下的阴影中，组织正在崛起</div>
-      <div class="btn-row">
-        <button class="btn primary" onclick="nextTurn()">⏭ 推进回合</button>
-        <button class="btn warn" onclick="gatherIntel()">📡 收集情报</button>
-        <button class="btn danger" onclick="quickMission()">💀 快速任务</button>
-      </div>
-      <div class="goal-box"><div class="gl">🎯 阶段目标</div><span id="ov-goal">影响力达到 20</span></div>
-    </div>
-  </div>
-
-  <div class="tab" id="tab-intel">
-    <div class="card"><h4>📥 收集情报</h4><div class="desc" id="gather-hint">派人打探消息，获取街头流言。情报可以出售或用于升级情报网络。</div><button class="btn" onclick="gatherIntel()">🔍 收集</button></div>
-    <div class="card"><h4>💰 出售情报</h4><div class="desc">价值：<strong id="intel-price">$30</strong>/份 · 当前情报等级：<span id="intel-tl" style="color:#60a5fa">街头流言</span> ×<span id="intel-ml">1</span></div><div class="extra">升级进度 <span id="intel-pl">0</span>/100</div><button class="btn warn" onclick="sellIntel()">💼 出售5份</button></div>
-    <div class="card"><h4>🎯 定向渗透</h4><div class="desc">渗透目标获取核心情报，需2人+$300</div><button class="btn danger" onclick="targetIntel()">🎯 渗透</button></div>
-    <div id="intel-content-box" style="margin-top:8px;border:1px solid #1e1e38;border-radius:8px;padding:10px;">
-      <div style="font-size:0.72em;color:#60a5fa;margin-bottom:4px">📋 已获取的情报</div>
-      <div id="intel-items" style="font-size:0.7em;color:#555;line-height:1.8">暂无情报记录</div>
-    </div>
-  </div>
-
-  <div class="tab" id="tab-missions">
-    <div style="font-size:0.72em;color:#555;margin-bottom:6px">
-      💡 点击任务 → 选择派出哪个成员执行<br>
-      <span style="color:#34d399">✓ 职业匹配 +20%成功率 +30%收益</span>
-      <span style="color:#f87171"> ✗ 不匹配 -15%成功率 -20%收益</span>
-    </div>
-    <div id="mission-list"></div>
-  </div>
-
-  <div class="tab" id="tab-members">
-    <div class="card">
-      <h4>👥 招募成员</h4>
-      <div class="desc">$500 在街头物色可用之人，随机获得不同职业</div>
-      <div style="font-size:0.68em;color:#555;margin-bottom:6px">
-        成员 <span id="mc">0</span>/<span id="mm">5</span> · 点击成员卡片可查看详情和互动
-      </div>
-      <button class="btn green" onclick="recruit()">招募（$500）</button>
-    </div>
-    <div class="member-grid" id="member-grid"></div>
-  </div>
-
-  <div class="tab" id="tab-enemies">
-    <div id="enemy-list"></div>
-    <div class="card" style="margin-top:8px">
-      <h4>⚔️ 敌对行动</h4>
-      <div class="desc">攻击敌对组织或渗透获取情报</div>
-      <button class="btn danger" onclick="attackEnemy()">⚔️ 出击</button>
-      <button class="btn purple" onclick="spyEnemy()">🕵️ 渗透</button>
-    </div>
-  </div>
-
-  <div class="tab" id="tab-develop">
-    <div class="card"><h4>🏢 扩建据点</h4><div class="desc">Lv.<span id="dl">1</span> · 人手上限 <span id="dm">5</span></div><div class="extra">$<span id="dc">1000</span> · 需2人</div><button class="btn" onclick="upgradeBase()">扩建</button></div>
-    <div class="card"><h4>🔫 升级装备</h4><div class="desc">Lv.<span id="el">0</span> → 提升任务成功率</div><div class="extra">$<span id="ec">800</span></div><button class="btn purple" onclick="upgradeEquip()">升级</button></div>
-    <div class="card"><h4>👮 贿赂警察</h4><div class="desc">$600 提升安全度</div><button class="btn warn" onclick="bribePolice()">贿赂</button></div>
-    <div class="card" id="card-pol" style="display:none"><h4>🎩 腐蚀政客</h4><div class="desc">$1500 获取政治庇护</div><button class="btn purple" onclick="fundPolitician()">腐蚀</button></div>
-    <div class="card" id="card-share" style="display:none"><h4>🤝 情报共享（警方）</h4><div class="desc">5份情报换取行动豁免</div><button class="btn" onclick="shareIntel()">共享</button></div>
-  </div>
-</div>
-
-<div class="bottom-nav">
-  <div class="nav-item active" data-tab="overview"><span class="ni">📋</span>概况</div>
-  <div class="nav-item" data-tab="intel"><span class="ni">📡</span>情报</div>
-  <div class="nav-item" data-tab="missions"><span class="ni">💀</span>行动</div>
-  <div class="nav-item" data-tab="members"><span class="ni">👤</span>成员</div>
-  <div class="nav-item" data-tab="enemies"><span class="ni">⚔️</span>敌对</div>
-  <div class="nav-item" data-tab="develop"><span class="ni">🏢</span>发展</div>
-</div>
-
-<!-- 普通弹窗 -->
-<div class="modal-overlay" id="modal"><div class="modal"><h3 id="modal-t">结果</h3><p id="modal-x">内容</p><div class="btn-row"><button class="btn" onclick="closeModal('modal')">确定</button></div></div></div>
-<!-- 事件弹窗 -->
-<div class="modal-overlay" id="ev-modal"><div class="modal"><h3 id="ev-t">⚡ 事件</h3><p id="ev-d">内容</p><div class="btn-row" id="ev-c"></div></div></div>
-<!-- 选人弹窗 -->
-<div class="modal-overlay" id="pick-modal"><div class="modal"><h3 id="pick-t">选择执行成员</h3><p id="pick-d">选择一个成员去执行任务</p><div id="pick-grid" class="member-select-grid"></div><div class="btn-row"><button class="btn gray" onclick="closeModal('pick-modal')">取消</button></div></div></div>
-<!-- 成员互动弹窗 -->
-<div class="modal-overlay" id="member-modal"><div class="modal"><h3 id="mm-t">成员详情</h3><div id="mm-body"></div><div class="btn-row" id="mm-btns"></div></div></div>
 
 <script>
-// ============================
-//  STATE
-// ============================
+// ============================================================
+// 游戏状态
+// ============================================================
 const G = {
-  money:1500,intel:5,influence:10,safety:60,notoriety:0,
-  turn:1,baseLv:1,baseProg:0,equipLv:0,
-  members:[],maxMem:5,
-  intelPrice:30,intelTier:0,intelProg:0,
-  intelLog:[], // 情报内容记录
-  enemies:[],policeBribed:0,politician:false,
-  phase:0,enemyTimer:0,logs:[]
+  money: 3000, intel: 10, influence: 15, safety: 80,
+  hands: 3, notoriety: 0, baseLevel: 1, handLimit: 6,
+  turn: 1, stage: 0, maxAp: 3,
+  stageNames: ['街头帮派','区域势力','城市组织','地下帝国'],
+  gameOver: false, endingType: null, protection: 10,
+  eventCooldown: 0, members: [], memberIdSeq: 0, enemies: [],
 };
 
-const PHASES = [
-  {n:'街头帮派',i:'💀',g:'影响力达到20',c:g=>g.influence>=20},
-  {n:'区域势力',i:'⚔️',g:'影响力≥50 且 据点≥3级',c:g=>g.influence>=50&&g.baseLv>=3},
-  {n:'城市组织',i:'🏛️',g:'影响力≥80 且 据点≥5级',c:g=>g.influence>=80&&g.baseLv>=5},
-  {n:'地下帝国',i:'👑',g:'已至巅峰',c:g=>false}
+// ============================================================
+// 职业系统 (8种职业全匹配)
+// ============================================================
+const JOBS = {
+  thug:     { name:'打手 💪', emoji:'💪', desc:'街头斗殴专家', baseStat:3 },
+  spy:      { name:'情报员 👁️', emoji:'👁️', desc:'潜伏侦探', baseStat:3 },
+  hacker:   { name:'黑客 💻', emoji:'💻', desc:'网络入侵者', baseStat:3 },
+  assassin: { name:'杀手 🗡️', emoji:'🗡️', desc:'冷血刺客', baseStat:4 },
+  smuggler: { name:'走私犯 📦', emoji:'📦', desc:'物流专家', baseStat:3 },
+  bomber:   { name:'爆破手 💥', emoji:'💥', desc:'爆炸艺术家', baseStat:4 },
+  sniper:   { name:'狙击手 🎯', emoji:'🎯', desc:'远程猎杀', baseStat:4 },
+  medic:    { name:'医师 💊', emoji:'💊', desc:'战场医生', baseStat:2 },
+};
+const JOB_KEYS = Object.keys(JOBS);
+const MALE_NAMES = ['张伟','王磊','李强','刘洋','陈浩','赵宇','周杰','吴鹏','孙磊','黄超','马飞','朱涛','胡龙','郭石','林峰','何鸿','高远','罗星','梁云','宋杰'];
+const FEMALE_NAMES = ['李娜','王芳','张敏','刘洋','陈静','赵丽','周雪','吴婷','孙悦','黄莹','杨柳','徐蕾','林月','何晴','苏婉'];
+function randName(){return (Math.random()<0.5?MALE_NAMES:FEMALE_NAMES)[Math.floor(Math.random()*20)];}
+
+// ============================================================
+// 行动系统（15种行动，职业全匹配）
+// ============================================================
+const A = { // short alias for ALL_ACTIONS
+  extort:     { n:'街头勒索', d:'带人收保护费', i:'💢', j:['thug'], h:1, c:0, r:200, sk:80, ig:1, sc:3, il:0, st:0 },
+  hustle:     { n:'暗网交易', d:'在暗网倒卖情报和违禁品', i:'🌐', j:['spy','hacker'], h:1, c:0, r:350, sk:70, ig:2, sc:1, il:1, st:0 },
+  hit:        { n:'目标暗杀', d:'派遣杀手清除目标', i:'🎯', j:['assassin','sniper'], h:1, c:200, r:600, sk:65, ig:3, sc:4, il:2, st:0 },
+  turf:       { n:'黑帮火并', d:'抢夺地盘控制权', i:'🔥', j:['thug','bomber'], h:2, c:300, r:500, sk:60, ig:3, sc:5, il:1, st:0 },
+  darkweb:    { n:'窃取数据', d:'黑入企业数据库窃取机密', i:'💻', j:['hacker'], h:1, c:100, r:400, sk:65, ig:2, sc:2, il:3, st:0 },
+  corrupt:    { n:'腐蚀政客', d:'用金钱和把柄腐蚀官员', i:'🎩', j:[], h:1, c:500, r:800, sk:70, ig:5, sc:2, il:1, st:1, nj:1 },
+  blacktech:  { n:'黑市科技', d:'贩卖军火和禁运技术', i:'🔬', j:['hacker','smuggler'], h:1, c:400, r:700, sk:65, ig:3, sc:3, il:2, st:1 },
+  smuggle:    { n:'走私护送', d:'护送走私货物穿越边境', i:'🚛', j:['smuggler'], h:1, c:300, r:600, sk:70, ig:2, sc:1, il:1, st:1 },
+  ransom:     { n:'勒索富豪', d:'绑架富豪家属索要赎金', i:'💵', j:['thug','assassin'], h:2, c:400, r:1200, sk:55, ig:4, sc:6, il:2, st:1 },
+  intelShare: { n:'情报共享警方', d:'向警方提供情报换取庇护', i:'👮', j:[], h:0, c:0, r:0, sk:100, ig:-2, sc:-15, il:-3, st:2, nj:1, sp:1 },
+  infiltrate: { n:'渗透机构', d:'派人渗透政府或企业机构', i:'🕵️', j:['spy','hacker'], h:1, c:300, r:900, sk:55, ig:5, sc:5, il:4, st:2 },
+  jailbreak:  { n:'劫狱行动', d:'策划劫狱救出自己人', i:'⛓️', j:['thug','assassin','bomber','medic'], h:3, c:800, r:1500, sk:45, ig:4, sc:8, il:1, st:2 },
+  politicalKill:{ n:'政客暗杀', d:'暗杀敌对政客', i:'🗡️', j:['assassin','sniper'], h:1, c:1000, r:2000, sk:40, ig:8, sc:10, il:3, st:3 },
+  armsRaid:   { n:'军火夺取', d:'攻击军火库夺取装备', i:'💣', j:['thug','bomber'], h:2, c:600, r:1800, sk:50, ig:6, sc:7, il:2, st:3 },
+};
+
+// ============================================================
+// 20个随机事件 + 4个新增
+// ============================================================
+const EVENTS = [
+  { n:'👮 警方突袭', d:'警方突然查封了你的一个据点。', e:{s:-8,m:-200}, w:12 },
+  { n:'🕵️ 神秘买家', d:'一个匿名买家高价收购情报。', e:{i:-3,m:800}, w:8 },
+  { n:'🔪 地盘冲突', d:'隔壁帮派越界收保护费，你的人与他们发生了冲突。', e:{s:-5,f:-2,m:100}, w:10 },
+  { n:'🧒 街头弃儿', d:'你收留了一个流浪街头的少年。', e:{h:1}, w:8 },
+  { n:'🩸 内鬼暗杀', d:'组织内部出了叛徒！一名成员遇刺。', e:{h:-1,s:-5,no:5}, w:7 },
+  { n:'🎯 敌对杀手', d:'敌对势力派来杀手袭击你的总部。', e:{s:-10,h:-1}, w:8 },
+  { n:'🎲 意外收获', d:'在一次突击检查中意外发现了一批走私货物。', e:{m:1000}, w:6 },
+  { n:'📺 媒体曝光', d:'当地电视台报道了你的组织活动。', e:{no:8,s:-5}, w:7 },
+  { n:'🏙️ 城市规划', d:'市政府计划在你的地盘修建商业区。', e:{f:5,m:-300}, w:6 },
+  { n:'🌊 政界暗涌', d:'政界要员向你示好，希望建立合作关系。', e:{f:8,m:-200}, w:5 },
+  { n:'🎭 黑市拍卖', d:'地下黑市正在举办拍卖会，各种违禁品琳琅满目。', e:{m:-500,i:4,f:4}, w:7 },
+  { n:'🤝 帮派谈判', d:'敌对帮派提议停火谈判。', e:{s:10,f:-3}, w:6 },
+  { n:'📨 情报泄露', d:'组织内部情报被泄露给警方。', e:{s:-12,i:-2}, w:7 },
+  { n:'⚔️ 成员内讧', d:'两名成员因利益分配问题发生内讧。', e:{s:-4}, w:6 },
+  { n:'📋 市政邀请', d:'市政府邀请你参加城市规划会议。', e:{f:4,m:300}, w:5 },
+  { n:'🏦 银行大劫案', d:'一群不明身份的劫匪抢劫了银行。', e:{m:0}, w:4, ex:1 },
+  { n:'🦠 瘟疫蔓延', d:'一场瘟疫在城市蔓延，你的地下生意大受影响。', e:{m:-400,s:-5}, w:5 },
+  { n:'💾 技术泄密', d:'黑客同行盗取了你的加密数据库。', e:{m:-300,i:-3}, w:6 },
+  { n:'🥊 地下拳赛', d:'地下拳赛即将开幕，你可以派人参赛赢取奖金。', e:{m:600,h:-1}, w:5 },
+  { n:'🚧 交通管制', d:'警方开展交通管制严查走私通道。', e:{m:-200,s:-5}, w:6 },
 ];
-const TIERS = ['街头流言','区域情报','城市机密','高层黑料'];
-const TMULT = [1,2,4,8];
-const NAMES = ['夜鸦','毒蛇','幽灵','铁拳','魅影','狂犬','黑狐','剃刀','寒冰','荧焰','灰狼','蝎子','秃鹫','暗星','血手','骨锯'];
-const ROLES = ['打手','情报员','黑客','杀手','走私犯','爆破手','狙击手','医师'];
-const ENAMES = ['赤蛇帮','铁血会','暗影集团','黑水社','亡命徒联盟','血手堂'];
 
-// 情报内容库（按等级）
-const INTEL_STORIES = [
-  [
-    '街头传言赤蛇帮在码头搞了一批军火',
-    '有人在酒吧后巷看到一具尸体，没人报警',
-    '黑市上有人倒卖警用装备',
-    '铁血会的打手最近在收保护费，价格翻倍',
-    '听说警方最近在调查什么大案',
-    '废车场晚上经常有不明车辆进出',
-    'XX街的夜店背后有组织操控',
-  ],
-  [
-    '赤蛇帮的据点在城东工业区3号仓库',
-    '铁血会跟海关的人有勾结',
-    '警方下周三会在北区进行一次扫毒行动',
-    '黑水社最近在大量收购武器',
-    '市政府的城建项目有黑钱流入',
-    '暗影集团的洗钱渠道经过几家虚拟币交易所',
-  ],
-  [
-    '某位市议员跟黑水社有资金往来记录',
-    '警方内部有人向地下世界通风报信',
-    '铁血会的头目下月会去澳门谈生意',
-    '国际刑警注意到了这座城市的地下活动',
-    '有一批军用级加密通讯设备在黑市流通',
-    '市长竞选资金中有30%来自不明来源',
-  ],
-  [
-    '国安部门已经渗透进本市的金融系统',
-    '三家银行的高管与地下组织有利益输送',
-    '警方高层有人参与了洗钱网络',
-    '下个月的G20峰会期间全城戒严，地下世界将迎来洗牌',
-    '某财团计划通过收购合法企业来洗白地下资产',
-  ]
+// ============================================================
+// 情报-行动联动（4种特殊情报）
+// ============================================================
+const INTEL_TYPES = [
+  { id:'cargo', name:'帮派物资线', desc:'情报显示下游帮派正在运输一批军火物资。', actionType:'intercept', actionName:'截货行动 🚚', icon:'🚚' },
+  { id:'deal', name:'非法交易情报', desc:'情报显示某处即将进行大宗非法交易。', actionType:'report', actionName:'举报交易 📞', icon:'📞' },
+  { id:'meeting', name:'秘密集会', desc:'敌对势力高层正在秘密集会。', actionType:'raid', actionName:'突袭集会 💣', icon:'💣' },
+  { id:'cache', name:'藏匿点', desc:'情报指向一个敌对势力的物资藏匿点。', actionType:'seize', actionName:'查抄藏匿点 🔍', icon:'🔍' },
 ];
+let activeIntelActions = [];
 
-// 职业-任务匹配
-const MISSION_MATCH = {
-  '街头勒索': ['打手','爆破手'],
-  '暗网交易': ['情报员','黑客'],
-  '黑帮火并': ['打手','爆破手','杀手'],
-  '目标暗杀': ['杀手','狙击手'],
-  '走私护送': ['走私犯','打手'],
-  '勒索富豪': ['打手','情报员'],
-  '劫狱行动': ['打手','爆破手','杀手','医师'],
-  '渗透机构': ['情报员','黑客'],
-  '政客暗杀': ['狙击手','杀手'],
-  '军火夺取': ['爆破手','打手','杀手'],
-};
-const MATCH_DISPLAY = {
-  '街头勒索':'💪打手/💥爆破手','暗网交易':'👁️情报员/💻黑客','黑帮火并':'💪打手/💥爆破手/🗡️杀手',
-  '目标暗杀':'🗡️杀手/🎯狙击手','走私护送':'📦走私犯/💪打手','勒索富豪':'💪打手/👁️情报员',
-  '劫狱行动':'💪打手/💥爆破手/🗡️杀手/💊医师','渗透机构':'👁️情报员/💻黑客',
-  '政客暗杀':'🎯狙击手/🗡️杀手','军火夺取':'💥爆破手/💪打手/🗡️杀手',
-};
-
-// ============================
-//  HELPERS
-// ============================
-const rng=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
-const pick=a=>a[Math.floor(Math.random()*a.length)];
-const clamp=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
-
-function hands(){ return G.members.filter(m=>m.alive).length; }
-
-// ============================
-//  LOG & MODAL
-// ============================
-function addLog(m,t='info'){
-  G.logs.unshift({m,t});
-  document.getElementById('log-scroll').innerHTML=G.logs.slice(0,20).map(l=>`<span class="log-chip ${l.t}">${l.m}</span>`).join('');
+// ============================================================
+// 工具函数
+// ============================================================
+function R(m,M){return Math.floor(Math.random()*(M-m+1))+m}
+function C(v,mn,mx){return Math.max(mn,Math.min(mx,v))}
+function log(msg,t){
+  const el=document.getElementById('logBar');
+  const c=t==='g'?'log-good':t==='b'?'log-bad':'log-info';
+  el.innerHTML=`<span class="log-time">[T${G.turn}]</span><span class="${c}">${msg}</span>`;
 }
-function showModal(t,x){document.getElementById('modal-t').textContent=t;document.getElementById('modal-x').innerHTML=x;document.getElementById('modal').classList.add('show')}
-function closeModal(id){document.getElementById(id).classList.remove('show')}
-
-function showEvent(t,d,cs){
-  document.getElementById('ev-t').textContent=t;document.getElementById('ev-d').innerHTML=d;
-  document.getElementById('ev-c').innerHTML=cs.map(c=>`<button class="btn" onclick="resE(${c.idx})">${c.text}</button>`).join('');
-  window._ec=cs;document.getElementById('ev-modal').classList.add('show')
+function ui(){
+  document.getElementById('rMoney').textContent=G.money;
+  document.getElementById('rIntel').textContent=G.intel;
+  document.getElementById('rInf').textContent=G.influence;
+  document.getElementById('rSafe').textContent=G.safety;
+  document.getElementById('rHand').textContent=G.hands+'/'+G.handLimit;
+  document.getElementById('rNoto').textContent=G.notoriety;
+  document.getElementById('rBase').textContent=G.baseLevel;
+  document.getElementById('stageBadge').textContent=G.stageNames[G.stage];
+  document.getElementById('rMoney').className='val'+(G.money<=0?' danger':'');
+  document.getElementById('rSafe').className='val'+(G.safety<=20?' danger':G.safety>=80?' good':'');
+  document.getElementById('rInf').className='val'+(G.influence>=80?' good':'');
+  document.getElementById('rIntel').className='val'+(G.intel<=0?' danger':'');
 }
-function resE(idx){const c=window._ec.find(x=>x.idx===idx);if(c&&c.fn)c.fn(G);document.getElementById('ev-modal').classList.remove('show');updateUI()}
+function modal(h){document.getElementById('modalContent').innerHTML=h;document.getElementById('modalOverlay').classList.add('active');}
+function closeM(){document.getElementById('modalOverlay').classList.remove('active');}
+document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeM();});
 
-// ============================
-//  MEMBER SYSTEM
-// ============================
-function recruit(){
-  if(G.money<500){showModal('资金不足','需要 $500 才能招募');return}
-  if(G.members.filter(m=>m.alive).length>=G.maxMem){showModal('人手已满','扩建据点可提升人手上限');return}
-  G.money-=500;
-  const name=pick(NAMES.filter(n=>!G.members.some(m=>m.name===n))||NAMES);
-  const role=pick(ROLES);
-  const skill=rng(1,10)+G.phase*2;
-  const loyal=rng(30,70);
-  G.members.push({name,role,skill,loyal,alive:true,missions:0,kills:0});
-  addLog(`招募「${name}」${role} ⚡${skill} ♥${loyal}`,'success');
-  showModal('✅ 招募成功',`「${name}」加入组织<br>职业：${role}<br>能力：${skill}  忠诚：${loyal}`);
-  updateUI();
+function newMember(){
+  const k=JOB_KEYS[R(0,JOB_KEYS.length-1)],j=JOBS[k];
+  G.memberIdSeq++;
+  return {id:G.memberIdSeq,name:randName(),jobKey:k,jobName:j.name,jobEmoji:j.emoji,
+    stat:C(j.baseStat+R(-1,1),1,6),loyalty:50+R(0,30),
+    missions:0,kills:0,alive:1,
+    xp:0,level:1,ap:G.maxAp};
 }
 
-function killMember(reason){
+// 行动力系统
+function resetMemberAp(){
+  G.members.forEach(m=>{if(m.alive)m.ap=G.maxAp+Math.floor(m.level/3);});
+}
+
+// 等级系统
+function addXp(member,amount){
+  if(!member||!member.alive)return;
+  member.xp+=amount;
+  const needed=member.level*20;
+  let lvup='';
+  while(member.xp>=needed&&member.level<20){
+    member.xp-=needed;
+    member.level++;
+    member.stat=C(member.stat+1,1,15);
+    lvup+=member.level+'→';
+  }
+  if(lvup)log(`⭐ ${member.name} 升级到 Lv.${member.level}！能力+1`,'g');
+}
+
+function getMemberStat(member){
+  if(!member)return 1;
+  return member.stat+Math.floor(member.level/3);
+}
+
+function getActs(){
+  const s=new Set(['extort','hustle','hit','turf','darkweb']);
+  if(G.stage>=1){s.add('corrupt');s.add('blacktech');s.add('smuggle');s.add('ransom');}
+  if(G.stage>=2){s.add('intelShare');s.add('infiltrate');s.add('jailbreak');}
+  if(G.stage>=3){s.add('politicalKill');s.add('armsRaid');}
+  return s;
+}
+
+function tabSwitch(id){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+}
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{tabSwitch(b.dataset.tab);renderAll();}));
+
+function renderAll(){renderOverview();renderIntel();renderActions();renderMembers();renderEnemies();renderDevelop();ui();}
+
+// ============================================================
+// Game Over检查 + 结局
+// ============================================================
+function checkGO(){
+  if(G.gameOver) return 1;
+  if(G.turn<=G.protection) return 0;
+  if(G.money<=0&&G.hands<=0&&G.safety<=0){G.gameOver=1;G.endingType='collapse';end();return 1}
+  if(G.money<=-3000){G.gameOver=1;G.endingType='bankrupt';end();return 1}
+  return 0;
+}
+
+function end(){
+  const s=G.stage,sf=G.safety,inf=G.influence,mon=G.money,no=G.notoriety;
+  const st=`回合数: ${G.turn} | 影响力: ${inf} | 安全度: ${sf} | 资金: $${mon} | 恶名: ${no}`;
+  let ti,de;
+  if(G.endingType==='collapse'){ti='💀 组织覆灭';de='你的组织在各方势力的绞杀下彻底覆灭。人手散尽，资金枯竭，据点尽失...'}
+  else if(G.endingType==='bankrupt'){ti='💸 破产倒闭';de='负债累累，债主上门。你的组织因为资金链断裂而宣告破产。'}
+  else if(G.endingType==='empire'){ti='🏰 地下帝国';de='你建立了一个横跨城市的地下帝国！从街头小混混到地下世界的无冕之王。'}
+  else if(G.endingType==='retire'){ti='🤝 金盆洗手';de='在声望达到顶峰之时，你选择了全身而退。这是最体面的结局。'}
+  else if(G.endingType==='kingpin'){ti='👑 幕后之王';de='经过漫长的斗争，你成为了这座城市真正的幕后操盘手。'}
+  else if(G.endingType==='outlaw'){ti='🔥 全城公敌';de='你的恶名响彻全城！你是这座城市的公敌。'}
+  modal(`<div class="ending-card"><div class="ending-title">${ti}</div><div class="ending-desc">${de}</div><div class="ending-stats">${st}</div><button class="btn btn-primary" onclick="restart()">🔄 重新开始</button></div>`);
+}
+
+function restart(){
+  closeM();
+  G.money=3000;G.intel=10;G.influence=15;G.safety=80;G.hands=3;G.notoriety=0;
+  G.baseLevel=1;G.handLimit=6;G.turn=1;G.stage=0;G.gameOver=0;G.endingType=null;G.protection=10;
+  G.members=[];G.memberIdSeq=0;G.enemies=[];activeIntelActions=[];G.eventCooldown=0;
+  for(let i=0;i<3;i++){const m=newMember();m.loyalty=80;G.members.push(m);}
+  spawnEnemies(3);log('🔄 游戏已重置！','g');renderAll();
+}
+
+// ============================================================
+// 核心循环
+// ============================================================
+function nextTurn(){
+  if(G.gameOver) return;
+  if(G.protection>0) G.protection--;
+  G.turn++;
+  resetMemberAp(); // 重置行动力
+  const pi=G.influence*5+G.baseLevel*50;
+  G.money+=pi;
+  log(`📈 回合收入: +$${pi}`,'g');
+  if(G.safety<50&&G.safety>0)G.safety=C(G.safety+Math.floor((50-G.safety)/10)+1,0,100);
+  if(G.notoriety>30)G.notoriety=Math.max(0,G.notoriety-1);
+  G.members.forEach(m=>{if(m.alive&&m.loyalty>20&&Math.random()<0.1)m.loyalty=Math.max(10,m.loyalty-R(1,3));});
+  G.members.forEach(m=>{if(m.alive&&m.loyalty<=15&&Math.random()<0.15){m.alive=0;G.hands=Math.max(0,G.hands-1);log(`😠 ${m.name} 叛逃了！`,'b');}});
+  if(G.eventCooldown<=0&&Math.random()<0.55){trigEvent();G.eventCooldown=R(1,2);}else if(G.eventCooldown>0)G.eventCooldown--;
+  if(G.turn%5===0&&G.enemies.length<6)spawnEnemies(1);
+  if(Math.random()<0.4)genIntel();
+  checkStage();
+  if(checkGO()) return;
+  if(G.hands<=1||G.money<=500||G.safety<=20){let m='⚠️ ';if(G.hands<=1)m+='人手不足！';if(G.money<=500)m+='资金紧张！';if(G.safety<=20)m+='安全度告急！';log(m,'b');}
+  renderAll();
+}
+
+// ============================================================
+// 阶段升级
+// ============================================================
+function checkStage(){
+  if(G.stage===0&&G.influence>=20){
+    G.stage=1;G.money+=3000;G.influence+=20;G.safety=C(G.safety+15,0,100);G.handLimit+=5;
+    log('🏆 阶段1: 区域势力！解锁大量行动','g');
+    for(let i=0;i<2;i++){G.members.push(newMember());G.hands++;}
+    spawnEnemies(2);renderAll();return;
+  }
+  if(G.stage===1&&G.influence>=50&&G.baseLevel>=2){
+    G.stage=2;G.money+=6000;G.influence+=25;G.safety=C(G.safety+20,0,100);G.handLimit+=8;
+    log('🏆 阶段2: 城市组织！解锁渗透/劫狱','g');
+    for(let i=0;i<3;i++){G.members.push(newMember());G.hands++;}
+    renderAll();return;
+  }
+  if(G.stage===2&&G.influence>=80&&G.baseLevel>=4){
+    G.stage=3;G.money+=12000;G.influence+=30;G.safety=C(G.safety+25,0,100);G.handLimit+=10;
+    log('🏆 阶段3: 地下帝国！解锁暗杀/军火','g');
+    for(let i=0;i<3;i++){G.members.push(newMember());G.hands++;}
+    renderAll();return;
+  }
+  if(G.stage>=3&&G.influence>=120&&G.baseLevel>=6&&G.money>=20000){G.gameOver=1;G.endingType='empire';end();}
+  else if(G.safety>=95&&G.influence>=80&&G.stage>=2&&!G.gameOver){G.gameOver=1;G.endingType='retire';end();}
+  else if(G.turn>=60&&G.influence>=80&&!G.gameOver){G.gameOver=1;G.endingType='kingpin';end();}
+  else if(G.notoriety>=100&&!G.gameOver){G.gameOver=1;G.endingType='outlaw';end();}
+}
+
+// ============================================================
+// 事件触发
+// ============================================================
+function trigEvent(){
+  const p=EVENTS.filter(e=>e.w>0);
+  let tw=0;p.forEach(e=>tw+=e.w);let r=Math.random()*tw,ev=p[0];
+  for(const e of p){r-=e.w;if(r<=0){ev=e;break;}}
+  if(!ev)return;
+  if(ev.ex){if(G.hands>=1&&Math.random()<0.5){const g=R(500,1500);G.money+=g;G.notoriety+=5;log(`🏦 浑水摸鱼捞了$${g}`,'g');}else log('🏦 银行劫案，静观其变。','i');return;}
+  const ef=ev.e;
+  let m=ev.d,mt='i';
+  if(ef.m){G.money+=ef.m;mt=ef.m>0?'g':'b';m+=ef.m>0?' (+$'+ef.m+')':' ($'+ef.m+')';}
+  if(ef.s){G.safety=C(G.safety+ef.s,0,100);m+=ef.s>0?' 安全+'+ef.s:' 安全'+ef.s;}
+  if(ef.f){G.influence+=ef.f;m+=ef.f>0?' 影响+'+ef.f:' 影响'+ef.f;}
+  if(ef.i){G.intel=Math.max(0,G.intel+ef.i);m+=ef.i>0?' 情报+'+ef.i:' 情报'+ef.i;}
+  if(ef.h){
+    if(ef.h>0){const n=newMember();n.loyalty=85;G.members.push(n);G.hands=Math.min(G.handLimit,G.hands+1);m+=' 新人:'+n.name;mt='g';}
+    else{const a=G.members.filter(m=>m.alive);if(a.length>0){const v=a[R(0,a.length-1)];v.alive=0;G.hands=Math.max(0,G.hands-1);m+=' '+v.name+'牺牲';}mt='b';}
+  }
+  if(ef.no){G.notoriety+=ef.no;m+=' 恶名+'+ef.no;}
+  log(`🌍 ${ev.n}: ${m}`,mt);
+}
+
+// ============================================================
+// 敌对系统
+// ============================================================
+function spawnEnemies(n){
+  const ns=['血狼帮','暗影会','铁拳组织','白蛇堂','黑水集团','死神镰刀','幽灵社','狂徒帮','天眼组','黑手党'];
+  for(let i=0;i<n;i++){
+    const na=ns[R(0,ns.length-1)],pow=Math.max(1,Math.floor(G.turn/5+R(0,3)));
+    G.enemies.push({id:Date.now()+Math.random(),name:na,power:pow,threat:pow<=4?'low':pow<=8?'mid':'high',influence:pow*2,alive:1});
+    log(`⚔️ 敌对势力: ${na} (战力${pow})`,'b');
+  }
+}
+
+// ============================================================
+// 情报行动
+// ============================================================
+function genIntel(){
+  if(activeIntelActions.length>=3)return;
+  const t=INTEL_TYPES[R(0,INTEL_TYPES.length-1)];
+  activeIntelActions.push({id:Date.now()+Math.random(),...t,used:0,reward:R(300,800)});
+  log(`📨 新情报行动: ${t.actionName}`,'g');
+}
+
+function doIntel(iaId){
+  const ia=activeIntelActions.find(a=>a.id==iaId);if(!ia||ia.used)return;
+  const alive=G.members.filter(m=>m.alive);if(!alive.length){modal('<p>无可用成员</p><button class="btn btn-primary btn-sm" onclick="closeM()">关闭</button>');return}
+  const withAp=alive.filter(m=>m.ap>=1);
+  if(!withAp.length){log('⏳ 所有成员行动力已用完','b');return}
+  const mh=withAp.map(m=>{
+    const ok=(ia.actionType==='intercept'&&['thug','bomber','assassin'].includes(m.jobKey))||
+             ia.actionType==='report'||(ia.actionType==='raid'&&['thug','bomber','assassin','sniper'].includes(m.jobKey))||
+             (ia.actionType==='seize'&&['spy','hacker','thug'].includes(m.jobKey));
+    return `<div class="member-card" style="cursor:pointer${ok?'':';opacity:.5'}" onclick="execIntel(${ia.id},${m.id})">
+      <div class="avatar">${m.jobEmoji}</div><div class="mname">${m.name}</div><div class="mjob">Lv.${m.level} ${m.jobName}</div>
+      <div class="mstats">⚡${getMemberStat(m)} AP:${m.ap}</div>
+      ${ok?'<div style="color:#2ed573">✅</div>':'<div style="color:#555">❌</div>'}</div>`;
+  }).join('');
+  modal(`<h3>${ia.actionName}</h3><p>${ia.desc}</p><p style="color:#f39c12;font-size:12px">选择匹配的成员：</p><div class="member-grid">${mh}</div><div class="mt-8"><button class="btn btn-light btn-sm" onclick="closeM()">取消</button></div>`);
+}
+
+function execIntel(iaId,mid){
+  closeM();const ia=activeIntelActions.find(a=>a.id==iaId);if(!ia||ia.used)return;
+  const m=G.members.find(m=>m.id==mid);if(!m||!m.alive)return;
+  ia.used=1;
+  let bc=50;
+  if(ia.actionType==='intercept'&&['thug','bomber','assassin'].includes(m.jobKey))bc+=15;
+  else if(ia.actionType==='report')bc+=10;
+  else if(ia.actionType==='raid'&&['thug','bomber','assassin','sniper'].includes(m.jobKey))bc+=15;
+  else if(ia.actionType==='seize'&&['spy','hacker','thug'].includes(m.jobKey))bc+=15;
+  const roll=R(1,100);
+  if(roll<=bc){
+    const rw=ia.reward||500;G.money+=rw;G.intel+=R(1,3);m.missions++;
+    let msg='';
+    if(ia.actionType==='report'){G.safety=C(G.safety+10,0,100);G.notoriety=Math.max(0,G.notoriety-3);msg=`举报成功！安全+10 恶名-3 +$${rw}`;}
+    else if(ia.actionType==='intercept'){G.money+=200;G.intel+=2;msg=`截货成功！+$${rw+200} 情报+2`;}
+    else if(ia.actionType==='raid'){G.influence+=3;let xt='缴获大量物资';if(G.enemies.length>0&&Math.random()<0.4){const t=G.enemies[R(0,G.enemies.length-1)];t.power=Math.max(0,t.power-R(1,3));xt='重创'+t.name;}G.money+=300;msg=`突袭成功！${xt} +$${rw+300}`;}
+    else if(ia.actionType==='seize'){G.influence+=2;G.money+=400;msg=`查抄成功！+$${rw+400}`;}
+    m.kills+=R(0,1);log(`🏆 ${ia.actionName}成功！${msg}`,'g');
+  }else{
+    G.money=Math.max(0,G.money-200);G.safety=C(G.safety-5,0,100);G.notoriety+=3;
+    if(Math.random()<0.3){G.hands=Math.max(0,G.hands-1);m.alive=0;log(`💀 ${ia.actionName}失败！${m.name}牺牲`,'b');}
+    else{m.loyalty=Math.max(5,m.loyalty-10);log(`❌ ${ia.actionName}失败！损失$200 ${m.name}忠诚下降`,'b');}
+  }
+  renderAll();
+}
+
+// ============================================================
+// 执行行动
+// ============================================================
+function doAction(key){
+  if(G.gameOver)return;
+  const act=A[key];if(!act)return;
+  const u=getActs();if(!u.has(key)){log('🔒 未解锁','i');return}
+  if(key==='intelShare'){
+    if(G.intel<3){log('❌ 需要3份情报','b');return}
+    G.intel-=3;G.safety=C(G.safety+15,0,100);G.influence=Math.max(0,G.influence-2);
+    log('👮 情报共享警方，安全+15','g');renderAll();return;
+  }
   const alive=G.members.filter(m=>m.alive);
-  if(!alive.length)return false;
-  const victim=pick(alive);
-  victim.alive=false;G.members=G.members.filter(m=>m.alive);
-  addLog(`💀 ${victim.name} ${reason}`,'warning');
-  showModal('💀 成员死亡',`${victim.name}（${victim.role}）<br>${reason}`);
-  return true;
+  if(alive.length<act.h){log(`❌ 需要至少${act.h}名成员`,'b');return}
+  if(G.money<act.c){log(`❌ 需要$${act.c}`,'b');return}
+  if(act.nj){execDirect(key,null);return}
+  const suit=alive.filter(m=>m.jobKey&&act.j&&act.j.includes(m.jobKey));
+  if(suit.length<act.h){log(`❌ 无足够匹配成员 (${act.j.map(j=>JOBS[j]?.emoji||'').join('')})`,'b');return}
+  const mh=suit.filter(m=>m.ap>=1).map(m=>`<div class="member-card" style="cursor:pointer" onclick="execWithMem('${key}',${m.id})">
+    <div class="avatar">${m.jobEmoji}</div><div class="mname">${m.name}</div><div class="mjob">${m.jobName} Lv.${m.level}</div>
+    <div class="mstats">⚡${getMemberStat(m)} 忠${m.loyalty}</div><div style="font-size:11px;color:${m.ap>=2?'#2ed573':m.ap===1?'#f39c12':'#ff4757'}">⏱ AP:${m.ap}</div></div>`).join('');
+  if(mh.length===0){log('❌ 所有匹配成员行动力已用完，等下一回合吧','b');return}
+  modal(`<h3>${act.i} ${act.n}</h3><p>${act.d}</p><p style="color:#f39c12;font-size:12px">选择成员：</p><div class="member-grid">${mh}</div><div class="mt-8"><button class="btn btn-light btn-sm" onclick="closeM()">取消</button></div>`);
 }
 
-// 成员互动
-function showMemberDetail(idx){
-  const m=G.members.filter(mm=>mm.alive)[idx];
-  if(!m)return;
-  const em={'打手':'💪','情报员':'👁️','黑客':'💻','杀手':'🗡️','走私犯':'📦','爆破手':'💥','狙击手':'🎯','医师':'💊'};
-  document.getElementById('mm-t').textContent=em[m.role]+' '+m.name;
-  document.getElementById('mm-body').innerHTML=`
-    <div style="font-size:0.82em;line-height:2">
-      职业：${m.role}<br>
-      能力：⚡${m.skill}<br>
-      忠诚：♥${m.loyal}<br>
-      任务执行：${m.missions}次<br>
-      击杀：${m.kills}人<br>
-      <div style="margin-top:6px;font-size:0.72em;color:#555">
-        💡 忠诚度影响：低忠诚成员可能叛变或逃跑
-      </div>
-    </div>
-  `;
-  let btns = `<button class="btn gray" onclick="closeModal('member-modal')">关闭</button>`;
-  if(m.loyal<90) btns += `<button class="btn green" onclick="boostLoyal(${idx})">💖 发奖金 +10忠诚（$300）</button>`;
-  btns += `<button class="btn danger" onclick="fireMember(${idx})">🚫 开除</button>`;
-  document.getElementById('mm-btns').innerHTML = btns;
-  document.getElementById('member-modal').classList.add('show');
+function execWithMem(key,mid){closeM();const m=G.members.find(m=>m.id==mid);if(!m||!m.alive)return;execDirect(key,m);}
+
+function execDirect(key,member){
+  const act=A[key];if(!act)return;if(act.c&&G.money<act.c){log('❌ 资金不足','b');return}
+  G.money-=act.c;
+  let bc=act.sk;
+  if(member){bc+=member.stat*5;if(member.loyalty>=80)bc+=5;else if(member.loyalty<=20)bc-=10;}
+  const roll=R(1,100);
+  if(roll<=bc){
+    G.money+=act.r;G.influence+=act.ig;G.intel+=act.il;G.safety=C(G.safety-act.sc,0,100);
+    if(member){member.missions++;member.kills+=R(0,act.j&&act.j.includes('assassin')?2:1);member.loyalty=C(member.loyalty+R(1,3),0,100);}
+    log(`✅ ${act.n}成功！+$${act.r} +${act.ig}影响${act.il?' +'+act.il+'情报':''}${act.sc?' -'+act.sc+'安全':''}`,'g');
+  }else{
+    const pn=Math.floor(act.r*0.3);G.money=Math.max(0,G.money-pn);G.safety=C(G.safety-act.sc-2,0,100);
+    if(member)member.loyalty=Math.max(5,member.loyalty-R(3,6));
+    if(Math.random()<0.2&&member){G.hands=Math.max(0,G.hands-1);member.alive=0;log(`💀 ${act.n}失败！${member.name}牺牲`,'b');}
+    else log(`❌ ${act.n}失败！损失$${pn}${member?'，忠诚下降':''}`,'b');
+  }
+  G.notoriety+=act.ig;renderAll();
 }
 
-function boostLoyal(idx){
-  const m=G.members.filter(mm=>mm.alive)[idx];
-  if(!m)return;
-  if(G.money<300){showModal('资金不足','发奖金需要 $300');return}
-  G.money-=300;m.loyal=Math.min(100,m.loyal+10);
-  addLog(`给${m.name}发奖金，忠诚+10`,'success');
-  document.getElementById('member-modal').classList.remove('show');
-  updateUI();
+// ============================================================
+// 成员管理
+// ============================================================
+function recruitMember(){
+  if(G.money<500){log('❌ 需要$500','b');return}
+  if(G.hands>=G.handLimit){log('❌ 人手已满','b');return}
+  G.money-=500;const m=newMember();m.loyalty=70;G.members.push(m);G.hands++;
+  log(`👤 ${m.name} (${m.jobName}) 加入`,'g');renderAll();
+}
+function showMember(mid){
+  const m=G.members.find(m=>m.id==mid);if(!m)return;
+  const xpNeeded=m.level*20;
+  modal(`<h3>${m.jobEmoji} ${m.name}</h3><div class="card">
+    <div class="flex-between"><span>职业</span><span style="color:#f39c12">${m.jobName}</span></div>
+    <div class="flex-between mt-8"><span>等级</span><span style="color:#a78bfa">Lv.${m.level}</span></div>
+    <div class="progress-bar"><div class="progress-fill gold" style="width:${m.xp/xpNeeded*100}%"></div></div><div class="faint">经验 ${m.xp}/${xpNeeded}</div>
+    <div class="flex-between mt-8"><span>战力</span><span style="color:#2ed573">⚡${getMemberStat(m)}</span></div>
+    <div class="flex-between mt-8"><span>行动力</span><span style="color:${m.ap>=2?'#2ed573':m.ap===1?'#f39c12':'#ff4757'}">⏱ ${m.ap}/${G.maxAp+Math.floor(m.level/3)}</span></div>
+    <div class="flex-between mt-8"><span>忠诚</span><span style="color:${m.loyalty<30?'#ff4757':m.loyalty<60?'#f39c12':'#2ed573'}">${m.loyalty}</span></div>
+    <div class="progress-bar"><div class="progress-fill ${m.loyalty<30?'red':m.loyalty<60?'gold':'green'}" style="width:${m.loyalty}%"></div></div>
+    <div class="flex-between mt-8"><span>任务</span><span>${m.missions}次</span></div>
+    <div class="flex-between mt-8"><span>击杀</span><span>${m.kills}人</span></div>
+    <div class="flex-between mt-8"><span>状态</span><span style="color:${m.alive?'#2ed573':'#ff4757'}">${m.alive?'存活':'阵亡'}</span></div>
+  </div>${m.alive?`<div class="gap-6"><button class="btn btn-success btn-sm" onclick="giveB(${m.id})">🎁 奖金$300</button><button class="btn btn-warning btn-sm" onclick="closeM();showFire(${m.id})">🚫 开除</button></div>`:''}<div class="mt-8"><button class="btn btn-light btn-sm" onclick="closeM()">关闭</button></div>`);
+}
+function giveB(mid){
+  const m=G.members.find(m=>m.id==mid);if(!m||!m.alive)return;
+  if(G.money<300){log('❌ 资金不足','b');return}
+  G.money-=300;m.loyalty=C(m.loyalty+10,0,100);log(`🎁 ${m.name}忠诚+10`,'g');
+  showMember(mid);renderAll();
+}
+function showFire(mid){
+  const m=G.members.find(m=>m.id==mid);
+  modal(`<h3>⚠️ 确认开除</h3><p>确认开除 ${m.jobEmoji} ${m.name}？</p><div class="gap-6 mt-8"><button class="btn btn-danger btn-sm" onclick="fireM(${mid})">确认</button><button class="btn btn-light btn-sm" onclick="closeM()">取消</button></div>`);
+}
+function fireM(mid){closeM();const m=G.members.find(m=>m.id==mid);if(!m||!m.alive)return;m.alive=0;G.hands=Math.max(0,G.hands-1);log(`🚫 ${m.name}被开除`,'i');renderAll();}
+
+// ============================================================
+// 发展
+// ============================================================
+function upBase(){const c=G.baseLevel*800;if(G.money<c){log(`❌ 需要$${c}`,'b');return}G.money-=c;G.baseLevel++;G.safety=C(G.safety+5,0,100);G.handLimit+=3;log(`🏛️ 据点Lv${G.baseLevel}`,'g');renderAll();}
+function invSafe(){if(G.money<500){log('❌ 需要$500','b');return}G.money-=500;G.safety=C(G.safety+10,0,100);log('🛡️ 安全+10','g');renderAll();}
+function buyInt(){if(G.money<200){log('❌ 需要$200','b');return}G.money-=200;const g=R(2,4);G.intel+=g;log(`📜 情报+${g}`,'g');renderAll();}
+function expInf(){if(G.money<600){log('❌ 需要$600','b');return}G.money-=600;G.influence+=5;log('👑 影响力+5','g');renderAll();}
+function cleanNoto(){if(G.money<400){log('❌ 需要$400','b');return}G.money-=400;G.notoriety=Math.max(0,G.notoriety-5);log('😇 恶名-5','g');renderAll();}
+
+// ============================================================
+// 战斗
+// ============================================================
+function attackEnemy(eid){
+  const e=G.enemies.find(e=>e.id==eid);if(!e)return;
+  const alive=G.members.filter(m=>m.alive);if(alive.length<2){log('❌ 需要至少2人','b');return}
+  let op=0;alive.forEach(m=>op+=m.stat);
+  const win=(op*2+R(1,20))>(e.power*4+R(1,20));
+  if(win){
+    G.money+=e.power*150;G.influence+=3;G.safety=C(G.safety-3,0,100);G.notoriety+=3;
+    alive.forEach(m=>{if(Math.random()<0.12){G.hands=Math.max(0,G.hands-1);m.alive=0;log(`💀 ${m.name}牺牲`,'b');}else{m.missions++;m.kills+=R(1,3);m.loyalty=C(m.loyalty+2,0,100);}});
+    log(`⚔️ 击败${e.name}！+$${e.power*150}`,'g');
+    G.enemies=G.enemies.filter(x=>x.id!=eid);
+  }else{
+    G.safety=C(G.safety-8,0,100);G.notoriety+=2;G.money=Math.max(0,G.money-300);
+    if(Math.random()<0.2){const v=alive[R(0,alive.length-1)];G.hands=Math.max(0,G.hands-1);v.alive=0;log(`💀 攻击${e.name}失败！${v.name}牺牲`,'b');}
+    else log(`❌ 攻击${e.name}失败！-8安全`,'b');
+    e.power+=R(1,2);
+  }
+  renderAll();
 }
 
-function fireMember(idx){
-  const m=G.members.filter(mm=>mm.alive)[idx];
-  if(!m)return;
-  if(!confirm('确定要开除 '+m.name+' 吗？'))return;
-  m.alive=false;G.members=G.members.filter(mm=>mm.alive);
-  addLog(`开除了 ${m.name}`,'info');
-  document.getElementById('member-modal').classList.remove('show');
-  updateUI();
+// ============================================================
+// 销售情报
+// ============================================================
+function sellIntel(){
+  if(G.intel<=0){log('❌ 无情报可卖','b');return}
+  G.money+=G.intel*150;log(`💰 出售${G.intel}份情报，+$${G.intel*150}`,'g');G.intel=0;renderAll();
+}
+
+// ============================================================
+// 渲染
+// ============================================================
+function renderOverview(){
+  const el=document.getElementById('overviewContent');
+  const prt=G.protection>0?`🛡️ 保护期 ${G.protection}回合`:'⚠️ 保护期结束';
+  let nr='';
+  if(G.stage===0)nr='阶段1: 影响力≥20 (现在'+G.influence+')';
+  else if(G.stage===1)nr='阶段2: 影响力≥50 据点≥2级 (影响'+G.influence+' 据点Lv'+G.baseLevel+')';
+  else if(G.stage===2)nr='阶段3: 影响力≥80 据点≥4级 (影响'+G.influence+' 据点Lv'+G.baseLevel+')';
+  else nr='帝国: 影响120+ 据点6+ 资金2万+';
+  let pv=0;
+  if(G.stage===0)pv=C(G.influence/20*100,0,100);
+  else if(G.stage===1)pv=C((G.influence/50*100+G.baseLevel/2*100)/2,0,100);
+  else if(G.stage===2)pv=C((G.influence/80*100+G.baseLevel/4*100)/2,0,100);
+  else pv=C((G.influence/120*100+G.baseLevel/6*100+G.money/20000*100)/3,0,100);
+  let ul='';
+  if(G.stage<3){ul='<div class="unlock-info"><div class="ui-title">🔓 下阶段解锁</div><div class="ui-list">';
+    if(G.stage===0)ul+='腐蚀政客、黑市科技、走私护送、勒索富豪';else if(G.stage===1)ul+='情报共享警方、渗透机构、劫狱行动';else ul+='政客暗杀、军火夺取';ul+='</div></div>';}
+  el.innerHTML=`<div class="card"><div class="flex-between"><span class="card-title">📊 第${G.turn}回合</span><span style="color:#888;font-size:12px">${prt}</span></div></div>
+    <div class="card"><div class="card-title">🏛️ ${G.stageNames[G.stage]}</div><div class="progress-bar mt-8"><div class="progress-fill red" style="width:${Math.min(100,G.influence/120*100)}%"></div></div></div>
+    <div class="card"><div class="flex-between"><span class="card-title">🎯 目标</span><span style="color:#f39c12">${Math.floor(pv)}%</span></div><div class="progress-bar"><div class="progress-fill gold" style="width:${pv}%"></div></div><div class="card-sub mt-8">${nr}</div></div>${ul}
+    <div class="card"><div class="card-title">🏁 结局</div><div style="font-size:12px;color:#888;line-height:1.8">🏰 帝国: 阶段4+2万+6级<br>🤝 洗手: 安全95+影响80<br>👑 幕后: 60回合+影响80<br>🔥 公敌: 恶名100</div></div>`;
+}
+
+function renderIntel(){
+  const el=document.getElementById('intelMarket');
+  el.innerHTML=`<div class="card"><div class="flex-between"><span class="card-title">📜 情报</span><span style="color:#f39c12">${G.intel}份</span></div><div class="card-sub">情报可出售或用于特殊行动。</div><div class="card-action mt-8"><button class="btn btn-primary btn-sm" onclick="sellIntel()">💰 卖出 ($150/份)</button></div></div>`;
+  const e2=document.getElementById('intelActions');
+  e2.innerHTML=`<div class="intel-action-area"><div class="ia-title">⚡ 情报行动</div>${
+    activeIntelActions.length===0?'<div style="color:#555;font-size:12px">暂无可用情报行动...</div>':''
+  }${activeIntelActions.filter(a=>!a.used).map(ia=>`<div class="card" style="background:rgba(243,156,18,.05)"><div class="flex-between"><span class="card-title">${ia.icon} ${ia.actionName}</span><span style="color:#f39c12;font-size:12px">~$${ia.reward}</span></div><div class="card-sub">${ia.desc}</div><div class="card-action"><button class="btn btn-warning btn-sm" onclick="doIntel(${ia.id})">⚡ 执行</button></div></div>`).join('')}</div>`;
+}
+
+function renderActions(){
+  const el=document.getElementById('actionList');
+  const acts=Object.entries(A).filter(([k])=>getActs().has(k));
+  let h='<div class="gap-6" style="flex-wrap:wrap">';
+  acts.forEach(([k,act])=>{
+    const rm=act.j&&act.j.length?'👥 '+act.j.map(j=>JOBS[j]?.emoji||'').join(''):'✅ 无需匹配';
+    h+=`<div class="card" style="flex:1;min-width:180px;max-width:240px"><div class="card-title">${act.i} ${act.n}</div>
+      <div class="card-sub">${act.d}</div><div class="card-info"><span>💰 $${act.c||0}</span><span>🏆 +$${act.r}</span><span>👑 +${act.ig}</span></div>
+      <div class="card-info"><span>🛡️ -${act.sc||0}</span><span>👥 ${act.h}人</span></div>
+      <div class="card-sub mt-8" style="font-size:11px">${rm}</div>
+      <button class="btn btn-primary btn-sm mt-8" onclick="doAction('${k}')">⚡ 执行</button></div>`;
+  });
+  h+='</div>';el.innerHTML=h;
 }
 
 function renderMembers(){
-  const g=document.getElementById('member-grid');
-  const alive=G.members.filter(m=>m.alive);
-  if(!alive.length){g.innerHTML='<div style="font-size:0.72em;color:#444;padding:8px">暂无成员，快去招募吧</div>';return}
-  const em={'打手':'💪','情报员':'👁️','黑客':'💻','杀手':'🗡️','走私犯':'📦','爆破手':'💥','狙击手':'🎯','医师':'💊'};
-  g.innerHTML=alive.map((m,i)=>`<div class="member-card" onclick="showMemberDetail(${i})">
-    <div class="av">${em[m.role]||'👤'}</div>
-    <div class="nm">${m.name}</div>
-    <div class="rl">${m.role}</div>
-    <div class="st">⚡${m.skill} ♥${m.loyal}</div>
-    <div class="lb"><div class="lf" style="width:${m.loyal}%;background:${m.loyal>60?'#34d399':m.loyal>30?'#fbbf24':'#f87171'}"></div></div>
-    <div class="op">点击查看详情</div>
-  </div>`).join('');
-  document.getElementById('mc').textContent=alive.length;
-  document.getElementById('mm').textContent=G.maxMem;
+  const el=document.getElementById('memberList');
+  const alive=G.members.filter(m=>m.alive),dead=G.members.filter(m=>!m.alive);
+  if(!alive.length){el.innerHTML='<div class="card text-center" style="color:#555">暂无成员</div>';return}
+  let h='<div class="member-grid">';
+  alive.forEach(m=>{const lc=m.loyalty<30?'#ff4757':m.loyalty<60?'#f39c12':'#2ed573';
+    h+=`<div class="member-card" onclick="showMember(${m.id})"><div class="avatar">${m.jobEmoji}</div><div class="mname">${m.name}</div><div class="mjob">${m.jobName} Lv.${m.level}</div><div class="mstats">⚡${getMemberStat(m)} 任务${m.missions}</div><div style="color:${lc}">♥ ${m.loyalty}</div><div style="font-size:10px;color:${m.ap>=2?'#2ed573':m.ap===1?'#f39c12':'#ff4757'}">⏱ AP:${m.ap}/${G.maxAp+Math.floor(m.level/3)}</div></div>`;});
+  h+='</div>';
+  if(dead.length){h+=`<h3 class="mt-12">💀 阵亡 (${dead.length})</h3><div style="font-size:12px;color:#555">`;
+    dead.forEach(m=>h+=`${m.jobEmoji} ${m.name} · ${m.missions}任务 ${m.kills}击杀<br>`);h+='</div>';}
+  el.innerHTML=h;
 }
 
-// ============================
-//  PICK MEMBER FOR MISSION
-// ============================
-let _pendingMission = null;
-
-function pickMemberForMission(missionIdx){
-  const ms=getMissions();const m=ms[missionIdx];
-  if(!m)return;
-  if(hands()<1){showModal('没有可用人手','招募成员后再来');return}
-
-  _pendingMission = missionIdx;
-  const matchRoles = MISSION_MATCH[m.n] || [];
-
-  document.getElementById('pick-t').textContent = `选择执行成员 - ${m.n}`;
-  document.getElementById('pick-d').textContent = `选择一个成员去执行任务。${MATCH_DISPLAY[m.n]?'推荐：'+MATCH_DISPLAY[m.n]:''}`;
-
-  const alive = G.members.filter(mm=>mm.alive);
-  const em={'打手':'💪','情报员':'👁️','黑客':'💻','杀手':'🗡️','走私犯':'📦','爆破手':'💥','狙击手':'🎯','医师':'💊'};
-
-  document.getElementById('pick-grid').innerHTML = alive.map((mm,i)=>{
-    const matched = matchRoles.includes(mm.role);
-    const tag = matched ? '<span class="ms-tag tag-match">✓ 匹配</span>' : '<span class="ms-tag tag-nomatch">✗ 不匹配</span>';
-    return `<div class="ms-card" onclick="executeMission(${i})">
-      <div class="ms-av">${em[mm.role]||'👤'}</div>
-      <div class="ms-nm">${mm.name}</div>
-      <div class="ms-rl">${mm.role} ⚡${mm.skill}</div>
-      <div class="ms-st">♥忠诚${mm.loyal}</div>
-      ${tag}
-    </div>`;
-  }).join('');
-
-  document.getElementById('pick-modal').classList.add('show');
-}
-
-function executeMission(memberIdx){
-  document.getElementById('pick-modal').classList.remove('show');
-  const idx = _pendingMission;
-  const ms=getMissions();const m=ms[idx];
-  if(!m)return;
-
-  // 找到这个成员
-  const alive = G.members.filter(mm=>mm.alive);
-  const member = alive[memberIdx];
-  if(!member)return;
-
-  member.loyal = Math.max(0, member.loyal - rng(1,3));
-  member.missions++;
-
-  const matchRoles = MISSION_MATCH[m.n] || [];
-  const matched = matchRoles.includes(member.role);
-
-  let chance = 0.3 + G.equipLv*0.1 + G.influence*0.004 + G.safety*0.002 + member.skill*0.02;
-  let rewardMult = 1;
-  let matchText = '';
-
-  if(matched){
-    chance += 0.2;
-    rewardMult = 1.3;
-    matchText = `✓ ${member.name}（${member.role}）完美胜任！`;
-  } else {
-    chance -= 0.15;
-    rewardMult = 0.85;
-    matchText = `✗ ${member.name}（${member.role}）不太擅长这类任务`;
-  }
-
-  const rv = m.p.split('-').map(Number);
-  if(Math.random() < chance){
-    const reward = Math.floor((rng(rv[0],rv[1]) + G.phase*100) * rewardMult);
-    G.money += reward;
-    G.influence += rng(1,4);
-    if(matched){member.kills += rng(0,2)}
-    const extra = matched ? '<br>（职业匹配 +20%成功率 +30%收益）' : '<br>（职业不匹配 -15%成功率 -15%收益）';
-    addLog(`✅ ${m.n} +$${reward}`,'success');
-    showModal('✅ 任务成功',`${matchText}<br><br>获得 $${reward}，影响力提升${extra}`);
-  } else {
-    const pen = rng(100,400);
-    G.money = Math.max(0, G.money - pen);
-    G.safety = Math.max(0, G.safety - rng(3,12));
-    addLog(`❌ ${m.n} 失败 -$${pen}`,'warning');
-    let deathMsg = '';
-    if(Math.random() < 0.25 && G.members.filter(mm=>mm.alive).length > 0){
-      const died = killMember('在任务中牺牲了');
-      if(died) deathMsg = '<br><br>💀 一名成员在行动中牺牲了...';
-    }
-    showModal('❌ 任务失败',`${matchText}<br><br>损失 $${pen}，安全度下降${deathMsg}`);
-  }
-  updateUI();
-}
-
-// ============================
-//  MISSIONS
-// ============================
-function getMissions(){
-  return [
-    {n:'街头勒索',d:'向小商户收取保护费',r:'低',p:'200-500',mi:0,me:0,ph:0},
-    {n:'暗网交易',d:'在暗网交易情报和物资',r:'低',p:'300-600',mi:0,me:0,ph:0},
-    {n:'黑帮火并',d:'与敌对帮派正面冲突',r:'中',p:'500-1000',mi:5,me:0,ph:0},
-    {n:'目标暗杀',d:'解决一个小头目',r:'中',p:'600-1200',mi:5,me:0,ph:0},
-    {n:'走私护送',d:'护送货物穿越城区',r:'中',p:'700-1400',mi:10,me:1,ph:1},
-    {n:'勒索富豪',d:'对当地富商施加压力',r:'中高',p:'1000-2000',mi:15,me:1,ph:1},
-    {n:'劫狱行动',d:'营救被捕的组织成员',r:'高',p:'1500-3000',mi:20,me:2,ph:2},
-    {n:'渗透机构',d:'潜入政府机构窃取文件',r:'极高',p:'2000-4000',mi:30,me:2,ph:2},
-    {n:'政客暗杀',d:'暗杀一位高层政客',r:'极高',p:'3000-6000',mi:40,me:3,ph:3},
-    {n:'军火夺取',d:'夺取敌对军火库',r:'极高',p:'4000-8000',mi:50,me:3,ph:3},
-  ].filter(mm=>G.phase>=mm.ph);
-}
-
-function renderMissions(){
-  const list=document.getElementById('mission-list');
-  const ms=getMissions();
-  list.innerHTML=ms.map((m,i)=>{
-    const canDo = G.influence>=m.mi && G.equipLv>=m.me && hands()>=1;
-    return `<div class="card">
-      <h4 style="color:${canDo?'#e0e0ff':'#444'}">${m.n} ${!canDo?'🔒':''}</h4>
-      <div class="desc">${m.d} · ${m.r}风险 · $${m.p}</div>
-      <div class="extra" style="color:#60a5fa">✅ 最佳人选：${MATCH_DISPLAY[m.n]||'通用'}</div>
-      <div class="extra">需：人手≥1 · 影响力≥${m.mi} · 装备≥Lv.${m.me}</div>
-      <button class="btn ${m.r==='低'?'':m.r==='中'||m.r==='中高'?'warn':'danger'}" onclick="pickMemberForMission(${i})" ${canDo?'':'disabled'}>${canDo?'选择成员执行':'条件不足'}</button>
-    </div>`;
-  }).join('');
-}
-
-function quickMission(){
-  const ms=getMissions().filter(m=>G.influence>=m.mi&&G.equipLv>=m.me&&hands()>=1);
-  if(!ms.length){showModal('无可用任务','条件不足');return}
-  const idx=getMissions().indexOf(pick(ms));
-  pickMemberForMission(idx);
-}
-
-// ============================
-//  INTEL (with content)
-// ============================
-function gatherIntel(){
-  if(hands()<1){showModal('人手不足','没有可派出的人手');return}
-  const gain=Math.max(1,rng(1,3)+(G.equipLv>0?1:0)+G.intelTier);
-  G.intel+=gain;
-  G.intelProg+=rng(3,8)+G.phase*2;
-  G.intelPrice=rng(20,50);
-
-  // 生成情报内容
-  const stories = INTEL_STORIES[G.intelTier] || INTEL_STORIES[0];
-  const story = pick(stories);
-  const prefix = TIERS[G.intelTier];
-  G.intelLog.unshift({text:`[${prefix}] ${story}`,tier:G.intelTier});
-
-  if(G.intelProg>=100&&G.intelTier<3){
-    G.intelProg-=100;G.intelTier++;
-    addLog(`情报网络升级：${TIERS[G.intelTier]}！`,'success');
-    showModal('📡 情报升级',`情报网络升级！<br>可获取 ${TIERS[G.intelTier]} 级别的情报，价值 ×${TMULT[G.intelTier]}`);
-  } else {
-    addLog(`收集到 ${gain} 份情报`,'info');
-    showModal('📥 情报收集',`${story}<br><br>获得 ${gain} 份情报`);
-  }
-  updateUI();
-}
-
-function sellIntel(){
-  if(G.intel<1){showModal('没有情报','没有情报可出售');return}
-  const a=Math.min(G.intel,5);const p=G.intelPrice*TMULT[G.intelTier];
-  G.intel-=a;G.money+=a*p;G.intelPrice=rng(20,50);
-  showModal('💰 出售成功',`售出 ${a} 份${TIERS[G.intelTier]}，获得 $${a*p}`);
-  addLog(`出售情报 +$${a*p}`,'info');updateUI()
-}
-
-function targetIntel(){
-  if(hands()<2||G.money<300){showModal('条件不足','需要2个可用人手 + $300');return}
-  const gain=rng(3,8)+G.intelTier*2;
-  G.intel+=gain;G.influence+=3;G.intelProg+=rng(5,12);
-  const stories = INTEL_STORIES[Math.min(G.intelTier+1,3)] || INTEL_STORIES[G.intelTier];
-  const story = pick(stories);
-  const prefix = TIERS[Math.min(G.intelTier+1,3)];
-  G.intelLog.unshift({text:`[${prefix}] ${story}`,tier:Math.min(G.intelTier+1,3)});
-  showModal('🎯 渗透成功',`${story}<br><br>获取 ${gain} 份核心情报`);
-  addLog(`渗透 +${gain}份情报`,'success');
-  if(G.intelProg>=100&&G.intelTier<3){G.intelProg-=100;G.intelTier++;addLog(`情报升级：${TIERS[G.intelTier]}！`,'success')}
-  updateUI()
-}
-
-function renderIntelContent(){
-  const box=document.getElementById('intel-items');
-  if(!G.intelLog.length){box.innerHTML='暂无情报记录，收集情报后会显示具体内容';return}
-  box.innerHTML=G.intelLog.slice(0,15).map(l=>{
-    const colors=['#888','#60a5fa','#a78bfa','#fbbf24'];
-    return `<div style="color:${colors[l.tier]||'#888'};margin-bottom:4px">${l.text}</div>`;
-  }).join('');
-}
-
-// ============================
-//  CORRUPTION & UPGRADES
-// ============================
-function bribePolice(){
-  if(G.money<600){showModal('资金不足','需要 $600');return}
-  G.money-=600;const g=rng(8,15)+G.phase*3;G.safety=Math.min(100,G.safety+g);G.policeBribed++
-  showModal('👮 贿赂成功',`警察已打点！安全度 +${g}`);addLog(`贿赂警方 +${g}安全`,'success');updateUI()
-}
-function fundPolitician(){
-  if(G.money<1500){showModal('资金不足','需要 $1500');return}
-  G.money-=1500;G.politician=true;G.influence+=20;G.safety=Math.min(100,G.safety+10)
-  showModal('🎩 交易达成','影响力+20 安全+10');addLog('腐蚀政客','success');updateUI()
-}
-function shareIntel(){
-  if(G.intel<5){showModal('情报不足','需要5份');return}
-  G.intel-=5;G.safety=Math.min(100,G.safety+15);G.influence+=10;G.notoriety=Math.max(0,G.notoriety-5)
-  showModal('🤝 共享完成','安全+15 恶名-5');addLog('警方情报共享','success');updateUI()
-}
-function upgradeBase(){
-  const c=G.baseLv*1000;
-  if(G.money<c){showModal('资金不足',`需要 $${c}`);return}
-  if(hands()<2){showModal('人手不足','需要2个可用人手协助扩建');return}
-  G.money-=c;G.baseProg+=30+rng(0,20)
-  if(G.baseProg>=100){G.baseLv++;G.baseProg-=100;G.maxMem+=3;G.safety=Math.min(100,G.safety+8);showModal('🏢 据点升级',`Lv.${G.baseLv}！人手上限+3 安全+8`);addLog(`据点升级到${G.baseLv}`,'success')}
-  else{showModal('🏢 扩建中',`进度 ${G.baseProg}/100`);addLog(`扩建 ${G.baseProg}/100`,'info')}
-  updateUI()
-}
-function upgradeEquip(){
-  const c=800+G.equipLv*400;
-  if(G.money<c){showModal('资金不足',`需要 $${c}`);return}
-  G.money-=c;G.equipLv++;showModal('🔫 升级完成',`装备 Lv.${G.equipLv}`);addLog(`装备升级到Lv.${G.equipLv}`,'success');updateUI()
-}
-
-// ============================
-//  ENEMIES
-// ============================
-function initEnemies(){if(G.enemies.length)return;ENAMES.forEach((n,i)=>G.enemies.push({name:n,pw:rng(20,40)+i*10,alive:true}))}
 function renderEnemies(){
-  const l=document.getElementById('enemy-list');
-  const a=G.enemies.filter(e=>e.alive);
-  if(!a.length){l.innerHTML='<div style="color:#34d399;font-size:0.78em;padding:8px">✌️ 所有敌对组织已被消灭</div>';return}
-  l.innerHTML=a.map(e=>{const c=e.pw>60?'ew-h':e.pw>35?'ew-m':'ew-l';return `<div class="enemy-card"><div class="enm"><h4>${e.name}</h4><div class="ed">⚔️ 战力 ${e.pw}</div></div><div class="epw ${c}">🔴 ${e.pw}</div></div>`}).join('')
-}
-function attackEnemy(){
-  const a=G.enemies.filter(e=>e.alive);if(!a.length){showModal('无目标','没有活跃的敌对组织');return}
-  if(hands()<2){showModal('人手不足','需要2个可用人手出击');return}
-  const t=pick(a)
-  const pw=G.members.reduce((s,m)=>m.alive?s+m.skill:s,0)+G.equipLv*10+G.baseLv*5
-  if(Math.random()<0.3+pw*0.005){
-    const dmg=rng(10,25)+G.equipLv*3;t.pw=Math.max(0,t.pw-dmg);G.influence+=rng(3,8);G.notoriety+=rng(2,5);const loot=rng(300,1000)+G.phase*200;G.money+=loot
-    showModal('⚔️ 攻击成功',`${t.name}受到重创！战力-${dmg}，缴获 $${loot}`);addLog(`攻击${t.name}成功`,'success')
-    if(t.pw<=0){t.alive=false;addLog(`${t.name}被消灭！`,'success')}
-  } else {
-    G.safety=Math.max(0,G.safety-rng(5,10))
-    showModal('❌ 攻击失败','安全度下降');addLog('攻击失败','warning')
-    if(Math.random()<0.2&&G.members.filter(m=>m.alive).length>0) killMember('在战斗中牺牲了')
-  }
-  updateUI()
-}
-function spyEnemy(){
-  if(G.intel<3){showModal('情报不足','需要3份情报作为掩护');return}
-  G.intel-=3;const a=G.enemies.filter(e=>e.alive);
-  if(!a.length){G.intel+=3;showModal('无目标','');return}
-  const gain=rng(1,5)+G.intelTier*2;G.intel+=gain;G.influence+=2
-  showModal('🕵️ 渗透成功',`获取 ${gain} 份敌对情报`);addLog(`渗透敌对 +${gain}情报`,'success');updateUI()
-}
-function enemyAction(){
-  const a=G.enemies.filter(e=>e.alive);if(!a.length||Math.random()<0.5)return
-  const at=pick(a);const r=Math.random()
-  if(r<0.3){G.influence=Math.max(0,G.influence-rng(2,6));at.pw+=rng(1,3);addLog(`${at.name}侵占了你的地盘`,'warning')}
-  else if(r<0.55){
-    G.safety=Math.max(0,G.safety-rng(3,8))
-    if(G.members.filter(m=>m.alive).length>0&&Math.random()<0.2) killMember(`被${at.name}的杀手暗杀了`)
-  }
-  else if(r<0.7){G.money=Math.max(0,G.money-rng(100,400));G.safety=Math.max(0,G.safety-rng(5,10));addLog(`${at.name}袭击据点`,'warning')}
-  else if(r<0.85&&G.phase>=2){G.safety=Math.max(0,G.safety-rng(8,15));addLog(`${at.name}勾结警方施压`,'warning')}
+  const el=document.getElementById('enemyList');
+  if(!G.enemies.length){el.innerHTML='<div class="card text-center" style="color:#555">暂无敌对</div>';return}
+  let h='<div class="enemy-grid">';
+  G.enemies.forEach(e=>{
+    const tc=e.threat==='low'?'threat-low':e.threat==='mid'?'threat-mid':'threat-high';
+    const tl=e.threat==='low'?'低危':e.threat==='mid'?'中危':'高危';
+    h+=`<div class="enemy-card"><div class="ename">${e.name}</div><div class="einfo">战力:${e.power} | 影响${e.influence}</div><span class="ethreat ${tc}">${tl}</span><button class="btn btn-primary btn-sm mt-8" onclick="attackEnemy(${e.id})">⚔️ 攻击</button></div>`;
+  });
+  h+='</div>';el.innerHTML=h;
 }
 
-// ============================
-//  EVENTS
-// ============================
-function getEvents(){
-  const e=[
-    {t:'👮 警方突袭',d:'条子扫荡了街区！你的人正在紧急清理现场。',fn:g=>{g.safety=Math.max(0,g.safety-15);g.influence-=3;showModal('👮 警方突袭','安全度-15 影响力-3');addLog('警方突袭','warning')}},
-    {t:'💰 神秘买家',d:'一位匿名买家找上门来要收购情报，出价不错。',fn:g=>{const v=G.intelPrice*TMULT[G.intelTier]*1.5;const a=Math.min(g.intel,4);g.money+=Math.floor(v*a);g.intel-=a;showModal('💰 交易完成','获得 $'+Math.floor(v*a));addLog('与神秘买家交易','success')}},
-    {t:'🔥 地盘冲突',d:'敌对帮派想侵占你的地盘！',cs:[{text:'💪 应战（需2人）',fn:g=>{if(hands()<2){showModal('人手不足','需要2个可用人手');return}g.safety-=5;g.influence+=8;showModal('⚔️ 胜利','影响力+8 安全-5');addLog('火并胜利','success')}},{text:'🏃 撤退',fn:g=>{g.influence-=8;g.money-=200;showModal('撤退','影响力-8 资金-200');addLog('撤退','warning')}}]},
-    {t:'👧 街头弃儿',d:'巷子里发现一个无家可归的孩子，眼神里透着一股狠劲。',cs:[{text:'💚 收留（免费）',fn:g=>{const n=pick(['小野','阿弃','巷子']);g.members.push({name:n,role:'杀手',skill:rng(3,8)+g.phase*2,loyal:90,alive:true,missions:0,kills:0});showModal('👧 新成员',`「${n}」加入组织！<br>天生忠诚90，值得信赖`);addLog(`收留弃儿「${n}」`,'success')}},{text:'❌ 离开',fn:g=>{showModal('','你转身离开了巷子');addLog('没有管那个孩子','info')}}]},
-    {t:'💀 内鬼暗杀',d:'组织里出了叛徒！他趁着夜色发动了暗杀！',cs:[{text:'🛡️ 全力防御',fn:g=>{if(Math.random()<0.5){showModal('成功','内鬼被当场击毙');addLog('内鬼被击毙','success')}else{if(G.members.filter(m=>m.alive).length>0)killMember('被内鬼暗杀了');showModal('惨烈','内鬼得手了...');addLog('内鬼得手','warning')}}},{text:'🏃 紧急避难',fn:g=>{g.money=Math.max(0,g.money-rng(300,800));g.safety=Math.max(0,g.safety-10);showModal('躲过一劫','损失了部分资金');addLog('紧急避难','warning')}}]},
-    {t:'🗡️ 敌对杀手',d:'敌对组织的杀手潜入你的地盘！',cs:[{text:'⚔️ 反杀',fn:g=>{if(Math.random()<0.5){showModal('击退','杀手被击退');addLog('击退杀手','success')}else{if(G.members.filter(m=>m.alive).length>0)killMember('被敌对杀手杀害');addLog('被暗杀','warning')}}},{text:'💰 花钱消灾($800)',fn:g=>{g.money-=800;showModal('安全了','花了$800买命');addLog('花钱消灾','info')}}]},
-    {t:'💎 意外收获',d:'手下在一处废弃据点发现了走私物资！',cs:[{text:'💰 卖掉(+$1500)',fn:g=>{g.money+=1500;showModal('+$1500','物资卖了好价钱');addLog('+$1500','success')}},{text:'📡 换成情报(+8)',fn:g=>{g.intel+=8;const s=pick(INTEL_STORIES[G.intelTier]);g.intelLog.unshift({text:`[${TIERS[G.intelTier]}] ${s}`,tier:G.intelTier});showModal('+8情报','换成了情报');addLog('+8情报','success')}}]},
-    {t:'📰 媒体曝光',d:'有记者盯上了你的组织！',cs:[{text:'💰 贿赂记者($700)',fn:g=>{g.money-=700;g.influence+=8;g.safety+=5;showModal('搞定','记者被买通，影响力+8 安全+5');addLog('贿赂记者','success')}},{text:'😤 威胁恐吓',fn:g=>{g.safety-=10;g.influence+=5;showModal('记者被吓跑','影响力+5 安全-10');addLog('威胁记者','warning')}}]},
-  ];
-  if(G.phase>=1)e.push({t:'🏙️ 城市规划',d:'市政府出台新规划，你的地盘在改造范围内！',cs:[{text:'💵 贿赂规划局($1200)',fn:g=>{g.money-=1200;g.influence+=12;g.safety+=8;showModal('搞定','规划局被买通');addLog('贿赂规划局','success')}},{text:'😠 武力抵制',fn:g=>{g.safety-=15;g.notoriety+=8;showModal('出事了','警方注意到你了');addLog('武力抵制引起注意','warning')}}]});
-  if(G.phase>=2)e.push({t:'🏛️ 政界暗涌',d:'一位国会议员秘密联系你，想谈一笔大交易。',cs:[{text:'🤝 合作($3000)',fn:g=>{g.money-=3000;g.influence+=25;g.politician=true;showModal('交易达成','影响力+25<br>议员成了你的政治庇护伞');addLog('与议员合作','success')}},{text:'❌ 拒绝',fn:g=>{showModal('','你拒绝了议员的提议');addLog('拒绝合作','info')}}]});
-  return e;
-}
-function triggerEvent(){
-  const ev=pick(getEvents());
-  if(ev.cs){showEvent(ev.t,ev.d,ev.cs.map((c,i)=>({...c,idx:i})))}
-  else{ev.fn(G);updateUI()}
+function renderDevelop(){
+  const el=document.getElementById('developContent');
+  const nbc=G.baseLevel*800;
+  el.innerHTML=`<div class="card"><div class="flex-between"><span class="card-title">🏛️ 据点Lv.${G.baseLevel}</span><span style="color:#888">上限:${G.handLimit}</span></div>
+    <div class="progress-bar"><div class="progress-fill blue" style="width:${Math.min(100,G.baseLevel/6*100)}%"></div></div>
+    <div class="card-action"><button class="btn btn-info btn-sm" onclick="upBase()">🏗️ 升级 ($${nbc})</button></div></div>
+    <div class="card"><div class="card-title">🛠️ 发展</div><div class="gap-6 mt-8">
+      <button class="btn btn-success btn-sm" onclick="invSafe()">🛡️ 安保 ($500)</button>
+      <button class="btn btn-warning btn-sm" onclick="buyInt()">📜 买情报 ($200)</button>
+      <button class="btn btn-primary btn-sm" onclick="expInf()">👑 扩大影响 ($600)</button>
+      <button class="btn btn-light btn-sm" onclick="cleanNoto()">😇 洗白 ($400)</button>
+    </div></div>
+    <div class="card"><div class="card-title">📊 详细</div><div style="font-size:12px;color:#aaa;line-height:2">
+      💰 $${G.money} | 📜 ${G.intel}份 | 👑 ${G.influence}<br>
+      🛡️ ${G.safety}% | 👥 ${G.hands}/${G.handLimit} | 😈 ${G.notoriety}<br>
+      🏛️ Lv${G.baseLevel} | 🎯 ${G.stageNames[G.stage]} | 🔄 T${G.turn}${G.protection>0?' | 🛡️ 保护'+G.protection:'️'}
+    </div></div>
+    <div class="text-center mt-12"><button class="btn btn-primary" onclick="nextTurn()">⏩ 下一回合 (T${G.turn+1})</button></div>`;
 }
 
-// ============================
-//  NEXT TURN
-// ============================
-function nextTurn(){
-  G.turn++;const maint=G.baseLv*60;G.money-=maint;
-  const pass=Math.floor(G.influence*3)+G.baseLv*40+rng(0,50);G.money+=pass
-  addLog(`第${G.turn}回合 | 维护-$${maint} 收入+$${pass}`,'info')
-  if(G.safety<20&&Math.random()<0.25){
-    if(G.members.filter(m=>m.alive).length>0)killMember('因安全度太低逃跑了')
-  }
-  if(G.notoriety>50&&Math.random()<0.2){G.safety=Math.max(0,G.safety-rng(3,8));addLog('恶名过高，警方加压','warning')}
-  G.intelPrice=rng(15,60);G.enemyTimer++
-  if(G.enemyTimer>=2+rng(0,2)){G.enemyTimer=0;enemyAction()}
-  tryPhaseUp()
-  if(Math.random()<0.5+(G.notoriety*0.003))triggerEvent()
-  updateUI()
+// ============================================================
+// 初始化
+// ============================================================
+function init(){
+  for(let i=0;i<3;i++){const m=newMember();m.loyalty=80;G.members.push(m);}
+  G.hands=3;G.handLimit=6;spawnEnemies(3);
+  resetMemberAp();
+  for(let i=0;i<2;i++)genIntel();
+  renderAll();log('🔊 欢迎！前10回合保护期，好好发育！','i');
+  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!G.gameOver&&!document.querySelector('.modal-overlay.active'))nextTurn();});
 }
-function tryPhaseUp(){
-  if(G.phase>=3)return
-  if(PHASES[G.phase+1].c(G)){G.phase++;const p=PHASES[G.phase];addLog(`✦ ${p.n}`,'event')
-    let b='';if(G.phase===1){G.money+=2000;G.influence+=10;G.safety+=10;G.maxMem+=5;b='+$2000 · +10影响 · +10安全 · +5上限'}
-    else if(G.phase===2){G.money+=5000;G.influence+=15;G.safety+=15;G.maxMem+=8;b='+$5000 · +15影响 · +15安全 · +8上限'}
-    else if(G.phase===3){G.money+=10000;G.influence+=20;G.safety+=20;G.maxMem+=10;b='+$10000 · +20影响 · +20安全 · +10上限'}
-    showModal(`✦ ${p.n} ✦`,b)
-  }
-}
-
-// ============================
-//  GAME OVER
-// ============================
-function checkGameOver(){
-  let end=false,t='',s='',e='',c=''
-  if(G.safety<=0&&hands()<=0){end=true;t='☠ 组织覆灭';c='#f87171';s=`${G.turn}回合`;e='安全度归零，人手全失。警方突袭了你的据点，帝国灰飞烟灭。'}
-  else if(G.money<=-2000){end=true;t='💸 破产倒闭';c='#fbbf24';s=`${G.turn}回合`;e='资不抵债，你解散了组织消失在霓虹灯影中。'}
-  else if(G.influence>=120&&G.baseLv>=6&&G.money>=20000){end=true;t='👑 地下帝国';c='#fbbf24';s=`${G.turn}回合`;e='整个城市都在你的掌心之中——霓虹照亮了你的帝国。'}
-  else if(G.safety>=95&&G.influence>=80){end=true;t='🕊️ 金盆洗手';c='#34d399';s=`${G.turn}回合`;e='急流勇退，组织合法化。传奇仍在街头流传。'}
-  else if(G.turn>=60&&G.influence>=80){end=true;t='🏛️ 幕后之王';c='#a78bfa';s=`${G.turn}回合`;e='没有王座——你就是王座背后的人。'}
-  else if(G.notoriety>=100){end=true;t='🔥 全城公敌';c='#f87171';s=`${G.turn}回合`;e='联合围剿之下，你的名字刻在这座城市的恐惧里。'}
-  if(end){
-    const alive = G.members.filter(m=>m.alive);
-    document.getElementById('modal-t').textContent=t
-    document.getElementById('modal-x').innerHTML=`<strong>${s}</strong><br><br>${e}<br><br>资金: $${G.money} · 影响: ${G.influence}<br>据点: ${G.baseLv}级 · 存活成员: ${alive.length}人<br><button class="btn danger" onclick="resetGame()" style="margin-top:10px">🔄 重新开始</button>`
-    document.getElementById('modal').classList.add('show')
-  }
-}
-
-function resetGame(){
-  G.money=1500;G.intel=5;G.influence=10;G.safety=60;G.notoriety=0;
-  G.turn=1;G.baseLv=1;G.baseProg=0;G.equipLv=0;G.members=[];G.maxMem=5;
-  G.intelPrice=30;G.intelTier=0;G.intelProg=0;G.intelLog=[];
-  G.enemies=[];G.policeBribed=0;G.politician=false;G.phase=0;G.enemyTimer=0;G.logs=[];
-  document.getElementById('modal').classList.remove('show');document.getElementById('ev-modal').classList.remove('show')
-  document.getElementById('pick-modal').classList.remove('show');document.getElementById('member-modal').classList.remove('show')
-  initEnemies();addLog('✦ 暗潮再起','event');updateUI()
-}
-
-// ============================
-//  TABS & UPDATE
-// ============================
-document.querySelectorAll('.nav-item').forEach(item=>{item.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));item.classList.add('active');document.getElementById('tab-'+item.dataset.tab).classList.add('active')})})
-
-function updateUI(){
-  const h = hands();
-  document.getElementById('r-money').textContent='$'+G.money
-  document.getElementById('r-hands').textContent=h
-  document.getElementById('r-intel').textContent=G.intel
-  document.getElementById('r-inf').textContent=G.influence
-  document.getElementById('r-saf').textContent=G.safety+'%'
-  document.getElementById('r-not').textContent=G.notoriety
-  document.getElementById('turn-n').textContent=G.turn
-  const ph=PHASES[G.phase]
-  document.getElementById('ov-title').textContent=ph.n
-  document.getElementById('ov-icon').textContent=ph.i
-  document.getElementById('ov-goal').textContent=ph.g
-  document.getElementById('ph-badge').textContent=ph.n
-  document.getElementById('intel-price').textContent='$'+G.intelPrice*TMULT[G.intelTier]
-  document.getElementById('intel-tl').textContent=TIERS[G.intelTier]
-  document.getElementById('intel-ml').textContent=TMULT[G.intelTier]
-  document.getElementById('intel-pl').textContent=G.intelProg
-  document.getElementById('gather-hint').textContent=G.intelTier===0?'派人打探消息，获取街头流言。':'派人收集 '+TIERS[G.intelTier]+' 级别的情报。'
-  document.getElementById('dl').textContent=G.baseLv
-  document.getElementById('dm').textContent=G.maxMem
-  document.getElementById('dc').textContent=G.baseLv*1000
-  document.getElementById('el').textContent=G.equipLv
-  document.getElementById('ec').textContent=800+G.equipLv*400
-  document.getElementById('card-pol').style.display=G.phase>=1?'block':'none'
-  document.getElementById('card-share').style.display=G.phase>=2?'block':'none'
-  renderMembers();renderMissions();renderEnemies();renderIntelContent();checkGameOver()
-}
-
-initEnemies()
-addLog('暗潮组织成立 · 霓虹之下暗流涌动','event')
-addLog('💡 成员页点击成员可查看详情和互动','info')
-addLog('💡 行动任务需选择具体成员执行','info')
-updateUI()
+init();
 </script>
 </body>
 </html>
