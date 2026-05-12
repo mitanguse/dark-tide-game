@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>赌徒翻身</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:#0a0a0f;color:#e0d5c0;min-height:100vh;overflow-x:hidden}
+#app{max-width:480px;margin:0 auto;padding-bottom:80px;min-height:100vh}
+.page{display:none;padding:12px;padding-top:60px}
+.page.active{display:block}
+
+/* header */
+.top-bar{position:fixed;top:0;left:0;right:0;z-index:50;max-width:480px;margin:0 auto;padding:8px 12px;background:linear-gradient(180deg,#0d0d14 0%,#0a0a0f 100%);display:flex;justify-content:space-between;align-items:center;font-size:13px;border-bottom:1px solid #1a1a2e}
+.top-bar .money{color:#f0c040}
+.top-bar .debt{color:#ff4444}
+.top-bar .rep{color:#66ccff}
+.top-bar span{margin-left:8px}
+
+/* bottom nav */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:50;max-width:480px;margin:0 auto;background:#0d0d14;display:flex;justify-content:space-around;padding:6px 0;border-top:1px solid #1a1a2e;font-size:10px}
+.nav-btn{text-align:center;padding:4px 2px;color:#666;cursor:pointer;transition:.2s;flex:1}
+.nav-btn.active{color:#f0c040}
+.nav-btn .nav-icon{font-size:22px;display:block}
+.nav-btn .nav-label{font-size:9px;margin-top:2px}
+
+/* cards & containers */
+.card{background:#12121c;border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid #1c1c30}
+.card-title{font-size:16px;font-weight:700;margin-bottom:12px;color:#f0c040}
+.btn{display:inline-block;padding:8px 20px;border-radius:8px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:.2s;background:#2a2a40;color:#e0d5c0;text-align:center}
+.btn:active{transform:scale(.95)}
+.btn-gold{background:linear-gradient(135deg,#d4a017,#f0c040);color:#0a0a0f}
+.btn-danger{background:linear-gradient(135deg,#cc3333,#ff4444);color:#fff}
+.btn-sm{padding:5px 12px;font-size:12px}
+.btn-green{background:linear-gradient(135deg,#228b22,#33cc33);color:#fff}
+.w-full{width:100%}
+.mt-2{margin-top:8px}
+.mb-2{margin-bottom:8px}
+.flex{display:flex}
+.gap-2{gap:8px}
+.gap-1{gap:4px}
+.justify-between{justify-content:space-between}
+.items-center{align-items:center}
+.text-center{text-align:center}
+.text-gold{color:#f0c040}
+.text-red{color:#ff4444}
+.text-green{color:#33cc33}
+.text-blue{color:#66ccff}
+.text-sm{font-size:12px}
+.text-xs{font-size:10px}
+.font-bold{font-weight:700}
+.hidden{display:none}
+
+/* modal */
+.modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:100;background:rgba(0,0,0,.7);justify-content:center;align-items:center;padding:20px}
+.modal.show{display:flex}
+.modal-content{background:#12121c;border-radius:16px;padding:24px;max-width:400px;width:100%;border:1px solid #2a2a40;max-height:80vh;overflow-y:auto}
+.modal-content h3{color:#f0c040;margin-bottom:12px}
+
+/* dice */
+.dice-container{display:flex;justify-content:center;gap:20px;margin:16px 0}
+.die{width:60px;height:60px;background:#1a1a2e;border-radius:10px;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);padding:10px;border:2px solid #2a2a40}
+.dot{width:10px;height:10px;background:#e0d5c0;border-radius:50%;margin:auto}
+.dot.none{opacity:0}
+
+/* pachinko */
+.pachinko-grid{display:flex;flex-direction:column;align-items:center;gap:4px;margin:12px 0}
+.pachi-row{display:flex;gap:4px;justify-content:center}
+.pachi-nail{width:20px;height:20px;border-radius:50%;background:#2a2a40;transition:.3s}
+.pachi-nail.lit{background:#f0c040;box-shadow:0 0 8px rgba(240,192,64,.5)}
+.pachi-slots{display:flex;justify-content:center;gap:6px;margin:8px 0}
+.pachi-slot{width:40px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:#1a1a2e;border:1px solid #2a2a40}
+.pachi-slot.x0{color:#ff4444;border-color:#ff4444}
+.pachi-slot.x1{color:#888}
+.pachi-slot.x2{color:#66ccff}
+.pachi-slot.x3{color:#33cc33}
+.pachi-slot.x5{color:#d4a017}
+.pachi-slot.x10{color:#f0c040;border-color:#f0c040}
+
+/* scratch card */
+.scratch-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;max-width:240px;margin:12px auto}
+.scratch-cell{aspect-ratio:1;background:#1a1a2e;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:32px;border:2px solid #2a2a40;animation:reveal .3s ease}
+@keyframes reveal{0%{transform:rotateY(90deg);opacity:0}100%{transform:rotateY(0);opacity:1}}
+
+/* horses */
+.horse-track{margin:8px 0;padding:8px;background:#0a0a0f;border-radius:8px;overflow:hidden}
+.horse-lane{display:flex;align-items:center;margin:3px 0;height:28px;position:relative}
+.horse-icon{font-size:20px;position:absolute;transition:left .4s ease;z-index:2}
+.horse-track-line{height:2px;background:#1a1a2e;width:100%}
+
+/* kline */
+.kline-chart{display:flex;align-items:flex-end;gap:3px;height:120px;padding:8px 4px;background:#0a0a0f;border-radius:8px;overflow-x:auto}
+.kline-bar{width:20px;min-width:20px;border-radius:2px;transition:.3s}
+
+/* football bracket */
+.match-card{background:#1a1a2e;border-radius:8px;padding:12px;margin-bottom:8px;border:1px solid #2a2a40}
+.match-card .teams{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.match-card .team{font-weight:600;font-size:14px}
+.match-card .vs{color:#666;margin:0 8px}
+.match-card .odds{display:flex;gap:8px}
+.match-card .odds-btn{padding:4px 10px;border-radius:4px;background:#2a2a40;font-size:11px;cursor:pointer;transition:.2s;text-align:center;flex:1}
+.match-card .odds-btn.selected{background:#d4a017;color:#0a0a0f}
+
+/* poker */
+.poker-table{background:#1a3a1a;border-radius:20px;padding:16px;position:relative;border:2px solid #2a5a2a;min-height:300px}
+.poker-card{display:inline-flex;width:40px;height:56px;background:#fff;color:#000;border-radius:4px;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin:2px;border:1px solid #ccc}
+.poker-card.red{color:#cc0000}
+.poker-card.back{background:#1a3a8a;color:transparent;font-size:0;border-color:#1a3a8a}
+.ai-player{background:rgba(0,0,0,.4);border-radius:8px;padding:8px;margin:4px 0;font-size:12px}
+
+/* scrollbar */
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:#2a2a40;border-radius:2px}
+
+/* job card */
+.job-card{background:#1a1a2e;border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid #2a2a40}
+.job-card .job-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.job-card .job-pay{color:#33cc33;font-size:13px}
+
+/* loan card */
+.loan-card{background:#1a1a2e;border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid #ff4444}
+.loan-card .loan-title{font-size:15px;font-weight:600;margin-bottom:4px}
+.loan-card .loan-rate{color:#ff4444}
+
+/* notification toast */
+.toast{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:200;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:600;transition:.3s;opacity:0;pointer-events:none;max-width:400px;text-align:center}
+.toast.show{opacity:1}
+.toast.win{background:#228b22;color:#fff}
+.toast.lose{background:#cc3333;color:#fff}
+.toast.info{background:#2a2a40;color:#e0d5c0}
+.toast.debt{background:#8b0000;color:#fff}
+
+/* hall stats */
+.stat-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #1a1a2e}
+.stat-row:last-child{border-bottom:none}
+.stat-label{color:#888}
+.stat-value{font-weight:700}
+
+/* slider */
+input[type=range]{width:100%;-webkit-appearance:none;background:#2a2a40;height:6px;border-radius:3px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:#f0c040;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="top-bar">
+    <div>🏠 <span class="money" id="topMoney">$0</span></div>
+    <div>💸 <span class="debt" id="topDebt">$0</span></div>
+    <div>⭐ <span class="rep" id="topRep">100</span></div>
+  </div>
+  <div id="toast" class="toast"></div>
+
+  <!-- ====== 大厅 ====== -->
+  <div id="page-hall" class="page active">
+    <div class="card">
+      <div class="card-title">📊 今日概况</div>
+      <div class="stat-row"><span class="stat-label">现金</span><span class="stat-value text-gold" id="hallMoney">$0</span></div>
+      <div class="stat-row"><span class="stat-label">债务</span><span class="stat-value text-red" id="hallDebt">$0</span></div>
+      <div class="stat-row"><span class="stat-label">信誉分</span><span class="stat-value text-blue" id="hallRep">100</span></div>
+      <div class="stat-row"><span class="stat-label">总输赢</span><span class="stat-value" id="hallNet">$0</span></div>
+      <div class="stat-row"><span class="stat-label">游戏次数</span><span class="stat-value" id="hallGames">0</span></div>
+      <div class="stat-row"><span class="stat-label">最高现金</span><span class="stat-value text-gold" id="hallPeak">$0</span></div>
+    </div>
+    <div class="card text-center">
+      <div style="font-size:48px;margin-bottom:8px">🎰</div>
+      <div style="font-size:18px;font-weight:700">欢迎回来，赌徒！</div>
+      <div class="text-sm text-gold mt-2">"运气也是实力的一部分"</div>
+      <div class="text-sm text-red mt-2">⚠️ 赌博有风险，量力而行</div>
+      <button class="btn w-full mt-2" onclick="beg()" style="border-color:#888;color:#888;font-size:13px">🥺 乞讨</button>
+    </div>
+  </div>
+
+  <!-- ====== 赌场 ====== -->
+  <div id="page-casino" class="page">
+    <div class="card">
+      <div class="card-title">🎯 选择游戏</div>
+      <button class="btn btn-gold w-full mb-2" onclick="showTab('tab-pachinko')">🎰 弹珠机 ($10/次)</button>
+      <button class="btn btn-gold w-full mb-2" onclick="showTab('tab-scratch')">🎫 刮刮乐 ($5/张)</button>
+      <button class="btn btn-gold w-full mb-2" onclick="showTab('tab-dice')">🎲 赌大小 ($10起)</button>
+      <button class="btn btn-gold w-full" onclick="showTab('tab-poker')">🃏 德州扑克</button>
+    </div>
+
+    <!-- 弹珠机 -->
+    <div id="tab-pachinko" class="tab-content card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">🎰 弹珠机 <span onclick="gameRules('pachinko')" style="font-size:11px;color:#60a5fa;cursor:pointer">📖 规则</span></div>
+      <div class="flex gap-2 items-center mb-2">
+        <span>力度:</span>
+        <input type="range" id="pachiPower" min="1" max="10" value="5" oninput="document.getElementById('pachiPowerVal').textContent=this.value">
+        <span id="pachiPowerVal">5</span>
+      </div>
+      <button class="btn btn-gold w-full mb-2" onclick="playPachinko()">投币 $10 🎯</button>
+      <div class="text-center"><span class="text-sm text-gold">余额: </span><span id="pachiBalance" class="text-gold">$0</span></div>
+      <div id="pachiResult" class="text-center mt-2"></div>
+      <div class="pachinko-grid" id="pachiGrid"></div>
+      <div class="pachi-slots">
+        <div class="pachi-slot x0">x0</div>
+        <div class="pachi-slot x1">x1</div>
+        <div class="pachi-slot x2">x2</div>
+        <div class="pachi-slot x3">x3</div>
+        <div class="pachi-slot x5">x5</div>
+        <div class="pachi-slot x10">x10</div>
+      </div>
+    </div>
+
+    <!-- 刮刮乐 -->
+    <div id="tab-scratch" class="tab-content card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">🎫 刮刮乐 <span onclick="gameRules('scratch')" style="font-size:11px;color:#60a5fa;cursor:pointer">📖 规则</span></div>
+      <button class="btn btn-gold w-full mb-2" onclick="playScratch()">购买 $5 🎲</button>
+      <div class="text-center"><span class="text-sm">余额: </span><span id="scratchBalance" class="text-gold">$0</span></div>
+      <div class="scratch-grid" id="scratchGrid">
+        <div class="scratch-cell">❓</div>
+        <div class="scratch-cell">❓</div>
+        <div class="scratch-cell">❓</div>
+      </div>
+      <div id="scratchResult" class="text-center mt-2 text-sm"></div>
+    </div>
+
+    <!-- 赌大小 -->
+    <div id="tab-dice" class="tab-content card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">🎲 赌大小 <span onclick="gameRules('dice')" style="font-size:11px;color:#60a5fa;cursor:pointer">📖 规则</span></div>
+      <div class="flex gap-1 items-center mb-2">
+        <span>押注:</span>
+        <input type="range" id="diceBet" min="10" max="5000" value="50" step="10" oninput="document.getElementById('diceBetVal').textContent='$'+this.value">
+        <span id="diceBetVal">$50</span>
+      </div>
+      <div class="flex gap-1 mb-2">
+        <button class="btn flex-1" onclick="playDice('small')">👈 小 (x2)</button>
+        <button class="btn flex-1" onclick="playDice('big')">👉 大 (x2)</button>
+        <button class="btn flex-1 btn-danger" onclick="playDice('double')">🎯 豹子 (x20)</button>
+      </div>
+      <div class="text-center"><span class="text-sm">余额: </span><span id="diceBalance" class="text-gold">$0</span></div>
+      <div class="dice-container" id="diceDisplay">
+        <div class="die" id="die1"><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div><div class="dot"></div><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div></div>
+        <div class="die" id="die2"><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div><div class="dot"></div><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div><div class="dot none"></div></div>
+      </div>
+      <div id="diceResult" class="text-center mt-2 text-sm"></div>
+    </div>
+
+    <!-- 德州扑克 -->
+    <div id="tab-poker" class="tab-content card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">🃏 德州扑克 <span onclick="gameRules('poker')" style="font-size:11px;color:#60a5fa;cursor:pointer">📖 规则</span></div>
+      <div class="flex gap-1 mb-2">
+        <button class="btn btn-sm" onclick="setPokerTable(0)">低级 50</button>
+        <button class="btn btn-sm" onclick="setPokerTable(1)">中级 250</button>
+        <button class="btn btn-sm" onclick="setPokerTable(2)">高级 500</button>
+      </div>
+      <div class="text-sm mb-2">当前桌: <span id="pokerTableName" class="text-gold">低级</span> | 盲注: <span id="pokerBlind" class="text-gold">50</span></div>
+      <div class="poker-table" id="pokerTable">
+        <div class="text-center text-sm mb-2 text-green" id="pokerStatus">点击坐下开始游戏</div>
+        <div id="pokerCommunity" class="text-center mb-2"></div>
+        <div id="pokerPlayers"></div>
+        <div id="pokerActions" class="text-center mt-2"></div>
+      </div>
+      <div class="flex gap-1 mt-2">
+        <button class="btn btn-gold flex-1 btn-sm" onclick="sitPoker()">💺 坐下</button>
+        <button class="btn flex-1 btn-sm" onclick="foldPoker()">🏳️ 弃牌</button>
+        <button class="btn flex-1 btn-sm" onclick="callPoker()">✅ 跟注</button>
+        <button class="btn flex-1 btn-sm btn-danger" onclick="raisePoker()">⬆️ 加注</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 赌马赌球 ====== -->
+  <div id="page-sports" class="page">
+    <div class="card">
+      <div class="card-title">🐎 赌马</div>
+      <div id="horseRaceInfo"></div>
+      <div class="flex gap-1 items-center mb-2">
+        <span>押注:</span>
+        <input type="range" id="horseBet" min="100" max="5000" value="200" step="50" oninput="document.getElementById('horseBetVal').textContent='$'+this.value">
+        <span id="horseBetVal">$200</span>
+      </div>
+      <button class="btn btn-gold w-full mb-2" onclick="runHorseRace()">🏇 开跑！</button>
+      <div class="horse-track" id="horseTrack"></div>
+      <div id="horseResult" class="text-center mt-2 text-sm"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚽ 赌球</div>
+      <div id="footballMatches"></div>
+      <div class="flex gap-1 items-center mb-2">
+        <span>押注:</span>
+        <input type="range" id="footballBet" min="100" max="5000" value="200" step="50" oninput="document.getElementById('footballBetVal').textContent='$'+this.value">
+        <span id="footballBetVal">$200</span>
+      </div>
+      <button class="btn btn-gold w-full mb-2" onclick="playFootball()">⚽ 下注并开赛</button>
+      <div id="footballResult" class="text-center mt-2 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- ====== 期货 ====== -->
+  <div id="page-futures" class="page">
+    <div class="card">
+      <div class="card-title">📈 炒期货</div>
+      <div class="flex gap-1 mb-2">
+        <span>杠杆:</span>
+        <button class="btn btn-sm" onclick="setLeverage(1)" id="lev1">x1</button>
+        <button class="btn btn-sm" onclick="setLeverage(2)" id="lev2">x2</button>
+        <button class="btn btn-sm" onclick="setLeverage(5)" id="lev5">x5</button>
+      </div>
+      <div class="text-sm mb-2">杠杆: <span id="curLeverage" class="text-gold">x1</span> | 一手: <span id="futuresUnit" class="text-gold">$1000</span></div>
+      <div class="flex gap-1 mb-2">
+        <button class="btn flex-1 btn-green" onclick="openFuture('long')">📈 做多</button>
+        <button class="btn flex-1 btn-danger" onclick="openFuture('short')">📉 做空</button>
+      </div>
+      <div class="kline-chart" id="klineChart"></div>
+      <div id="futurePositions"></div>
+      <div id="futureResult" class="text-center mt-2 text-sm"></div>
+    </div>
+  </div>
+
+  <!-- ====== 打工 ====== -->
+  <div id="page-jobs" class="page">
+    <div class="card">
+      <div class="card-title">💼 打工</div>
+      <div class="job-card">
+        <div class="job-title">🏪 便利店收银</div>
+        <div class="job-pay">+$80/次</div>
+        <button class="btn btn-green btn-sm mt-2" onclick="doJob(0)">开干！</button>
+      </div>
+      <div class="job-card">
+        <div class="job-title">🍳 洗碗工</div>
+        <div class="job-pay">+$50/次 轻松</div>
+        <button class="btn btn-green btn-sm mt-2" onclick="doJob(1)">开干！</button>
+      </div>
+      <div class="job-card">
+        <div class="job-title">🧹 清洁工</div>
+        <div class="job-pay">+$60/次</div>
+        <button class="btn btn-green btn-sm mt-2" onclick="doJob(2)">开干！</button>
+      </div>
+      <div class="job-card" style="border-left-color:#d4a017">
+        <div class="job-title">🚚 搬砖</div>
+        <div class="job-pay">+$120/次</div>
+        <div class="text-xs text-red">⚠️ 降低信誉</div>
+        <button class="btn btn-gold btn-sm mt-2" onclick="doJob(3)">开干！</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== 债务 ====== -->
+  <div id="page-debt" class="page">
+    <div class="card">
+      <div class="card-title">💸 债务中心</div>
+      <div class="stat-row"><span class="stat-label">当前债务</span><span class="stat-value text-red" id="debtAmount">$0</span></div>
+      <div class="stat-row"><span class="stat-label">逾期天数</span><span class="stat-value" id="debtDays">0</span></div>
+      <div class="stat-row"><span class="stat-label">信誉分</span><span class="stat-value text-blue" id="debtRep">100</span></div>
+    </div>
+    <div class="card">
+      <div class="card-title">💰 借钱</div>
+      <div class="loan-card">
+        <div class="loan-title">小额贷款</div>
+        <div class="loan-rate">额度: $500 | 日息: 5%</div>
+        <button class="btn btn-danger btn-sm mt-2" onclick="takeLoan(0)">借款 $500</button>
+      </div>
+      <div class="loan-card">
+        <div class="loan-title">中额贷款</div>
+        <div class="loan-rate">额度: $2000 | 日息: 8%</div>
+        <button class="btn btn-danger btn-sm mt-2" onclick="takeLoan(1)">借款 $2000</button>
+      </div>
+      <div class="loan-card">
+        <div class="loan-title">大额贷款</div>
+        <div class="loan-rate">额度: $5000 | 日息: 12%</div>
+        <button class="btn btn-danger btn-sm mt-2" onclick="takeLoan(2)">借款 $5000</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">💰 还债</div>
+      <div class="flex gap-1 items-center mb-2">
+        <span>还款:</span>
+        <input type="range" id="repayAmt" min="10" max="10000" value="100" step="10" oninput="document.getElementById('repayAmtVal').textContent='$'+this.value">
+        <span id="repayAmtVal">$100</span>
+      </div>
+      <button class="btn btn-green w-full" onclick="repayDebt()">还钱 💸</button>
+    </div>
+  </div>
+
+  <!-- ====== Modal ====== -->
+  <div class="modal" id="modal">
+    <div class="modal-content">
+      <h3 id="modalTitle">提示</h3>
+      <div id="modalBody"></div>
+      <button class="btn btn-gold w-full mt-2" onclick="closeModal()">确定</button>
+    </div>
+  </div>
+
+  <!-- ====== Bottom Nav ====== -->
+  <div class="bottom-nav">
+    <div class="nav-btn active" onclick="navigate('hall')"><span class="nav-icon">🏠</span><span class="nav-label">大厅</span></div>
+    <div class="nav-btn" onclick="navigate('casino')"><span class="nav-icon">🎰</span><span class="nav-label">赌场</span></div>
+    <div class="nav-btn" onclick="navigate('sports')"><span class="nav-icon">🐎</span><span class="nav-label">赌马赌球</span></div>
+    <div class="nav-btn" onclick="navigate('futures')"><span class="nav-icon">📈</span><span class="nav-label">期货</span></div>
+    <div class="nav-btn" onclick="navigate('jobs')"><span class="nav-icon">💼</span><span class="nav-label">打工</span></div>
+    <div class="nav-btn" onclick="navigate('debt')"><span class="nav-icon">💸</span><span class="nav-label">债务</span></div>
+  </div>
+</div>
+
+<script>
+// ============ FORMAT & RULES ============
+function fmt(n){if(n>=1e12)return'$'+(n/1e12).toFixed(1)+'T';if(n>=1e9)return'$'+(n/1e9).toFixed(1)+'B';if(n>=1e6)return'$'+(n/1e6).toFixed(1)+'M';if(n>=1e3)return'$'+(n/1e3).toFixed(1)+'K';return'$'+n}
+function gameRules(id){const rules={pachinko:'🎰 弹珠机\n投$10，选力度1-10控制弹射。\n弹珠落入不同倍率洞口：x0(空)/x1/x2/x3/x5/x10\n力度影响落点区域，选对力度提高中高倍率概率。',scratch:'🎫 刮刮乐\n$5一张，刮出3个图案。\n三连相同 → x10倍！\n两个相同 → 保本。\n全不同 → 啥也没有。',dice:'🎲 赌大小\n2颗骰子，点数2-12。\n押「大」x2(7以上) 「小」x2(7以下) 「豹子」x20(双骰)\n和局退本。',poker:'🃏 德州扑克\n和3个AI对战。\n3桌可选：低级50/中级250/高级500。\n买入=盲注x10。\n翻牌→转牌→河牌，比牌型大小。\nAI水平随机！'};toast(rules[id]||'暂无规则','info')}
+let G = {
+  cash: 0,
+  debt: 0,
+  rep: 100,
+  debtDays: 0,
+  totalGames: 0,
+  totalNet: 0,
+  peakCash: 0,
+  loanType: null,
+  loanAmount: 0,
+  loanDailyRate: 0,
+  bankruptRep: false,
+
+  // poker
+  pokerTableIdx: 0,
+  pokerBlinds: [50,250,500],
+
+// ============ BEG ============
+function beg(){const a=Math.floor(Math.random()*5)+1;G.cash+=a;toast('路人施舍了你 $'+a+'... 卑微的起步。','info');updateUI()}
+  pokerSeated: false,
+  pokerHand: [],
+  pokerCommunity: [],
+  pokerAI: [],
+  pokerPot: 0,
+  pokerPhase: 'waiting',
+  pokerCallAmt: 0,
+  pokerMinRaise: 0,
+
+  // futures
+  leverage: 1,
+  futurePositions: [],
+  klineData: [],
+
+  // football bets
+  fbBet: null,
+  fbBetType: null,
+};
+
+const JOBS = [
+  {name:'便利店收银',pay:80,repPenalty:0},
+  {name:'洗碗工',pay:50,repPenalty:0},
+  {name:'清洁工',pay:60,repPenalty:0},
+  {name:'搬砖',pay:120,repPenalty:3},
+];
+const LOANS = [
+  {amt:500,rate:0.05},
+  {amt:2000,rate:0.08},
+  {amt:5000,rate:0.12},
+];
+
+// ============ HELPERS ============
+function rand(min,max){return Math.floor(Math.random()*(max-min+1))+min}
+function pick(arr){return arr[rand(0,arr.length-1)]}
+
+function updateUI(){
+  document.getElementById('topMoney').textContent=fmt(G.cash);
+  document.getElementById('topDebt').textContent=fmt(Math.floor(G.debt));
+  document.getElementById('topRep').textContent=G.rep;
+  document.getElementById('hallMoney').textContent=fmt(G.cash);
+  document.getElementById('hallDebt').textContent=fmt(Math.floor(G.debt));
+  document.getElementById('hallRep').textContent=G.rep;
+  let net=G.totalNet;
+  document.getElementById('hallNet').textContent=(net>=0?'+':'')+fmt(net);
+  document.getElementById('hallGames').textContent=G.totalGames;
+  document.getElementById('hallPeak').textContent=fmt(G.peakCash);
+  document.getElementById('pachiBalance').textContent=fmt(G.cash);
+  document.getElementById('scratchBalance').textContent=fmt(G.cash);
+  document.getElementById('diceBalance').textContent=fmt(G.cash);
+  document.getElementById('debtAmount').textContent=fmt(Math.floor(G.debt));
+  document.getElementById('debtDays').textContent=G.debtDays;
+  document.getElementById('debtRep').textContent=G.rep;
+  if(G.cash>G.peakCash)G.peakCash=G.cash;
+}
+
+function showModal(title,body){document.getElementById('modalTitle').textContent=title;document.getElementById('modalBody').innerHTML=body;document.getElementById('modal').classList.add('show')}
+function closeModal(){document.getElementById('modal').classList.remove('show')}
+function toast(msg,type='info'){let t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type+' show';setTimeout(()=>t.classList.remove('show'),2000)}
+
+function navigate(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-btn')[['hall','casino','sports','futures','jobs','debt'].indexOf(page)].classList.add('active');
+  updateUI();
+  if(page==='casino'){document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');document.getElementById('tab-pachinko').style.display='block'}
+  if(page==='sports'){initHorses();initFootball()}
+  if(page==='futures'){initKline()}
+}
+
+function showTab(id){
+  document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+  document.getElementById(id).style.display='block';
+}
+
+// ============ PACHINKO ============
+function drawPachiGrid(){
+  const grid=document.getElementById('pachiGrid');
+  grid.innerHTML='';
+  const rows=8;
+  for(let r=0;r<rows;r++){
+    const row=document.createElement('div');row.className='pachi-row';
+    const cnt=r<4?r+2:10-r-1;
+    for(let c=0;c<cnt;c++){
+      const nail=document.createElement('div');nail.className='pachi-nail';nail.id='pnail-'+r+'-'+c;
+      row.appendChild(nail);
+    }
+    grid.appendChild(row);
+  }
+}
+drawPachiGrid();
+
+function playPachinko(){
+  if(G.cash<10){toast('钱不够！','lose');return}
+  G.cash-=10;
+  const power=parseInt(document.getElementById('pachiPower').value);
+  // clear nails
+  document.querySelectorAll('.pachi-nail').forEach(n=>n.classList.remove('lit'));
+  // simulate drop: random path
+  const rows=8;
+  let col=0,pos=0;
+  for(let r=0;r<rows;r++){
+    const cnt=r<4?r+2:10-r-1;
+    col=Math.min(Math.max(0,pos),cnt-1);
+    const nail=document.getElementById('pnail-'+r+'-'+col);
+    if(nail)setTimeout(()=>nail.classList.add('lit'),r*100);
+    // bounce left/right
+    if(Math.random()<0.45)pos=Math.max(0,pos-1);
+    else if(Math.random()<0.55)pos=Math.min(cnt-1,pos+1);
+  }
+  // final slot
+  const slotWeights=[0.3,0.3,0.18,0.12,0.07,0.03]; // x0,x1,x2,x3,x5,x10
+  const slotBias=Math.random();
+  let slotIdx=0;
+  let cum=0;
+  for(let i=0;i<slotWeights.length;i++){
+    cum+=slotWeights[i];
+    if(slotBias<=cum){slotIdx=i;break}
+  }
+  const multipliers=[0,1,2,3,5,10];
+  const mult=multipliers[slotIdx];
+  const win=10*mult;
+  G.cash+=win;
+  G.totalGames++;
+  G.totalNet+=(win-10);
+  updateUI();
+  document.getElementById('pachiResult').innerHTML=mult>0?`🎉 掉入 x${mult} 洞口！赢得 <b class="text-gold">$${win}</b>`:`😢 掉入空门，血本无归`;
+  if(win>0)toast('+$'+win+' 弹珠中奖！','win');
+  else toast('空门...','lose');
+}
+
+// ============ SCRATCH CARD ============
+const SCRATCH_SYMBOLS = ['🍒','🍋','🍊','🍇','🔔','💎','🍀','⭐'];
+function playScratch(){
+  if(G.cash<5){toast('钱不够！','lose');return}
+  G.cash-=5;
+  G.totalGames++;
+  const a=pick(SCRATCH_SYMBOLS),b=pick(SCRATCH_SYMBOLS),c=pick(SCRATCH_SYMBOLS);
+  const cells=document.getElementById('scratchGrid').children;
+  setTimeout(()=>{cells[0].textContent=a;cells[0].style.color='#e0d5c0'},200);
+  setTimeout(()=>{cells[1].textContent=b;cells[1].style.color='#e0d5c0'},400);
+  setTimeout(()=>{cells[2].textContent=c;cells[2].style.color='#e0d5c0'},600);
+  setTimeout(()=>{
+    let win=0,msg='';
+    if(a===b&&b===c){win=5*10;msg=`🎉 三个全中！赢得 <b class="text-gold">$${win}</b>`;toast('+$'+win+' 大奖！','win')}
+    else if(a===b||b===c||a===c){win=5;msg=`👍 两个相同，保本！`}
+    else{msg=`😢 没中奖...`;toast('没中','lose')}
+    G.cash+=win;
+    G.totalNet+=(win-5);
+    updateUI();
+    document.getElementById('scratchResult').innerHTML=msg;
+  },800);
+}
+
+// ============ DICE ============
+function setDiceDisplay(v1,v2){
+  const dotsConfig={
+    1:[[false,false,false,false,true,false,false,false,false]],
+    2:[[true,false,false,false,false,false,false,false,true]],
+    3:[[true,false,false,false,true,false,false,false,true]],
+    4:[[true,false,true,false,false,false,true,false,true]],
+    5:[[true,false,true,false,true,false,true,false,true]],
+    6:[[true,false,true,true,false,true,true,false,true]],
+  };
+  [v1,v2].forEach((v,idx)=>{
+    const die=document.getElementById('die'+(idx+1));
+    const cfg=dotsConfig[v][0];
+    die.innerHTML='';
+    for(let i=0;i<9;i++){
+      const dot=document.createElement('div');dot.className='dot'+(cfg[i]?'':' none');
+      die.appendChild(dot);
+    }
+  });
+}
+
+function playDice(choice){
+  const bet=parseInt(document.getElementById('diceBet').value);
+  if(G.cash<bet){toast('钱不够！','lose');return}
+  G.cash-=bet;
+  const d1=rand(1,6),d2=rand(1,6),sum=d1+d2;
+  G.totalGames++;
+  setDiceDisplay(d1,d2);
+  setTimeout(()=>{
+    let win=0,msg='';
+    const isDouble=d1===d2;
+    const isBig=sum>7;
+    const isSmall=sum<7;
+    if(choice==='big'&&isBig){win=bet*2;msg=`🎉 ${d1}+${d2}=${sum}, 大！赢得 <b class="text-gold">$${win}</b>`;toast('+$'+win,'win')}
+    else if(choice==='small'&&isSmall){win=bet*2;msg=`🎉 ${d1}+${d2}=${sum}, 小！赢得 <b class="text-gold">$${win}</b>`;toast('+$'+win,'win')}
+    else if(choice==='double'&&isDouble){win=bet*20;msg=`🎉 豹子 ${d1}! 赢得 <b class="text-gold">$${win}</b>`;toast('+$'+win,'大豹子！','win')}
+    else if(sum===7){msg=`😐 ${d1}+${d2}=7, 和局退本`;win=bet;toast('和局退本','info')}
+    else{msg=`😢 ${d1}+${d2}=${sum}, 输了...`;toast('输了...','lose')}
+    G.cash+=win;
+    G.totalNet+=(win-bet);
+    updateUI();
+    document.getElementById('diceResult').innerHTML=msg;
+  },300);
+}
+
+// ============ TEXAS HOLDEM ============
+function setPokerTable(idx){
+  G.pokerTableIdx=idx;
+  document.getElementById('pokerTableName').textContent=['低级','中级','高级'][idx];
+  document.getElementById('pokerBlind').textContent=G.pokerBlinds[idx];
+}
+
+function sitPoker(){
+  const blind=G.pokerBlinds[G.pokerTableIdx];
+  const buyin=blind*10;
+  if(G.cash<buyin){toast('买入不够（需$'+buyin+'）','lose');return}
+  G.cash-=buyin;
+  G.pokerSeated=true;
+  G.pokerPot=0;
+  G.pokerCommunity=[];
+  G.pokerPhase='dealing';
+  G.pokerCallAmt=0;
+  G.pokerMinRaise=blind;
+
+  // deal hands
+  const deck=[];
+  const suits=['♠','♥','♦','♣'];
+  const ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  for(let s of suits)for(let r of ranks)deck.push(r+s);
+  shuffle(deck);
+
+  G.pokerHand=[deck.pop(),deck.pop()];
+  G.pokerAI=[
+    {name:'🐱 小猫',hand:[deck.pop(),deck.pop()],chips:buyin,bet:0,folded:false,skill:rand(1,3),money:buyin},
+    {name:'🐶 小狗',hand:[deck.pop(),deck.pop()],chips:buyin,bet:0,folded:false,skill:rand(1,3),money:buyin},
+    {name:'🐰 小兔',hand:[deck.pop(),deck.pop()],chips:buyin,bet:0,folded:false,skill:rand(1,3),money:buyin},
+  ];
+  G.pokerPot=3*blind;
+  document.getElementById('pokerStatus').textContent='🎲 发牌中...';
+  document.getElementById('pokerCommunity').innerHTML='';
+  renderPoker();
+
+  // deal flop
+  setTimeout(()=>{
+    deck.pop(); // burn
+    G.pokerCommunity=[deck.pop(),deck.pop(),deck.pop()];
+    G.pokerPhase='flop';
+    G.pokerCallAmt=blind;
+    renderPoker();
+    document.getElementById('pokerStatus').textContent='🎯 翻牌，轮到你行动';
+    showPokerActions();
+  },1000);
+}
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){const j=rand(0,i);[arr[i],arr[j]]=[arr[j],arr[i]]}
+}
+
+function renderPoker(){
+  // community
+  const comDiv=document.getElementById('pokerCommunity');
+  if(G.pokerCommunity.length){
+    comDiv.innerHTML=G.pokerCommunity.map(c=>`<span class="poker-card${c.includes('♥')||c.includes('♦')?' red':''}">${c}</span>`).join('');
+  }else comDiv.innerHTML='<span class="text-sm">等待发牌...</span>';
+
+  // players
+  let html='';
+  // player
+  html+=`<div class="ai-player"><b>🧑 你</b> 💰$${G.pokerSeated?G.cash:0}`;
+  if(G.pokerHand.length)html+=` 手牌: ${G.pokerHand.map(c=>`<span class="poker-card${c.includes('♥')||c.includes('♦')?' red':''}" style="width:32px;height:44px;font-size:12px">${c}</span>`).join('')}`;
+  html+='</div>';
+  // AI
+  G.pokerAI.forEach(ai=>{
+    html+=`<div class="ai-player"><b>${ai.name}</b> 💰$${Math.max(0,ai.money)} ${ai.folded?'🏳️ 弃牌':''}`;
+    html+=` 手牌: <span class="poker-card back">?</span><span class="poker-card back">?</span>`;
+    html+=`</div>`;
+  });
+  html+=`<div class="text-center text-gold mt-2">🏆 底池: $${G.pokerPot}</div>`;
+  document.getElementById('pokerPlayers').innerHTML=html;
+}
+
+function showPokerActions(){
+  const div=document.getElementById('pokerActions');
+  div.innerHTML=`
+    <div class="flex gap-1">
+      <button class="btn btn-sm flex-1" onclick="foldPoker()">🏳️ 弃牌</button>
+      <button class="btn btn-sm flex-1" onclick="callPoker()">✅ 跟注 $${G.pokerCallAmt||0}</button>
+      <button class="btn btn-sm flex-1 btn-danger" onclick="raisePoker()">⬆️ 加注</button>
+    </div>
+  `;
+}
+
+function foldPoker(){
+  if(!G.pokerSeated||G.pokerPhase==='waiting'){toast('还没坐下','info');return}
+  toast('你弃牌了','info');
+  G.pokerPhase='waiting';
+  aiActions();
+  endPokerHand();
+}
+
+function callPoker(){
+  if(!G.pokerSeated||G.pokerPhase==='waiting')return;
+  const amt=G.pokerCallAmt||0;
+  if(G.cash<amt){toast('钱不够跟注','lose');return}
+  G.cash-=amt;
+  G.pokerPot+=amt;
+  updateUI();
+  toast('跟注 $'+amt,'info');
+  aiActions();
+  advancePoker();
+}
+
+function raisePoker(){
+  if(!G.pokerSeated||G.pokerPhase==='waiting')return;
+  const blind=G.pokerBlinds[G.pokerTableIdx];
+  let raiseAmt=blind*4;
+  if(G.cash<raiseAmt){toast('钱不够加注','lose');return}
+  G.cash-=raiseAmt;
+  G.pokerPot+=raiseAmt;
+  G.pokerCallAmt=raiseAmt;
+  updateUI();
+  toast('加注 $'+raiseAmt,'win');
+  aiActions();
+  advancePoker();
+}
+
+function aiActions(){
+  G.pokerAI.forEach(ai=>{
+    if(ai.folded)return;
+    // random decision based on skill
+    const handStrength=evalHandStrength(ai.hand,G.pokerCommunity);
+    const skill=ai.skill;
+    if(handStrength>70&&Math.random()<skill*0.2){
+      const raise=rand(G.pokerBlinds[G.pokerTableIdx],G.pokerBlinds[G.pokerTableIdx]*3);
+      const amt=Math.min(raise,ai.money||0);
+      if(amt>0&&G.pokerPhase!=='waiting'){
+        if(ai.money!==undefined)ai.money-=amt;
+        G.pokerPot+=amt;
+        G.pokerCallAmt=Math.max(G.pokerCallAmt||0,amt);
+      }
+    } else if(handStrength>30||Math.random()<0.5){
+      // call
+      const call=Math.min(G.pokerCallAmt||0,ai.money||0);
+      if(ai.money!==undefined)ai.money-=call;
+      G.pokerPot+=call;
+    } else {
+      ai.folded=true;
+    }
+  });
+}
+
+function advancePoker(){
+  if(G.pokerPhase==='flop'){
+    G.pokerPhase='turn';
+    // deal turn
+    const deck=makeDeck();
+    // simulate (simplified)
+    toast('转牌','info');
+    setTimeout(()=>{
+      document.getElementById('pokerStatus').textContent='🔄 转牌，轮到你行动';
+      showPokerActions();
+    },500);
+  } else if(G.pokerPhase==='turn'){
+    G.pokerPhase='river';
+    toast('河牌','info');
+    setTimeout(()=>{
+      document.getElementById('pokerStatus').textContent='🔄 河牌，轮到你行动';
+      showPokerActions();
+    },500);
+  } else if(G.pokerPhase==='river'){
+    // showdown
+    endPokerHand();
+  } else {
+    endPokerHand();
+  }
+}
+
+function endPokerHand(){
+  if(G.pokerPhase==='waiting'||!G.pokerSeated)return;
+  G.pokerPhase='waiting';
+  // simple showdown - compare hand strength
+  const myStrength=evalHandStrength(G.pokerHand,G.pokerCommunity)+rand(-10,10);
+  let bestAI=0,bestStrength=-999;
+  G.pokerAI.forEach((ai,i)=>{
+    if(!ai.folded){
+      const s=evalHandStrength(ai.hand,G.pokerCommunity)+rand(-10,10);
+      if(s>bestStrength){bestStrength=s;bestAI=i}
+    }
+  });
+  const remainingAI=G.pokerAI.filter(a=>!a.folded).length;
+  let msg='';
+  if(remainingAI===0){
+    G.cash+=G.pokerPot;
+    msg=`🎉 所有AI弃牌！赢得底池 <b class="text-gold">$${G.pokerPot}</b>`;
+    toast('+$'+G.pokerPot+' 全胜！','win');
+    G.totalNet+=G.pokerPot;
+  } else if(myStrength>bestStrength){
+    G.cash+=G.pokerPot;
+    msg=`🎉 比牌获胜！赢得底池 <b class="text-gold">$${G.pokerPot}</b>`;
+    toast('+$'+G.pokerPot+' 赢！','win');
+    G.totalNet+=G.pokerPot;
+  } else {
+    msg=`😢 输给了 ${G.pokerAI[bestAI].name}...`;
+    toast('输了 $'+Math.min(G.pokerPot,1000),'lose');
+    G.totalNet-=Math.min(G.pokerPot,500);
+  }
+  G.pokerSeated=false;
+  updateUI();
+  document.getElementById('pokerStatus').innerHTML=msg+'<br><span class="text-sm">点击坐下重新开始</span>';
+  document.getElementById('pokerActions').innerHTML='';
+}
+
+function makeDeck(){
+  const d=[];
+  const suits=['♠','♥','♦','♣'];
+  const ranks=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  for(let s of suits)for(let r of ranks)d.push(r+s);
+  return d;
+}
+
+function evalHandStrength(hand,community){
+  // Simplified: high card + pairs
+  const all=hand.concat(community);
+  if(all.length<2)return rand(1,50);
+  let strength=0;
+  const rankOrder=['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
+  all.forEach(c=>{
+    const r=c.slice(0,-1);
+    const idx=rankOrder.indexOf(r);
+    if(idx>=0)strength+=idx+1;
+  });
+  // check pairs
+  const rankCount={};
+  all.forEach(c=>{
+    const r=c.slice(0,-1);
+    rankCount[r]=(rankCount[r]||0)+1;
+  });
+  let pairs=0;
+  for(let r in rankCount){
+    if(rankCount[r]>=2)pairs++;
+    if(rankCount[r]>=3)strength+=20;
+    if(rankCount[r]>=4)strength+=50;
+  }
+  strength+=pairs*15;
+  return strength;
+}
+
+// ============ HORSE RACING ============
+let horses=[];
+function initHorses(){
+  const names=['闪电⚡','飓风🌪️','雷霆🌩️','烈焰🔥','飞影👻','流星💫'];
+  horses=[];
+  for(let i=0;i<4;i++){
+    const n=pick(names);
+    const history=rand(1,5);
+    horses.push({name:n,history:history,speed:rand(50,100),color:['#ff4444','#33cc33','#66ccff','#f0c040'][i]});
+    names.splice(names.indexOf(n),1);
+  }
+  renderHorses();
+}
+
+function renderHorses(){
+  let html='<div class="text-sm mb-2">赛马历史胜率（近5场）</div>';
+  horses.forEach(h=>{
+    html+=`<div class="flex justify-between items-center mb-1" style="border-left:3px solid ${h.color};padding-left:8px">
+      <span>${h.name}</span>
+      <span class="text-sm text-gold">${h.history}/5胜</span>
+    </div>`;
+  });
+  html+='<div class="flex gap-1 mt-2 flex-wrap">';
+  horses.forEach((h,i)=>{
+    const odds=Math.max(1.2,(5-h.history)*0.8+1).toFixed(1);
+    html+=`<button class="btn btn-sm" onclick="selectHorse(${i})" id="hsel-${i}" style="border-color:${h.color};color:${h.color}">${h.name} @${odds}</button>`;
+  });
+  html+='</div>';
+  document.getElementById('horseRaceInfo').innerHTML=html;
+}
+
+let selectedHorse=-1;
+function selectHorse(i){
+  selectedHorse=i;
+  document.querySelectorAll('#horseRaceInfo .btn').forEach(b=>b.style.background='#2a2a40');
+  document.getElementById('hsel-'+i).style.background='#d4a017';
+  document.getElementById('hsel-'+i).style.color='#0a0a0f';
+}
+
+function runHorseRace(){
+  const bet=parseInt(document.getElementById('horseBet').value);
+  if(G.cash<bet){toast('钱不够！','lose');return}
+  if(selectedHorse<0){toast('请先选一匹马','info');return}
+  G.cash-=bet;
+  G.totalGames++;
+  const track=document.getElementById('horseTrack');
+  track.innerHTML='';
+  // start race
+  const positions=horses.map(()=>0);
+  horses.forEach((h,i)=>{
+    const lane=document.createElement('div');lane.className='horse-lane';
+    lane.innerHTML=`<div class="horse-icon" id="hlane-${i}" style="color:${h.color}">🐎</div><div class="horse-track-line"></div>`;
+    track.appendChild(lane);
+  });
+  // animate
+  let finished=[];
+  let interval=setInterval(()=>{
+    for(let i=0;i<horses.length;i++){
+      if(positions[i]>=100)continue;
+      positions[i]+=Math.random()*horses[i].speed/20+0.5;
+      positions[i]=Math.min(positions[i],100);
+      document.getElementById('hlane-'+i).style.left=positions[i]+'%';
+    }
+    // check finish
+    for(let i=0;i<horses.length;i++){
+      if(positions[i]>=100&&!finished.includes(i))finished.push(i);
+    }
+    if(finished.length===horses.length){
+      clearInterval(interval);
+      const winner=finished[0];
+      const odds=Math.max(1.2,(5-horses[winner].history)*0.8+1);
+      const isWin=winner===selectedHorse;
+      const winAmt=isWin?Math.floor(bet*odds):0;
+      G.cash+=winAmt;
+      G.totalNet+=winAmt-bet;
+      updateUI();
+      let msg=isWin?`🎉 ${horses[winner].name} 获胜！赢得 <b class="text-gold">$${winAmt}</b>`:`😢 ${horses[winner].name} 获胜，你选的输了`;
+      document.getElementById('horseResult').innerHTML=msg;
+      if(isWin)toast('+$'+winAmt+' 赌马赢！','win');
+      else toast('赌马输了...','lose');
+    }
+  },100);
+}
+
+// ============ FOOTBALL ============
+const FOOTBALL_TEAMS=[
+  {name:'虎队🐯',strength:85},
+  {name:'龙队🐉',strength:80},
+  {name:'狼队🐺',strength:70},
+  {name:'鹰队🦅',strength:75},
+];
+let footballMatches=[];
+let fbSelected=null;
+
+function initFootball(){
+  // create 2 matches
+  const shuffled=[...FOOTBALL_TEAMS];
+  shuffle(shuffled);
+  footballMatches=[
+    {home:shuffled[0],away:shuffled[1],bets:[],result:null},
+    {home:shuffled[2],away:shuffled[3],bets:[],result:null},
+  ];
+  fbSelected=null;
+  renderFootball();
+}
+
+function renderFootball(){
+  let html='';
+  footballMatches.forEach((m,i)=>{
+    const homeOdds=((1/(m.home.strength/(m.home.strength+m.away.strength)))*0.85).toFixed(1);
+    const awayOdds=((1/(m.away.strength/(m.home.strength+m.away.strength)))*0.85).toFixed(1);
+    const drawOdds=((1/(0.15))*0.85).toFixed(1);
+    html+=`<div class="match-card">
+      <div class="teams">
+        <span class="team">${m.home.name}</span>
+        <span class="vs">VS</span>
+        <span class="team">${m.away.name}</span>
+      </div>
+      <div class="odds">
+        <div class="odds-btn" onclick="selectFootball(${i},'home','${m.home.name}')" id="fb-${i}-home">${m.home.name}<br><b>${homeOdds}</b></div>
+        <div class="odds-btn" onclick="selectFootball(${i},'draw','平局')" id="fb-${i}-draw">平局<br><b>${drawOdds}</b></div>
+        <div class="odds-btn" onclick="selectFootball(${i},'away','${m.away.name}')" id="fb-${i}-away">${m.away.name}<br><b>${awayOdds}</b></div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('footballMatches').innerHTML=html;
+}
+
+function selectFootball(matchIdx,type,label){
+  fbSelected={matchIdx,type,label};
+  document.querySelectorAll('[id^="fb-"]').forEach(b=>b.style.background='#2a2a40');
+  document.getElementById('fb-'+matchIdx+'-'+type).style.background='#d4a017';
+  document.getElementById('fb-'+matchIdx+'-'+type).style.color='#0a0a0f';
+  toast('选择: '+label,'info');
+}
+
+function playFootball(){
+  if(!fbSelected){toast('请先选择一场比赛下注','info');return}
+  const bet=parseInt(document.getElementById('footballBet').value);
+  if(G.cash<bet){toast('钱不够！','lose');return}
+  const m=footballMatches[fbSelected.matchIdx];
+  G.cash-=bet;
+  G.totalGames++;
+  // simulate match
+  const homeScore=Math.floor((Math.random()*m.home.strength/20));
+  const awayScore=Math.floor((Math.random()*m.away.strength/20));
+  m.result={home:homeScore,away:awayScore};
+  let isWin=false;
+  if(fbSelected.type==='home'&&homeScore>awayScore)isWin=true;
+  if(fbSelected.type==='away'&&awayScore>homeScore)isWin=true;
+  if(fbSelected.type==='draw'&&homeScore===awayScore)isWin=true;
+  const odds=fbSelected.type==='home'?((1/(m.home.strength/(m.home.strength+m.away.strength)))*0.85):
+             fbSelected.type==='away'?((1/(m.away.strength/(m.home.strength+m.away.strength)))*0.85):6;
+  const winAmt=isWin?Math.floor(bet*odds):0;
+  G.cash+=winAmt;
+  G.totalNet+=winAmt-bet;
+  updateUI();
+  const msg=isWin?`🎉 ${m.home.name} ${homeScore}:${awayScore} ${m.away.name} - 中奖！赢得 <b class="text-gold">$${winAmt}</b>`:`😢 ${m.home.name} ${homeScore}:${awayScore} ${m.away.name} - 猜错了`;
+  document.getElementById('footballResult').innerHTML=msg;
+  if(isWin)toast('+$'+winAmt+' 赌球赢！','win');
+  else toast('赌球输了...','lose');
+}
+
+// ============ FUTURES ============
+function setLeverage(n){
+  G.leverage=n;
+  document.getElementById('curLeverage').textContent='x'+n;
+  document.getElementById('futuresUnit').textContent='$'+(1000*n);
+  document.querySelectorAll('[id^="lev"]').forEach(b=>b.style.background='#2a2a40');
+  document.getElementById('lev'+n).style.background='#d4a017';
+}
+
+function initKline(){
+  G.klineData=[];
+  let price=100;
+  for(let i=0;i<20;i++){
+    price+=Math.random()*8-4;
+    price=Math.max(50,price);
+    G.klineData.push(price);
+  }
+  renderKline();
+}
+
+function renderKline(){
+  const div=document.getElementById('klineChart');
+  if(!G.klineData.length)return;
+  const min=Math.min(...G.klineData),max=Math.max(...G.klineData),range=max-min||1;
+  div.innerHTML=G.klineData.map((v,i)=>{
+    const h=((v-min)/range*100);
+    const color=v>=G.klineData[i-1>=0?i-1:i]?'#33cc33':'#ff4444';
+    return `<div class="kline-bar" style="height:${h}%;background:${color}"></div>`;
+  }).join('');
+  div.innerHTML+=`<div class="text-xs text-center mt-1" style="width:100%">当前价: ${G.klineData[G.klineData.length-1].toFixed(1)}</div>`;
+}
+
+function openFuture(type){
+  const price=G.klineData.length?G.klineData[G.klineData.length-1]:100;
+  const unit=1000*G.leverage;
+  if(G.cash<unit){toast('钱不够！至少需要$'+unit,'lose');return}
+  G.cash-=unit;
+  G.futurePositions.push({type,price,leverage:G.leverage,invest:unit,qty:1,dayEnter:G.klineData.length});
+  updateUI();
+  toast(`${type==='long'?'做多':'做空'} 开仓 $${unit}`,'win');
+  renderPositions();
+}
+
+function closeFuture(idx){
+  const pos=G.futurePositions[idx];
+  const curPrice=G.klineData[G.klineData.length-1];
+  const diff=pos.type==='long'?curPrice-pos.price:pos.price-curPrice;
+  const pnl=Math.floor(diff*pos.leverage*pos.invest/pos.price);
+  G.cash+=pos.invest+pnl;
+  G.totalNet+=pnl;
+  G.futurePositions.splice(idx,1);
+  updateUI();
+  toast(pnl>=0?'+$'+pnl+' 平仓赚！':'平仓亏 $'+Math.abs(pnl),pnl>=0?'win':'lose');
+  renderPositions();
+}
+
+function renderPositions(){
+  const div=document.getElementById('futurePositions');
+  if(!G.futurePositions.length){div.innerHTML='<div class="text-sm text-center mt-2">暂无持仓</div>';return}
+  div.innerHTML='<div class="text-sm font-bold mt-2 mb-1">📋 持仓</div>'+G.futurePositions.map((p,i)=>{
+    const cur=G.klineData.length?G.klineData[G.klineData.length-1]:p.price;
+    const diff=p.type==='long'?cur-p.price:p.price-cur;
+    const pnl=Math.floor(diff*p.leverage*p.invest/p.price);
+    return `<div class="flex justify-between items-center mb-1" style="padding:6px;background:#1a1a2e;border-radius:6px">
+      <span class="text-sm">${p.type==='long'?'📈做多':'📉做空'} x${p.leverage}</span>
+      <span class="text-sm">入场: $${p.price.toFixed(1)}</span>
+      <span class="${pnl>=0?'text-green':'text-red'}">${pnl>=0?'+':''}$${pnl}</span>
+      <button class="btn btn-sm" onclick="closeFuture(${i})">平仓</button>
+    </div>`;
+  }).join('');
+}
+
+// advance kline (called periodically or from anywhere in game)
+function advanceKline(){
+  if(!G.klineData.length)initKline();
+  let last=G.klineData[G.klineData.length-1];
+  let change=Math.random()*10-5;
+  last+=change;
+  last=Math.max(10,Math.min(300,last));
+  G.klineData.push(last);
+  if(G.klineData.length>30)G.klineData.shift();
+  renderKline();
+  renderPositions();
+}
+
+// ============ JOBS ============
+function doJob(idx){
+  if(idx===-1)return;
+  G.cash+=JOBS[idx].pay;
+  if(JOBS[idx].repPenalty>0){
+    G.rep=Math.max(0,G.rep-JOBS[idx].repPenalty);
+  }
+  G.totalNet+=JOBS[idx].pay;
+  updateUI();
+  toast(`${JOBS[idx].name} 完成！+$${JOBS[idx].pay}`,'win');
+  if(JOBS[idx].repPenalty>0)toast('信誉 -'+JOBS[idx].repPenalty,'debt');
+  updateUI();
+}
+
+// ============ DEBT ============
+function takeLoan(idx){
+  if(G.bankruptRep){toast('信誉破产，无法再借！','debt');return}
+  const loan=LOANS[idx];
+  if(G.debt>0){toast('已有未还债务，请先还清','info');return}
+  G.cash+=loan.amt;
+  G.debt=loan.amt;
+  G.loanDailyRate=loan.rate;
+  G.debtDays=0;
+  updateUI();
+  toast(`借款 $${loan.amt} 到账！日息 ${(loan.rate*100).toFixed(0)}%`,'info');
+}
+
+function repayDebt(){
+  if(G.debt<=0){toast('没有债务！','info');return}
+  const amt=parseInt(document.getElementById('repayAmt').value);
+  const toRepay=Math.min(amt,Math.floor(G.debt),G.cash);
+  if(toRepay<=0){toast('金额无效','info');return}
+  G.cash-=toRepay;
+  G.debt-=toRepay;
+  if(G.debt<1)G.debt=0;
+  if(G.debt===0){
+    G.debtDays=0;
+    G.loanDailyRate=0;
+    G.rep=Math.min(100,G.rep+10);
+    toast('债务全部还清！信誉恢复！','win');
+  } else {
+    toast('已还 $'+toRepay,'info');
+  }
+  updateUI();
+}
+
+function processDailyDebt(){
+  if(G.debt>0&&G.loanDailyRate>0){
+    const interest=Math.floor(G.debt*G.loanDailyRate);
+    G.debt+=interest;
+    G.debtDays++;
+    // check penalties
+    if(G.debtDays>=1&&G.debtDays<=3){
+      toast(`⚠️ 催收通知：债务已达 $${Math.floor(G.debt)}，请尽快还款！`,'debt');
+    } else if(G.debtDays>=4&&G.debtDays<=7){
+      const forcedPay=Math.min(Math.floor(G.debt*0.3),G.cash);
+      if(forcedPay>0){
+        G.cash-=forcedPay;
+        G.debt-=forcedPay;
+        toast(`💥 强制扣款 $${forcedPay}！`,'debt');
+      }
+    } else if(G.debtDays>=8&&G.debtDays<=14){
+      G.rep=0;
+      G.bankruptRep=true;
+      toast('💀 信誉破产！无法再借款！','debt');
+    } else if(G.debtDays>=15){
+      showModal('💀 游戏结束','你被债主追上了... 债务超过15天未还。<br>最终现金: $'+G.cash+'<br>最终债务: $'+Math.floor(G.debt)+'<br><br>💀 身败名裂');
+      resetGame();
+    }
+    updateUI();
+  }
+}
+
+function resetGame(){
+  G.cash=0;G.debt=0;G.rep=100;G.debtDays=0;G.totalGames=0;G.totalNet=0;G.peakCash=0;
+  G.loanAmount=0;G.loanDailyRate=0;G.bankruptRep=false;
+  G.pokerSeated=false;G.futurePositions=[];G.klineData=[];
+  G.fbBet=null;G.fbBetType=null;
+  updateUI();
+}
+
+// ============ DAILY PROCESS ============
+// simulate passage of time - call this every ~10 game actions
+let actionCounter=0;
+function dailyTick(){
+  actionCounter++;
+  if(actionCounter%3===0){
+    processDailyDebt();
+    advanceKline();
+  }
+}
+
+// ============ INIT ============
+updateUI();
+initHorses();
+initFootball();
+initKline();
+document.querySelectorAll('.tab-content').forEach(t=>t.style.display='none');
+document.getElementById('tab-pachinko').style.display='block';
+setPokerTable(0);
+setLeverage(1);
+</script>
+</body>
+</html>
