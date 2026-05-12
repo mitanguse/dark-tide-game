@@ -174,6 +174,8 @@ function dI(){return pD().reduce((s,d)=>s+Math.floor(d.v*d.sec/100),0)}
 
 // === ENEMIES ===
 function sE(){ENMS.forEach((x,i)=>{if(G.enemies.some(e=>e.n===x.n))return;G.enemies.push({id:i+100+R(0,999),...x,alive:true,pw:x.pw+R(0,3)+Math.floor(G.turn/2)})})}
+// HTML onclick wrappers
+function upgradeBase(){uB()}function bribePolice(){bP()}function corruptPol(){cP()}function attackEnemy(){aE()}function quickAct(){qAct()}
 
 // === COLLECT ===
 function collectAll(){if(G.collected){sM('⏳','本回合已收过保护费，下回合再来');return}G.collected=1;const inc=dI();if(inc<=0){sM('💰','没有可收的保护费');return}G.money+=inc;sM('💰 收租',`从各街区收取保护费 $${inc}`);updateUI()}
