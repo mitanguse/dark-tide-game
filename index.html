@@ -738,6 +738,11 @@ html, body {
 <!-- ===== Toast ===== -->
 <div id="toastContainer" class="toast-container"></div>
 
+<script>// ===== 工具函数 =====
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const P=a=>a[Math.floor(Math.random()*a.length)];
+const C=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
+
 // ===== 游戏配置 =====
 const CONFIG = {
     // 阶段
@@ -4077,7 +4082,6 @@ function getGangHostility(gangIndex) {
     return Math.min(100, G.notoriety + G.districtCount * 5 + gangIndex * 3);
 }
 
-<script>
 // ===== 全局状态 =====
 let G = null;
 let _messageTimeout = null;
@@ -4903,6 +4907,6 @@ document.addEventListener('keydown', (e) => {
 console.log('🌊 暗潮·地下组织模拟器 v2.0 已加载');
 console.log('🎮 快捷键: 1-6 切换标签 | Space 下一天 | Ctrl+S 保存 | Esc 关闭弹窗');
 </script>
-
+</script>
 </body>
 </html>
