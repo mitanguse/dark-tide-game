@@ -3748,7 +3748,7 @@ const COMBAT_STRATEGIES = [
 
 // 执行抢地盘战斗（选人模式）
 function openDistrictBattle(districtId) {
-    const dist = G.districts[districtId];
+    const dist = CONFIG.DISTRICTS.find(function(d){return d.id===districtId;}) || G.districts[districtId];
     if (!dist) return;
     if (dist.owner === 'player') { showToast('这是你的地盘', 'info'); return; }
     
