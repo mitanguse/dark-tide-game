@@ -3436,6 +3436,7 @@ function initDiplomacy(state) {
         state.gangRelations[name] = baseRelation + Math.floor(Math.random() * 10) - 5;
     });
     state.policeRelation = -20 + Math.floor(Math.random() * 10);  // 初始跟警察关系冷淡
+    state.enemies = CONFIG.GANGS.map(function(g) { return { name: g.name, alive: true, power: 10 + Math.floor(Math.random() * 15), maxPower: 100 }; });
 }
 
 // 获取关系等级文本
@@ -3747,13 +3748,13 @@ const COMBAT_STRATEGIES = [
 
 // 执行抢地盘战斗（选人模式）
 function openDistrictBattle(districtId) {
-    const dist = state.districts[districtId];
+    const dist = G.districts[districtId];
     if (!dist) return;
     if (dist.owner === 'player') { showToast('这是你的地盘', 'info'); return; }
     
     // 检查可用成员
-    const available = state.crew.filter(m => m.status === 'idle');
-    if (available.length < 5) {
+    const available = G.crew.filter(m => m.status === 'idle');
+    if (available.length < 2) {
         showToast('需要至少5名可用成员参加战斗！当前仅' + available.length + '人', 'error');
         return;
     }
@@ -3790,38 +3791,38 @@ function openDistrictBattle(districtId) {
     
     html += '<div style="font-size:.65em;color:#888;margin:4px 0">已选: <span id="battle-count">0</span>/' + available.length + ' 人 | 总战力: <span id="battle-power">0</span></div>';
     html += '<div class="btn-group" style="margin-top:6px">';
-    html += '<button class="btn btn-red" onclick="executeBattle(districtId">⚔️ 发起进攻</button>';
+    html += '<button class="btn btn-red" onclick="executeBattle(' + districtId + ')">⚔️ 发起进攻</button>';
     html += '<button class="btn" onclick="closeBattle()">取消</button>';
     html += '</div></div></div>';
     
     document.body.insertAdjacentHTML('beforeend', html);
-    state._selectedBattleStrat = 0;
-    state._selectedBattleMembers = [];
+    G._selectedBattleStrat = 0;
+    G._selectedBattleMembers = [];
 }
 
 function selectStrat(idx) {
-    state._selectedBattleStrat = idx;
+    G._selectedBattleStrat = idx;
     document.querySelectorAll('.strat-option').forEach((el, i) => {
         el.style.borderColor = i === idx ? '#a78bfa' : '#333';
     });
 }
 
 function toggleBattleMember(memberId) {
-    const idx = state._selectedBattleMembers.indexOf(memberId);
+    const idx = G._selectedBattleMembers.indexOf(memberId);
     if (idx >= 0) {
-        state._selectedBattleMembers.splice(idx, 1);
+        G._selectedBattleMembers.splice(idx, 1);
     } else {
-        const avail = state.crew.filter(m => m.status === 'idle');
-        if (state._selectedBattleMembers.length >= avail.length) return;
-        state._selectedBattleMembers.push(memberId);
+        const avail = G.crew.filter(m => m.status === 'idle');
+        if (G._selectedBattleMembers.length >= avail.length) return;
+        G._selectedBattleMembers.push(memberId);
     }
     updateBattleUI();
 }
 
 function updateBattleUI() {
-    const count = state._selectedBattleMembers.length;
-    const totalPower = state._selectedBattleMembers.reduce((s, id) => {
-        const m = state.crew.find(c => c.id === id);
+    const count = G._selectedBattleMembers.length;
+    const totalPower = G._selectedBattleMembers.reduce((s, id) => {
+        const m = G.crew.find(c => c.id === id);
         return s + (m ? getMemberPower(m) : 0);
     }, 0);
     const el = document.getElementById('battle-count');
@@ -3832,7 +3833,7 @@ function updateBattleUI() {
     // 高亮已选
     document.querySelectorAll('.crew-chip').forEach(chip => {
         const id = parseInt(chip.dataset.id);
-        const selected = state._selectedBattleMembers.includes(id);
+        const selected = G._selectedBattleMembers.includes(id);
         chip.style.borderColor = selected ? '#34d399' : '#444';
         chip.style.background = selected ? 'rgba(52,211,153,0.1)' : 'transparent';
     });
@@ -3840,8 +3841,8 @@ function updateBattleUI() {
 
 // 执行战斗
 function executeBattle(districtId) {
-    const strat = COMBAT_STRATEGIES[state._selectedBattleStrat || 0];
-    const members = state._selectedBattleMembers;
+    const strat = COMBAT_STRATEGIES[G._selectedBattleStrat || 0];
+    const members = G._selectedBattleMembers;
     
     if (!strat || !members || members.length < strat.manpowerMin) {
         showToast('至少选择' + strat.manpowerMin + '人！', 'error');
@@ -3849,25 +3850,25 @@ function executeBattle(districtId) {
     }
     
     // 检查条件
-    if (strat.intelCost && state.intel < strat.intelCost) {
+    if (strat.intelCost && G.intel < strat.intelCost) {
         showToast('情报不足(需' + strat.intelCost + ')', 'error');
         return;
     }
     if (strat.requireBomber && !members.some(id => {
-        const m = state.crew.find(c => c.id === id);
+        const m = G.crew.find(c => c.id === id);
         return m && m.class === '爆破手';
     })) {
         showToast('需要爆破手参与！', 'error');
         return;
     }
     
-    if (strat.intelCost) state.intel -= strat.intelCost;
+    if (strat.intelCost) G.intel -= strat.intelCost;
     
     // 计算成功率
-    const dist = state.districts[districtId];
+    const dist = G.districts[districtId];
     const defPower = dist.defense || 10;
     const totalPower = members.reduce((s, id) => {
-        const m = state.crew.find(c => c.id === id);
+        const m = G.crew.find(c => c.id === id);
         return s + (m ? getMemberPower(m) : 0);
     }, 0);
     
@@ -3885,16 +3886,16 @@ function executeBattle(districtId) {
         // 胜利
         dist.owner = 'player';
         dist.defense = Math.max(3, Math.floor(defPower * 0.4));
-        state.influence += 5 + Math.floor(Math.random() * 5);
-        state.notoriety += 5;
-        state.districtCount = Object.values(state.districts).filter(d => d.owner === 'player').length;
+        G.influence += 5 + Math.floor(Math.random() * 5);
+        G.notoriety += 5;
+        G.districtCount = Object.values(G.districts).filter(d => d.owner === 'player').length;
         
         // 胜利也有伤亡
         const casualtyCount = Math.floor(members.length * 0.1 * Math.random() * 2);
         for (let i = 0; i < casualtyCount; i++) {
             const idx = Math.floor(Math.random() * members.length);
             const mid = members[idx];
-            const m = state.crew.find(c => c.id === mid);
+            const m = G.crew.find(c => c.id === mid);
             if (m && Math.random() < 0.3) {
                 m.status = 'dead';
                 msg += m.name + '阵亡... ';
@@ -3913,7 +3914,7 @@ function executeBattle(districtId) {
         
         let deadCount = 0;
         members.forEach(mid => {
-            const m = state.crew.find(c => c.id === mid);
+            const m = G.crew.find(c => c.id === mid);
             if (!m) return;
             if (Math.random() < casualtyRate * 0.6) {  // 阵亡概率
                 m.status = 'dead';
@@ -3932,13 +3933,13 @@ function executeBattle(districtId) {
             showToast('惨败！损失' + deadCount + '人', 'error');
         }
         
-        state.security = Math.max(0, state.security - 10);
-        state.influence = Math.max(0, state.influence - 3);
+        G.security = Math.max(0, G.security - 10);
+        G.influence = Math.max(0, G.influence - 3);
     }
     
     // 清理阵亡
-    state.crew = state.crew.filter(m => m.status !== 'dead');
-    state.manpower = state.crew.length;
+    G.crew = G.crew.filter(m => m.status !== 'dead');
+    G.manpower = G.crew.length;
     
     addMessage('[战斗] ' + msg, roll < chance ? 'success' : 'error');
     updateUI();
@@ -3947,8 +3948,8 @@ function executeBattle(districtId) {
 function closeBattle() {
     const el = document.getElementById('battleModal');
     if (el) el.remove();
-    state._selectedBattleStrat = undefined;
-    state._selectedBattleMembers = undefined;
+    G._selectedBattleStrat = undefined;
+    G._selectedBattleMembers = undefined;
 }
 
 // 计算成员战力
