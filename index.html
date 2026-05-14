@@ -2879,8 +2879,8 @@ function handleEventChoice(index) {
     const effects = { ...choice.effects };
 
     if (!success) {
-                resultText += '\n\nâ ä½æ¯äºæå¹¶æ²¡ææè®¡ååå±...';
-// 失败惩罚
+                resultText += '\n\n❌ 但是事情并没有按计划发展...';
+                // 失败惩罚
         if (effects.money) effects.money = -Math.abs(effects.money);
         if (effects.manpower) effects.manpower = -Math.abs(effects.manpower);
         if (effects.notoriety) effects.notoriety = Math.abs(effects.notoriety);
@@ -3077,12 +3077,12 @@ function showMoleReveal(mole) {
 function rollItemDrop() {
     if (Math.random() > 0.2) return null;  // 20%概率掉落
     const drops = [
-        { id: 'razor_hat', weight: 25 },
-        { id: 'pocket_watch', weight: 10 },
+        { id: 'razorhat', weight: 25 },
+        { id: 'pocketwatch', weight: 10 },
         { id: 'moonshine', weight: 30 },
         { id: 'medkit', weight: 20 },
-        { id: 'bribe_doc', weight: 5 },
-        { id: 'black_umbrella', weight: 10 },
+        { id: 'bribeDoc', weight: 5 },
+        { id: 'blackUmbrella', weight: 10 },
     ];
     const total = drops.reduce((s, d) => s + d.weight, 0);
     let r = Math.random() * total;
@@ -3214,7 +3214,7 @@ function giftItem(invIdx, memberId) {
     
     // 某些道具还有额外效果
     let extra = '';
-    if (inv.id === 'razor_hat') {
+    if (inv.id === 'razorhat') {
         m.equipped = m.equipped || [];
         m.equipped.push('razor_hat');
         extra = ' 且装备上了';
@@ -3249,15 +3249,15 @@ function useItem(invIdx) {
                 msg = '无成员受伤，提高了据点卫生安全';
             }
             break;
-        case 'bribe_doc':
+        case 'bribeDoc':
             G.influence += 10;
             msg = '影响力+10';
             break;
-        case 'black_umbrella':
+        case 'blackUmbrella':
             G.notoriety = Math.max(0, G.notoriety - 10);
             msg = '恶名-10';
             break;
-        case 'encrypted_phone':
+        case 'encryptedPhone':
             G._intelBoost = (G._intelBoost || 0) + 0.2;
             msg = '情报效率永久+20%';
             break;
@@ -3923,7 +3923,7 @@ function executeBattle(districtId) {
     }
     if (strat.requireBomber && !members.some(id => {
         const m = G.crew.find(c => c.id === id);
-        return m && m.class === '爆破手';
+        return m && m.className === '爆破手';
     })) {
         showToast('需要爆破手参与！', 'error');
         return;
