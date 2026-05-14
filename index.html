@@ -2792,10 +2792,8 @@ function handleEventChoice(index) {
     const effects = { ...choice.effects };
 
     if (!success) {
-        resultText += '
-
-❌ 但是事情并没有按计划发展...';
-        // 失败惩罚
+                resultText += '\n\nâ ä½æ¯äºæå¹¶æ²¡ææè®¡ååå±...';
+// 失败惩罚
         if (effects.money) effects.money = -Math.abs(effects.money);
         if (effects.manpower) effects.manpower = -Math.abs(effects.manpower);
         if (effects.notoriety) effects.notoriety = Math.abs(effects.notoriety);
