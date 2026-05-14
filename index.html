@@ -1412,7 +1412,7 @@ function poachMember(state) {
 }
 
 // 逐出成员
-function expelMember(state, memberId) {
+function expelMember(G, memberId) {
     const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
     G.crew = G.crew.filter(c => c.id !== memberId);
@@ -1429,7 +1429,7 @@ function expelMember(state, memberId) {
 }
 
 // 击杀成员（处决）
-function executeMember(state, memberId) {
+function executeMember(G, memberId) {
     const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
     G.crew = G.crew.filter(c => c.id !== memberId);
@@ -1470,7 +1470,7 @@ function turnMole(state, memberId) {
 }
 
 // 提升成员经验
-function addMemberXp(state, member, amount) {
+function addMemberXp(G, member, amount) {
     if (!member || member.status === 'dead') return;
     member.xp += amount;
     while (member.xp >= member.xpNeeded) {
@@ -1512,8 +1512,8 @@ function showMemberDetail(state, memberId) {
     
     // 操作按钮
     html += '<div class="btn-group" style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">';
-    html += '<button class="btn" onclick="expelMember(state, ' + m.id + ');closeModal(\'memberModal\')" style="border-color:#fbbf24">🚪 逐出</button>';
-    html += '<button class="btn btn-red" onclick="if(confirm(\'确定要处决' + m.name + '吗？恶名+5\')){executeMember(state, ' + m.id + ');closeModal(\'memberModal\')}" style="border-color:#f87171">💀 处决</button>';
+    html += '<button class="btn" onclick="expelMember(G, ' + m.id + ');closeModal(\'memberModal\')" style="border-color:#fbbf24">🚪 逐出</button>';
+    html += '<button class="btn btn-red" onclick="if(confirm(\'确定要处决' + m.name + '吗？恶名+5\')){executeMember(G, ' + m.id + ');closeModal(\'memberModal\')}" style="border-color:#f87171">💀 处决</button>';
     html += '</div>';
     
     html += '<button class="btn" onclick="closeModal(\'memberModal\')" style="margin-top:6px">关闭</button>';
@@ -1603,10 +1603,10 @@ function completeMissionCrew(G, memberIds, success) {
         m.missions = (m.missions || 0) + 1;
         if (success) {
             m.loyalty = Math.min(100, (m.loyalty || 50) + 2);
-            addMemberXp(state, m, 10 + Math.floor(Math.random() * 10));
+            addMemberXp(G, m, 10 + Math.floor(Math.random() * 10));
         } else {
             m.loyalty = Math.max(5, (m.loyalty || 50) - 5);
-            addMemberXp(state, m, 3 + Math.floor(Math.random() * 5));
+            addMemberXp(G, m, 3 + Math.floor(Math.random() * 5));
         }
     });
 }
