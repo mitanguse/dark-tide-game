@@ -2840,13 +2840,11 @@ function handleEventChoice(index) {
         G.triggeredEvents.push(event.id);
     }
 
-    addMessage(`📜 [事件] ${event.title} - ${resultText.split('
-')[0]}`, 'info');
+    addMessage(`📜 [事件] ${event.title} - ${resultText.split('\n')[0]}`, 'info');
     showToast(resultText, success ? 'success' : 'error');
 
     if (modal) {
-        modal.querySelector('.event-desc').innerHTML = resultText.replace(/
-/g, '<br>');
+        modal.querySelector('.event-desc').innerHTML = resultText.replace(/\n/g, '<br>');
         modal.querySelector('.event-choices').innerHTML = `<button class="btn-choice btn-gold" onclick="closeEventModal()">✅ 继续</button>`;
     }
     _currentEvent = null;
