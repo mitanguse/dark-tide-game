@@ -884,6 +884,7 @@ function initGameState() {
         phase: 0,
         ap: CONFIG.BASE_AP,
         maxAp: CONFIG.BASE_AP,
+        turn: 1,
         day: 1,
 
         // 成员 (非NPC)
@@ -4464,13 +4465,14 @@ function renderDevTab() {
 function doNextDay() {
     if (!G) return;
     G.turn = (G.turn || 1) + 1;
+    G.day = G.turn; // sync day/turn
     G.ap = G.maxAp || 4;
     resetAp(G);
     
     // 收入
     const income = getDailyIncome(G);
-    G.money += income;
-    addMessage('📅 第' + G.turn + '天 | 收入 +$' + income, 'info');
+    if (income > 0 && !isNaN(income)) G.money += income;
+    addMessage('📅 第' + G.turn + '天 | 收入 +$' + (isNaN(income) ? 0 : income), 'info');
     
     // 外交关系更新
     if (typeof updateDiplomacy === 'function') updateDiplomacy(G);
