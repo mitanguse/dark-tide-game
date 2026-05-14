@@ -3845,7 +3845,7 @@ function executeBattle(districtId) {
     const members = G._selectedBattleMembers;
     
     if (!strat || !members || members.length < strat.manpowerMin) {
-        showToast('至少选择' + strat.manpowerMin)！', 'error');
+        showToast('至少选择' + strat.manpowerMin + '人！', 'error');
         return;
     }
     
