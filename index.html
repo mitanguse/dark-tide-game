@@ -766,6 +766,23 @@ const CONFIG = {
         '医师': { emoji: '💊', desc: '战场医疗支持', combat: 1, intel: 0, income: 1, special: '成员存活率+20%' },
     },
 
+    // 职业列表（用于成员生成）
+    JOBS: [
+        { k: 'thug', n: '打手', e: '💪', bs: 3 },
+        { k: 'spy', n: '情报员', e: '👁️', bs: 3 },
+        { k: 'hack', n: '黑客', e: '💻', bs: 3 },
+        { k: 'kill', n: '杀手', e: '🗡️', bs: 4 },
+        { k: 'smug', n: '走私贩', e: '📦', bs: 3 },
+        { k: 'bomb', n: '爆破手', e: '💥', bs: 4 },
+        { k: 'snip', n: '狙击手', e: '🎯', bs: 4 },
+        { k: 'med', n: '医师', e: '💊', bs: 2 },
+    ],
+
+    MEMBER_NAMES: [
+        夜鸦,毒蛇,幽灵,铁拳,魅影,狂犬,黑狐,剃刀,
+        寒冰,灰狼,蝎子,暗星,血手,猎鹰,毒蝎,恶鬼
+    ],
+
     // 任务类型（含所需人数和冲突提示）
     MISSIONS: [
         { id: '收保护费', phase: 0, baseReward: 50, baseRisk: 10, combatReq: 1, intelReq: 0, minCrew: 1, desc: '向小商户收取保护费' },
