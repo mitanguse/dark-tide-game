@@ -3233,40 +3233,75 @@ function useItem(invIdx) {
     const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
     if (!itemDef) return;
     
-    inv.count = (inv.count || 1) - 1;
-    if (inv.count <= 0) G.inventory.splice(invIdx, 1);
-    
-    // 道具效果
+    // 道具效果（先应用效果再减数量，确保使用失败时道具不消失）
     let msg = '';
+    let effectApplied = false;
     switch (inv.id) {
         case 'medkit':
-            const injured = G.crew.filter(m => m.hp && m.hp < 80);
+            // 治疗受伤成员（实际游戏里hp可能未初始化）
+            const injured = G.crew.filter(m => m.hp !== undefined && m.hp < 80);
             if (injured.length > 0) {
                 injured.forEach(m => m.hp = Math.min(100, (m.hp || 80) + 30));
                 msg = '治疗了 ' + injured.length + ' 名受伤成员';
+                effectApplied = true;
             } else {
                 G.security = Math.min(100, G.security + 5);
                 msg = '无成员受伤，提高了据点卫生安全';
+                effectApplied = true;
             }
             break;
         case 'bribeDoc':
-            G.influence += 10;
+            G.influence = Math.min(100, G.influence + 10);
             msg = '影响力+10';
+            effectApplied = true;
             break;
         case 'blackUmbrella':
             G.notoriety = Math.max(0, G.notoriety - 10);
             msg = '恶名-10';
+            effectApplied = true;
             break;
         case 'encryptedPhone':
             G._intelBoost = (G._intelBoost || 0) + 0.2;
             msg = '情报效率永久+20%';
+            effectApplied = true;
+            break;
+        case 'vest':
+            G.security = Math.min(100, G.security + 10);
+            msg = '安全度+10';
+            effectApplied = true;
+            break;
+        case 'moonshine':
+            G._recruitBoost = (G._recruitBoost || 0) + 0.1;
+            msg = '招募吸引力永久+10%';
+            effectApplied = true;
+            break;
+        case 'razorhat':
+            // 战斗全局加成
+            G._combatBoost = (G._combatBoost || 0) + 0.05;
+            msg = '全体战斗力+5%';
+            effectApplied = true;
+            break;
+        case 'pocketwatch':
+            // 下次行动节省AP
+            G._apSave = (G._apSave || 0) + 1;
+            msg = '下次行动节省1AP';
+            effectApplied = true;
             break;
         default:
             msg = '此道具不能直接使用，试试送给成员';
     }
     
-    showToast(msg, 'info');
-    addMessage('使用了' + itemDef.emoji + itemDef.name + ': ' + msg, 'info');
+    if (effectApplied) {
+        // 效果已应用，再扣除道具数量
+        inv.count = (inv.count || 1) - 1;
+        if (inv.count <= 0) G.inventory.splice(invIdx, 1);
+        showToast(msg, 'success');
+        addMessage('使用了' + itemDef.emoji + itemDef.name + ': ' + msg, 'info');
+    } else {
+        // 效果未应用，道具不消耗
+        showToast(msg, 'info');
+    }
+    
     closeModal('inventoryModal');
     updateUI();
 }
