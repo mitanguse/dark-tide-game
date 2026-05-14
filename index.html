@@ -3760,11 +3760,11 @@ function openDistrictBattle(districtId) {
     }
     
     // 构建选人界面
-    const enemyName = dist.owner === 'neutral' ? '本地守卫' : dist.enemyName || '敌对帮派';
-    const defPower = dist.defense || 10;
+    const enemyName = dist.owner === 'neutral' ? '本地守卫' : '敌对帮派';
+    const defPower = dist.baseSecurity || 10;
     
     let html = '<div class="modal-overlay show" id="battleModal"><div class="modal-content">';
-    html += '<div class="modal-header"><span>⚔️ 夺取 ' + dist.icon + ' ' + dist.name + '</span></div>';
+    html += '<div class="modal-header"><span>⚔️ 夺取 ' + dist.id + '</span></div>';
     html += '<p style="font-size:.75em;color:#888;margin:4px 0">目标防御: ' + defPower + ' | 守方: ' + enemyName + '</p>';
     html += '<p style="font-size:.65em;color:#f87171;margin:4px 0">⚠ 至少选择2人，战斗有伤亡风险</p>';
     
@@ -3866,7 +3866,7 @@ function executeBattle(districtId) {
     
     // 计算成功率
     const dist = G.districts[districtId];
-    const defPower = dist.defense || 10;
+    const defPower = dist.baseSecurity || 10;
     const totalPower = members.reduce((s, id) => {
         const m = G.crew.find(c => c.id === id);
         return s + (m ? getMemberPower(m) : 0);
@@ -3904,8 +3904,8 @@ function executeBattle(districtId) {
             }
         }
         
-        const income = dist.income || 50;
-        msg = '胜利！拿下' + dist.name + '！收入+' + income + '/回合' + (casualtyCount > 0 ? ' 但损失' + casualtyCount + '人' : '');
+        const income = dist.baseIncome || 50;
+        msg = '胜利！拿下' + dist.id + '！收入+' + income + '/回合' + (casualtyCount > 0 ? ' 但损失' + casualtyCount + '人' : '');
         showToast(msg, 'success');
     } else {
         // 失败 - 严重惩罚
