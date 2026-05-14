@@ -2839,13 +2839,11 @@ function handleEventChoice(index) {
         G.triggeredEvents.push(event.id);
     }
 
-    addMessage(`📜 [事件] ${event.title} - ${resultText.split('
-')[0]}`, 'info');
+    addMessage(`📜 [事件] ${event.title} - ${resultText.split('\n')[0]}`, 'info');
     showToast(resultText, success ? 'success' : 'error');
 
     if (modal) {
-        modal.querySelector('.event-desc').innerHTML = resultText.replace(/
-/g, '<br>');
+        modal.querySelector('.event-desc').innerHTML = resultText.replace(/\n/g, '<br>');
         modal.querySelector('.event-choices').innerHTML = `<button class="btn-choice btn-gold" onclick="closeEventModal()">✅ 继续</button>`;
     }
     _currentEvent = null;
@@ -3772,7 +3770,7 @@ function openDistrictBattle(districtId) {
     
     html += '<div style="font-size:.65em;color:#888;margin:4px 0">已选: <span id="battle-count">0</span>/' + available.length + ' 人 | 总战力: <span id="battle-power">0</span></div>';
     html += '<div class="btn-group" style="margin-top:6px">';
-    html += '<button class="btn btn-red" onclick="executeBattle('' + districtId + '')">⚔️ 发起进攻</button>';
+    html += '<button class="btn btn-red" onclick="executeBattle(\' + districtId + \')">⚔️ 发起进攻</button>';
     html += '<button class="btn" onclick="closeBattle()">取消</button>';
     html += '</div></div></div>';
     
