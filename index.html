@@ -3587,7 +3587,7 @@ function getRelationColor(value) {
 }
 
 // 主动改善帮派关系（送礼/谈判）
-function improveGangRelation(G, gangName) {
+function improveGangRelation(state, gangName) {
     if (state._diplomacyCooldown > state.turn) {
         showToast('外交还在冷却中（剩' + (state._diplomacyCooldown - state.turn) + '回合）', 'error');
         return;
@@ -3631,7 +3631,7 @@ function improveGangRelation(G, gangName) {
 }
 
 // 提议联盟
-function proposeAlliance(G, gangName) {
+function proposeAlliance(state, gangName) {
     if (state._diplomacyCooldown > state.turn) {
         showToast('外交冷却中', 'error'); return;
     }
@@ -3669,7 +3669,7 @@ function breakAlliance(state) {
 }
 
 // 改善警察关系
-function improvePoliceRelation(G) {
+function improvePoliceRelation(state) {
     if (state._policeBribeCooldown > state.turn) {
         showToast('贿赂冷却中', 'error'); return;
     }
@@ -3745,7 +3745,7 @@ function checkEnemyAction(state) {
 }
 
 // 袭击其他帮派
-function raidGang(G, gangName) {
+function raidGang(state, gangName) {
     const enemies = (state.enemies || []).filter(e => e.alive);
     const target = enemies.find(e => e.name === gangName);
     if (!target) { showToast(gangName + '已不存在', 'error'); return; }
@@ -3802,7 +3802,7 @@ function raidGang(G, gangName) {
 }
 
 // 外交页面渲染
-function renderDiplomacyOverlay(G) {
+function renderDiplomacyOverlay(state) {
     const enemies = (state.enemies || []).filter(e => e.alive);
     let html = '<div class="modal-overlay show" id="diplomacyModal"><div class="modal-content" style="max-width:400px">';
     html += '<div class="modal-header"><span>🤝 外交关系</span><button class="btn-close" onclick="closeModal(\'diplomacyModal\')">✕</button></div>';
@@ -4073,10 +4073,16 @@ function executeBattle(districtId) {
     
     if (roll < chance) {
         // 胜利
-        bDist.owner = 'player';
-        bDist.defense = Math.max(3, Math.floor(defPower * 0.4));
+        // 确保地将盘添加到G.districts（首次占领时复制自CONFIG）
+        if (!G.districts[districtId]) {
+            G.districts[districtId] = { id: bDist.id, baseIncome: bDist.baseIncome, baseSecurity: bDist.baseSecurity, owner: 'player', control: 100, security: 50 };
+        } else {
+            G.districts[districtId].owner = 'player';
+        }
+        G.districts[districtId].defense = Math.max(3, Math.floor(defPower * 0.4));
         G.influence += 5 + Math.floor(Math.random() * 5);
         G.notoriety += 5;
+        G.districtCount = Object.keys(G.districts).length;
         G.districtCount = Object.values(G.districts).filter(d => d.owner === 'player').length;
         
         // 胜利也有伤亡
@@ -4680,7 +4686,7 @@ function renderDevTab() {
         <div class="card">
             <div class="card-title">👮 贿赂警察</div>
             <div style="font-size:11px;color:var(--text-secondary);">$600 提升安全度</div>
-            <button class="btn-sm ${G.money >= 600 ? 'btn-gold' : 'btn-gray'}" onclick="if(G.money>=600){bribePolice();updateUI();}" ${G.money >= 600 ? '' : 'disabled'}>贿赂</button>
+            <button class="btn-sm ${G.money >= 500 ? 'btn-gold' : 'btn-gray'}" onclick="if(G.money>=500){bribePolice();updateUI();}" ${G.money >= 500 ? '' : 'disabled'}>贿赂 ($500)</button>
         </div>
         <div class="card">
             <div class="card-title">🤝 外交关系</div>
