@@ -1362,7 +1362,7 @@ function recruitMember(state) {
     const m = createNewMember(state);
     initMemberRelations(state, m);
     G.crew.push(m);
-    state.manpower = G.crew.length;
+    G.manpower = G.crew.length;
     showToast(m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');
     addMessage('招募: ' + m.emoji + m.name + ' Lv.' + m.lv + ' ' + m.className, 'info');
     updateUI();
@@ -1387,7 +1387,7 @@ function poachMember(state) {
         m.loyalty = 30 + Math.floor(Math.random() * 15);  // 挖来的忠诚度低
         m._origFaction = target.name;
         G.crew.push(m);
-        state.manpower = G.crew.length;
+        G.manpower = G.crew.length;
         // 可能挖到卧底（对方反向渗透）
         if (Math.random() < 0.15) {
             m._isMole = true;
@@ -1404,7 +1404,7 @@ function poachMember(state) {
             const victim = G.crew[Math.floor(Math.random() * G.crew.length)];
             victim.status = 'dead';
             G.crew = G.crew.filter(m => m.status !== 'dead');
-            state.manpower = G.crew.length;
+            G.manpower = G.crew.length;
             showToast('派去的联络人' + victim.name + '遇害', 'error');
         }
     }
@@ -1416,7 +1416,7 @@ function expelMember(state, memberId) {
     const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
     G.crew = G.crew.filter(c => c.id !== memberId);
-    state.manpower = G.crew.length;
+    G.manpower = G.crew.length;
     // 逐出卧底不涨恶名
     if (!m._isMole) {
         G.notoriety = Math.max(0, G.notoriety - 2);
@@ -1433,7 +1433,7 @@ function executeMember(state, memberId) {
     const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
     G.crew = G.crew.filter(c => c.id !== memberId);
-    state.manpower = G.crew.length;
+    G.manpower = G.crew.length;
     G.notoriety += 5;
     state.security = Math.max(0, state.security - 5);
     
@@ -1790,10 +1790,10 @@ function executeMissionWithCrew() {
             }
         });
         G.crew = G.crew.filter(m => m.status !== 'dead');
-        state.manpower = G.crew.length;
+        G.manpower = G.crew.length;
     }
     
-    checkEndings(state);
+    checkEndings(G);
     renderActionsTab();
     updateUI();
 }
