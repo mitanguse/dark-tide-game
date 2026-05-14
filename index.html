@@ -8,23 +8,24 @@
 /* ===== CSS Reset & Base ===== */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
-    --bg-primary: #0a0a0f;
-    --bg-secondary: #14141f;
-    --bg-card: #1c1c2e;
-    --bg-card-hover: #252540;
-    --text-primary: #e0d0f0;
-    --text-secondary: #a090b8;
-    --text-muted: #706080;
-    --accent-purple: #8b5cf6;
-    --accent-purple2: #6d28d9;
-    --accent-gold: #f59e0b;
-    --accent-red: #ef4444;
-    --accent-green: #10b981;
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-pink: #ec4899;
-    --border-color: #2a2a40;
-    --border-glow: rgba(139, 92, 246, 0.3);
+    --bg-primary: #1a1a2e;
+    --bg-secondary: #22223a;
+    --bg-card: #2a2a45;
+    --bg-card-hover: #333355;
+    --bg-tertiary: #1e1e36;
+    --text-primary: #eee8ff;
+    --text-secondary: #c8b8e0;
+    --text-muted: #9888a8;
+    --accent-purple: #a78bfa;
+    --accent-purple2: #7c3aed;
+    --accent-gold: #fbbf24;
+    --accent-red: #f87171;
+    --accent-green: #34d399;
+    --accent-blue: #60a5fa;
+    --accent-cyan: #22d3ee;
+    --accent-pink: #f472b6;
+    --border-color: #3a3a55;
+    --border-glow: rgba(167, 139, 250, 0.3);
     --shadow: 0 4px 20px rgba(0,0,0,0.4);
     --radius: 12px;
     --radius-sm: 8px;
@@ -2839,11 +2840,13 @@ function handleEventChoice(index) {
         G.triggeredEvents.push(event.id);
     }
 
-    addMessage(`📜 [事件] ${event.title} - ${resultText.split('\n')[0]}`, 'info');
+    addMessage(`📜 [事件] ${event.title} - ${resultText.split('
+')[0]}`, 'info');
     showToast(resultText, success ? 'success' : 'error');
 
     if (modal) {
-        modal.querySelector('.event-desc').innerHTML = resultText.replace(/\n/g, '<br>');
+        modal.querySelector('.event-desc').innerHTML = resultText.replace(/
+/g, '<br>');
         modal.querySelector('.event-choices').innerHTML = `<button class="btn-choice btn-gold" onclick="closeEventModal()">✅ 继续</button>`;
     }
     _currentEvent = null;
@@ -3770,7 +3773,7 @@ function openDistrictBattle(districtId) {
     
     html += '<div style="font-size:.65em;color:#888;margin:4px 0">已选: <span id="battle-count">0</span>/' + available.length + ' 人 | 总战力: <span id="battle-power">0</span></div>';
     html += '<div class="btn-group" style="margin-top:6px">';
-    html += '<button class="btn btn-red" onclick="executeBattle(\' + districtId + \')">⚔️ 发起进攻</button>';
+    html += '<button class="btn btn-red" onclick="executeBattle('' + districtId + '')">⚔️ 发起进攻</button>';
     html += '<button class="btn" onclick="closeBattle()">取消</button>';
     html += '</div></div></div>';
     
@@ -4082,11 +4085,13 @@ function getGangHostility(gangIndex) {
 let G = null;
 let _messageTimeout = null;
 let _eventCooldown = 0;
+let _currentTab = 'overview';
 
 // ===== 初始化 =====
 function startNewGame() {
     G = initGameState();
     G._loyaltyCheckCooldown = 0;
+    initDiplomacy(G);
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
     addMessage('🌃 暗潮涌动，你的地下帝国从此开始...', 'special');
@@ -4102,7 +4107,7 @@ function loadSavedGame() {
         if (G._loyaltyCheckCooldown === undefined) G._loyaltyCheckCooldown = 0;
         document.getElementById('startScreen').style.display = 'none';
         document.getElementById('gameScreen').style.display = 'flex';
-        addMessage('📂 读取存档成功，继续你的地下事业', 'success');
+        addMessage('📂 已读取存档', 'success');
         switchTab('overview');
         updateUI();
     } else {
@@ -4110,15 +4115,7 @@ function loadSavedGame() {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-    if (hasSave()) {
-        document.getElementById('continueBtn').style.display = 'block';
-    }
-});
-
 // ===== 标签页切换 =====
-let _currentTab = 'overview';
-
 function switchTab(tab) {
     _currentTab = tab;
     document.querySelectorAll('.nav-btn').forEach(btn => {
@@ -4134,533 +4131,288 @@ function switchTab(tab) {
     }
 }
 
-// ===== 显示Toast =====
-function showToast(text, type) {
+// ===== Toast =====
+function showToast(text, type = 'info') {
     const container = document.getElementById('toastContainer');
+    if (!container) return;
     const toast = document.createElement('div');
-    toast.className = `toast toast-${type || 'info'}`;
+    toast.className = 'toast toast-' + type;
     toast.textContent = text;
     container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateX(100px)';
-        toast.style.transition = 'all 0.3s';
-        setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    setTimeout(() => { if (toast.parentNode) toast.remove(); }, 2500);
 }
 
-// ===== 添加消息 =====
-function addMessage(text, type) {
+// ===== 消息日志 =====
+function addMessage(text, type = 'info') {
     const log = document.getElementById('messageLog');
+    if (!log) return;
     const msg = document.createElement('div');
-    msg.className = `msg msg-${type || 'info'}`;
+    msg.className = 'msg msg-' + type;
     msg.textContent = text;
     log.appendChild(msg);
     log.scrollTop = log.scrollHeight;
-    // 限制消息数量
-    while (log.children.length > 50) {
-        log.removeChild(log.firstChild);
-    }
-    // 清除之前的自动隐藏计时器
-    if (_messageTimeout) {
-        clearTimeout(_messageTimeout);
-        _messageTimeout = null;
-    }
-}
-
-// ===== 关闭Modal =====
-function closeModal(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
 }
 
 // ===== 更新UI =====
 function updateUI() {
     if (!G) return;
-
-    // 资源
-    document.getElementById('resMoney').textContent = '$' + G.money;
-    document.getElementById('resManpower').textContent = G.manpower;
-    document.getElementById('resIntel').textContent = G.intel;
-    document.getElementById('resInfluence').textContent = G.influence;
-    document.getElementById('resSecurity').textContent = G.security;
-    document.getElementById('resNotoriety').textContent = G.notoriety;
-
-    // 信息
-    document.getElementById('resStronghold').textContent = 'Lv.' + G.stronghold;
-    document.getElementById('resDay').textContent = '第' + G.day + '天';
-    document.getElementById('resLevel').textContent = 'Lv.' + G.level + ' ' + CONFIG.PHASES[G.phase].name;
-
-    // AP
-    document.getElementById('resAp').textContent = G.ap + '/' + G.maxAp;
-    document.getElementById('apFill').style.width = (G.ap / G.maxAp * 100) + '%';
-
-    // 重新渲染当前标签
-    const tab = _currentTab;
-    switch (tab) {
-        case 'overview': renderOverview(); break;
-        case 'districts': renderDistrictsTab(); break;
-        case 'intel': renderIntelTab(); break;
-        case 'actions': renderActionsTab(); break;
-        case 'crew': renderCrewTab(); break;
-        case 'development': renderDevTab(); break;
-    }
+    const el = (id, fn) => { const e = document.getElementById(id); if (e) fn(e); };
+    el('resMoney', e => e.textContent = '$' + G.money);
+    el('resManpower', e => e.textContent = G.crew.length);
+    el('resIntel', e => e.textContent = G.intel);
+    el('resInfluence', e => e.textContent = G.influence);
+    el('resSecurity', e => e.textContent = G.security + '%');
+    el('resNotoriety', e => e.textContent = G.notoriety);
+    el('resStronghold', e => e.textContent = 'Lv.' + (G.baseLv || G.stronghold || 1));
+    el('resDay', e => e.textContent = '第' + G.turn + '天');
+    el('resLevel', e => e.textContent = 'Lv.' + G.level);
+    el('resAp', e => {
+        const cur = G.ap, max = G.maxAp || 4;
+        e.textContent = cur + '/' + max;
+        const fill = document.getElementById('apFill');
+        if (fill) fill.style.width = (cur / max * 100) + '%';
+    });
 }
 
 // ===== 渲染: 概况 =====
 function renderOverview() {
     const el = document.getElementById('tabContent');
-    const phase = CONFIG.PHASES[G.phase];
-    const expNext = expToNext(G);
-    const expPct = G.level >= CONFIG.MAX_LEVEL ? 100 : (G.exp / expNext * 100);
-    const income = getDailyIncome(G);
+    if (!el) return;
+    const phases = ['码头恶犬', '酒馆之王', '暗夜贵族', '无冕之王'];
+    const icons = ['💀', '⚔️', '🏛️', '👑'];
+    const phase = Math.min(G.phase || 0, 3);
+
+    let nextPhase = '';
+    if (phase < 3) {
+        nextPhase = icons[phase + 1] + ' ' + phases[phase + 1];
+    } else {
+        nextPhase = '👑 已至巅峰';
+    }
 
     el.innerHTML = `
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">${CONFIG.PHASES[G.phase].emoji || '📊'} 组织概况</span>
-                <span class="phase-badge phase-${G.phase}">${phase.name}</span>
+            <div class="flex-between">
+                <span class="card-title">${icons[phase]} ${phases[phase]}</span>
+                <span style="font-size:11px; color:var(--text-muted);">⬆ ${nextPhase}</span>
             </div>
-            <div class="stat-row">
-                <span class="stat-label">📅 天数</span>
-                <span class="stat-value">第 ${G.day} 天</span>
+            <div style="font-size:12px; color:var(--text-secondary); margin:6px 0;">
+                第 ${G.turn} 天 | 成员 ${G.crew.length}/${G.crewSlots || 10}
             </div>
-            <div class="stat-row">
-                <span class="stat-label">⭐ 等级</span>
-                <span class="stat-value">Lv.${G.level} ${G.level >= CONFIG.MAX_LEVEL ? 'MAX' : ''}</span>
-            </div>
-            ${G.level < CONFIG.MAX_LEVEL ? `
-            <div class="mt-8">
-                <div class="flex-between"><span class="text-muted" style="font-size:11px;">经验值</span><span class="text-muted" style="font-size:11px;">${G.exp}/${expNext}</span></div>
-                <div class="progress-bar"><div class="progress-fill" style="width:${expPct}%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink));"></div></div>
-            </div>` : ''}
-            <div class="stat-row">
-                <span class="stat-label">💰 日收入</span>
-                <span class="stat-value text-success">+$${income}</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">🏴 地盘</span>
-                <span class="stat-value">${G.districtCount} / 8</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">👥 成员</span>
-                <span class="stat-value">${G.crew.length} / ${G.crewSlots}</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">💀 恶名</span>
-                <span class="stat-value ${G.notoriety > 60 ? 'text-danger' : G.notoriety > 30 ? 'text-warning' : ''}">${G.notoriety}/100</span>
+            <div class="flex gap-8 mt-8">
+                <button class="btn-sm btn-gold" onclick="doNextDay()">📅 下一天</button>
+                <button class="btn-sm btn-purple" onclick="openShop()">🏪 商店</button>
+                <button class="btn-sm btn-gray" onclick="renderDiplomacyOverlay(G)">🤝 外交</button>
             </div>
         </div>
-
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">⚡ 快速行动</span>
-            </div>
-            <div class="flex gap-8" style="flex-wrap:wrap;">
-                <button class="btn-sm btn-purple" onclick="doNextDay()">📅 下一天 (恢复AP)</button>
-                <button class="btn-sm btn-gold" onclick="openShop()">🏪 黑市商店</button>
-                <button class="btn-sm btn-green" onclick="gatherIntel(G)">📡 收集情报</button>
-                <button class="btn-sm ${G.inventory.length > 0 ? 'btn-purple' : 'btn-gray'}" onclick="openInventory()">
-                    🎒 背包 (${G.inventory.length})
-                </button>
-                <button class="btn-sm btn-gray" onclick="saveGame(G); showToast('存档成功', 'success')">💾 保存</button>
+            <div class="card-title">📊 每日收入</div>
+            <div style="font-size:13px; margin:6px 0; color:var(--text-success);">
+                +$${getDailyIncome(G)}/天
             </div>
         </div>
-
-        ${G.crew.length === 0 ? `
-        <div class="card" style="border-color: var(--accent-gold);">
-            <div class="card-header">
-                <span class="card-title">🤝 招募提示</span>
+        <div class="card">
+            <div style="font-size:11px; color:var(--text-muted); line-height:1.8;">
+                ${G.crew.length > 0 ? '👥 可用成员: ' + getAvailableCrew(G).length + '/' + G.crew.length : '🤷 暂无成员，先去招募'}
             </div>
-            <p class="text-muted" style="font-size:12px;">你的组织还没有成员！前往「成员」标签页招募第一批手下。</p>
-            <button class="btn-sm btn-purple mt-8" onclick="switchTab('crew')">前往招募 →</button>
-        </div>` : ''}
+        </div>
     `;
 }
 
 // ===== 渲染: 地盘 =====
 function renderDistrictsTab() {
     const el = document.getElementById('tabContent');
-    const income = getDailyIncome(G);
-
-    let html = `
-        <div class="card">
-            <div class="card-header">
-                <span class="card-title">🏴 地盘管理</span>
-                <span class="stat-value text-success">日收入: +$${income}</span>
-            </div>
-            <div class="flex gap-8" style="flex-wrap:wrap; margin-bottom:10px;">
-                <button class="btn-sm btn-purple" onclick="upgradeStronghold(G)" ${G.money < getUpgradeCost(G.stronghold) || G.stronghold >= 5 ? 'disabled' : ''}>
-                    🏢 升级据点 ($${getUpgradeCost(G.stronghold)})
-                </button>
-                ${G.districtCount > 0 ? `<button class="btn-sm btn-gold" onclick="collectAllIncome()">💰 收取所有收入</button>` : ''}
-                <button class="btn-sm btn-gray" onclick="showToast('${G.districts['唐人街'] ? '唐人街加成: 情报效率+15% 已激活' : '占领唐人街可解锁情报加成'}', 'info')">ℹ️ 地盘加成</button>
-            </div>
-            <p class="text-muted" style="font-size:11px; margin-bottom:8px;">据点等级 ${G.stronghold} | 安全度 ${G.security}</p>
-        </div>
-
-        <div class="district-grid">
-    `;
+    if (!el) return;
+    let html = '<div class="card"><div class="card-title">🏴 街区控制</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;">控制街区以获取收入</div>';
 
     for (const district of CONFIG.DISTRICTS) {
         const owned = G.districts[district.id];
-        const canAttack = !owned && G.phase >= Math.floor(CONFIG.DISTRICTS.indexOf(district) / 2);
+        const income = getDailyIncome(G);
+        const isOwned = !!owned;
+        const canTake = G.crew.filter(m => m.status === 'idle').length >= 2;
+
         html += `
-            <div class="district-card ${owned ? 'owned' : ''}">
-                <div class="district-name">
-                    ${district.id}
-                    ${owned ? '✅' : '🔒'}
+            <div class="strategy-card" style="margin-bottom:4px;">
+                <div class="flex-between">
+                    <span><strong>${district.id}</strong></span>
+                    <span style="color:${isOwned ? 'var(--text-success)' : 'var(--text-muted)'}; font-size:11px;">
+                        ${isOwned ? '✅ 已控制' : '⚔️ 未占领'}
+                    </span>
                 </div>
-                ${owned ? `
-                    <div class="district-income">+$${Math.floor(district.baseIncome * (owned.control/100))}/天</div>
-                    <div class="district-desc">控制度: ${Math.floor(owned.control)}% | 安保: ${owned.security || district.baseSecurity}</div>
-                    <div class="flex gap-4 mt-8">
-                        <button class="btn-sm btn-green" style="flex:1; font-size:9px;" onclick="collectDistrictIncome(G, '${district.id}'); updateUI();">💰 收租</button>
-                        <button class="btn-sm btn-purple" style="flex:1; font-size:9px;" onclick="defendDistrict(G, '${district.id}'); updateUI();">🛡️ 防御</button>
-                        <button class="btn-sm btn-red" style="flex:1; font-size:9px;" onclick="if(confirm('确定放弃${district.id}吗?')){ abandonDistrict(G, '${district.id}'); updateUI(); }">🏚️ 放弃</button>
-                    </div>
+                <div style="font-size:10px; color:var(--text-secondary);">${district.desc}</div>
+                <div style="font-size:10px; color:var(--accent-cyan); margin:2px 0;">
+                    基础收入: $${district.baseIncome} | 安全: ${district.baseSecurity}%
+                </div>
+                ${!isOwned ? `
+                    <button class="btn-sm ${canTake ? 'btn-red' : 'btn-gray'}" 
+                        onclick="openDistrictBattle('${district.id}')" ${canTake ? '' : 'disabled'}>
+                        ⚔️ 夺取
+                    </button>
                 ` : `
-                    <div class="district-desc">${district.desc}</div>
-                    <div class="district-desc text-gold mt-8">${district.special || '无特殊效果'}</div>
-                    ${canAttack ? `
-                        <button class="btn-sm btn-red mt-8" onclick="showCombatModal('${district.id}')">⚔️ 争夺</button>
-                    ` : `
-                        <span class="text-muted" style="font-size:9px;">阶段${Math.floor(CONFIG.DISTRICTS.indexOf(district)/2)+1}解锁</span>
-                    `}
+                    <button class="btn-sm btn-green" onclick="defendDistrict(G, '${district.id}')">🛡️ 加固</button>
+                    <button class="btn-sm btn-gray" onclick="abandonDistrict(G, '${district.id}')">🏚️ 放弃</button>
                 `}
             </div>
         `;
     }
-
-    html += `</div>`;
-
-    // 敌对帮派状态
-    html += `<div class="card mt-8"><div class="card-header"><span class="card-title">💀 敌对帮派</span><span>已消灭: ${G.gangsDestroyed}/6</span></div>`;
-    for (const gang of getActiveGangs(G)) {
-        const hostility = getGangHostility(gang.index);
-        html += `
-            <div class="stat-row">
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${gang.color};margin-right:6px;"></span>${gang.name}</span>
-                <span class="${hostility > 70 ? 'text-danger' : hostility > 40 ? 'text-warning' : ''}">敌对: ${hostility}%</span>
-            </div>
-        `;
-    }
-    if (getActiveGangs(G).length === 0) {
-        html += `<p class="text-muted text-center" style="font-size:12px; padding:8px;">🎉 所有敌对帮派已被消灭!</p>`;
-    }
-    html += `</div>`;
-
+    html += '</div>';
     el.innerHTML = html;
-}
-
-function collectAllIncome() {
-    let total = 0;
-    for (const dId of Object.keys(G.districts)) {
-        total += collectDistrictIncome(G, dId);
-    }
-    showToast(`共收取 $${total}`, 'success');
-    updateUI();
 }
 
 // ===== 渲染: 情报 =====
 function renderIntelTab() {
     const el = document.getElementById('tabContent');
-    const intelLevel = CONFIG.INTEL_LEVELS.find(l => l.id === G.intelLevel) || CONFIG.INTEL_LEVELS[0];
-    const nextLevel = CONFIG.INTEL_LEVELS.find(l => l.id === G.intelLevel + 1);
-
+    if (!el) return;
     let html = `
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">📡 情报网络</span>
-                <span class="phase-badge phase-${Math.min(3, G.intelLevel - 1)}">Lv.${intelLevel.id} ${intelLevel.name}</span>
+            <div class="card-title">📡 情报网络</div>
+            <div style="font-size:11px; color:var(--text-secondary); margin:4px 0;">
+                等级: ${G.intelLevel || 1} | 点数: ${G.intel}
             </div>
-            <p style="font-size:12px; color:var(--text-secondary);">${intelLevel.desc}</p>
-            <div class="stat-row"><span class="stat-label">📊 情报点</span><span class="stat-value">${G.intel}</span></div>
-            ${nextLevel ? `
-            <div class="stat-row">
-                <span class="stat-label">下一级: ${nextLevel.name}</span>
-                <span class="stat-value text-muted">需要 ${nextLevel.minIntel} 情报</span>
+            <div class="flex gap-8">
+                <button class="btn-sm btn-purple" onclick="gatherIntel(G)">🔍 收集情报</button>
+                <button class="btn-sm btn-gold" onclick="buyIntel(G)">💰 购买情报 ($300)</button>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width:${Math.min(100, G.intel / nextLevel.minIntel * 100)}%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));"></div>
-            </div>` : '<p class="text-success mt-8" style="font-size:12px;">🌟 情报等级已满!</p>'}
-            <button class="btn btn-purple mt-8" onclick="gatherIntel(G)" ${G.ap < 1 ? 'disabled' : ''}>
-                📡 收集情报 (1AP)
-            </button>
         </div>
     `;
 
-    // 情报行动
-    if (G.intelActions.length > 0) {
-        html += `<div class="card"><div class="card-header"><span class="card-title">🎯 情报行动</span></div>`;
-        for (const action of G.intelActions) {
-            const canUse = G.intel >= action.intelReq && G.ap >= 1;
-            html += `
-                <div class="strategy-card ${canUse ? '' : 'strategy-disabled'}">
-                    <div class="flex-between">
-                        <span class="strategy-name">${action.name}</span>
-                        <span class="text-muted" style="font-size:11px;">情报: ${action.intelCost} | AP: 1</span>
-                    </div>
-                    <div class="strategy-desc">${action.desc}</div>
-                    <button class="btn-sm ${canUse ? 'btn-purple' : 'btn-gray'}" 
-                            onclick="executeIntelAction(G, '${action.id}')" ${canUse ? '' : 'disabled'}>
-                        ${canUse ? '执行' : '条件不足'}
-                    </button>
-                </div>
-            `;
+    // 情报日志
+    if (G._intelLog && G._intelLog.length > 0) {
+        html += '<div class="card"><div class="card-title">📋 情报记录</div>';
+        for (const log of G._intelLog.slice(0, 10)) {
+            const credColor = log.credibility > 60 ? 'var(--text-success)' : log.credibility > 35 ? 'var(--text-warning)' : 'var(--text-danger)';
+            html += `<div style="font-size:10px;color:var(--text-secondary);margin:2px 0;border-left:2px solid ${credColor};padding-left:6px;">
+                <span style="color:${credColor}">[${log.credibility}%]</span> ${log.text}
+            </div>`;
         }
-        html += `</div>`;
+        html += '</div>';
     } else {
-        html += `
-            <div class="card">
-                <p class="text-muted text-center" style="font-size:12px; padding:8px;">
-                    🔒 持续收集情报来解锁特殊行动<br>
-                    <span style="font-size:10px;">情报≥8解锁: 举报 | 情报≥10解锁: 截货 | 情报≥12解锁: 策反 | 情报≥15解锁: 突袭</span>
-                </p>
-            </div>
-        `;
+        html += '<div class="card"><div style="font-size:11px;color:var(--text-muted);">暂无情报记录</div></div>';
     }
 
+    // 情报行动
+    if (G.intelActions && G.intelActions.length > 0) {
+        html += '<div class="card"><div class="card-title">🎯 情报行动</div>';
+        for (const action of G.intelActions) {
+            html += `<button class="btn-sm btn-purple" onclick="executeIntelAction(G, '${action.id}')">${action.emoji || '⚡'} ${action.name}</button> `;
+        }
+        html += '</div>';
+    }
     el.innerHTML = html;
 }
 
 // ===== 渲染: 行动 =====
 function renderActionsTab() {
     const el = document.getElementById('tabContent');
+    if (!el) return;
 
     let html = `
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">⚡ 行动力管理</span>
-                <span class="stat-value">${G.ap} / ${G.maxAp}</span>
+            <div class="flex-between">
+                <span class="card-title">⚡ 行动力</span>
+                <span style="color:var(--accent-gold);">${G.ap} / ${G.maxAp || 4}</span>
             </div>
-            <div class="progress-bar">
-                <div class="progress-fill" style="width:${G.ap / G.maxAp * 100}%; background: linear-gradient(90deg, var(--accent-gold), #f97316);"></div>
+            <div style="height:4px;background:var(--bg-tertiary);border-radius:2px;margin:4px 0;overflow:hidden;">
+                <div style="height:100%;width:${G.ap / (G.maxAp || 4) * 100}%;background:linear-gradient(90deg,var(--accent-gold),#f97316);border-radius:2px;"></div>
             </div>
-            <button class="btn btn-green mt-8" onclick="doNextDay()" style="width:100%;">
-                📅 进入下一天 (恢复全部AP)
-            </button>
+            <button class="btn-sm btn-green" onclick="doNextDay()" style="width:100%;margin-top:4px;">📅 进入下一天 (恢复全部AP)</button>
         </div>
-
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">📋 可执行任务</span>
-            </div>
-            <div class="mission-list">
+            <div class="card-title">📋 可执行任务</div>
     `;
 
     for (const mission of CONFIG.MISSIONS) {
-        const unlocked = mission.phase <= G.phase;
-        const canDo = canDoMission(G, mission);
-        const matchingCrew = getAvailableCrew(G);
+        const unlocked = mission.phase <= (G.phase || 0);
+        const canDo = G.ap >= 1 && (G.crew.filter(m => m.status === 'idle').length >= (mission.minCrew || 1));
 
         html += `
-            <div class="mission-card ${unlocked ? '' : 'locked'}">
+            <div class="strategy-card" style="margin-bottom:4px; ${unlocked ? '' : 'opacity:0.4;'}">
                 <div class="flex-between">
-                    <span class="mission-name">${unlocked ? mission.id : '🔒 ' + mission.id}</span>
-                    <span class="mission-reward">$${calculateMissionReward(G, mission)}</span>
+                    <span>${unlocked ? '⚡' : '🔒'} ${mission.id}</span>
+                    <span style="color:var(--accent-gold);font-size:11px;">$${calculateMissionReward(G, mission)}</span>
                 </div>
-                <div class="mission-desc">${unlocked ? mission.desc : '阶段' + (mission.phase + 1) + '解锁'}</div>
+                <div style="font-size:10px;color:var(--text-secondary);">${unlocked ? mission.desc : '阶段' + (mission.phase + 1) + '解锁'}</div>
                 ${unlocked ? `
-                <div class="mission-stats">
-                    <span>⚔️ 战斗: ${mission.combatReq}</span>
-                    <span>📡 情报: ${mission.intelReq}</span>
-                    <span>⚠️ 风险: ${mission.baseRisk}%</span>
-                    <span>👥 需要: ${mission.minCrew || 1}人</span>
+                <div style="font-size:9px;color:var(--text-muted);margin:2px 0;">
+                    需: ${mission.minCrew || 1}人 | 风险: ${mission.baseRisk}%
                 </div>
-                <button class="btn-sm ${canDo && matchingCrew.length >= (mission.combatReq || 1) ? 'btn-gold' : 'btn-gray'}" 
-                        onclick="openMissionSetup('${mission.id}')" 
-                        ${canDo && matchingCrew.length >= (mission.minCrew || 1) ? '' : 'disabled'}>
-                    ${canDo ? '⚡ 选人执行 (1AP)' : G.ap < 1 ? '行动力不足' : matchingCrew.length < (mission.minCrew || 1) ? '人手不足' : '条件不足'}
+                <button class="btn-sm ${canDo ? 'btn-gold' : 'btn-gray'}" 
+                    onclick="openMissionSetup('${mission.id}')" ${canDo ? '' : 'disabled'}>
+                    ${G.ap < 1 ? '行动力不足' : '⚡ 选人执行'}
                 </button>
                 ` : ''}
             </div>
         `;
     }
-
-    html += `</div></div>`;
-
+    html += '</div>';
     el.innerHTML = html;
 }
 
-function calculateMissionReward(state, mission) {
-    let reward = mission.baseReward;
-    // 等级加成
-    reward += state.level * 10;
-    // 走私贩加成
-    const smugglers = countCrewByClass(state, '走私贩');
-    reward = Math.floor(reward * (1 + smugglers * 0.15));
-    // 商业区加成
-    if (state.districts['商业区']) reward = Math.floor(reward * 1.1);
-    return reward;
-}
-
-function executeMission(missionId) {
-    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
-    if (!mission) return;
-    if (!canDoMission(G, mission)) {
-        showToast('条件不足', 'error');
-        return;
-    }
-
-    G.ap -= 1;
-    const reward = calculateMissionReward(G, mission);
-
-    // 分配成员
-    const assigned = assignMissionCrew(G, missionId, mission.combatReq || 1);
-    const assignIds = assigned.map(m => m.id);
-
-    // 计算成功率
-    let successRate = 0.5;
-    successRate += G.level * 0.015;
-    successRate += G.influence * 0.002;
-    // 职业匹配
-    for (const m of assigned) {
-        if (m.class === '打手' && mission.combatReq > 0) successRate += 0.05;
-        if (m.class === '情报员' && mission.intelReq > 0) successRate += 0.05;
-        if (m.class === '杀手') successRate += 0.03;
-        if (m.class === '狙击手') successRate += 0.03;
-    }
-    // 剃刀帽加成
-    for (const m of assigned) {
-        if (m.items && m.items.includes('razorhat')) successRate += 0.05;
-    }
-    successRate = Math.min(0.95, successRate);
-
-    const isSuccess = Math.random() < successRate;
-
-    if (isSuccess) {
-        // 成功
-        G.money += reward;
-        addExp(G, 10 + Math.floor(Math.random() * 15));
-        addNotoriety(G, mission.baseRisk / 10);
-        addInfluence(G, 1);
-        G.missionHistory.push({ id: mission.id, success: true, day: G.day });
-        completeMissionCrew(G, assignIds, true);
-        addMessage(`✅ ${mission.id} 成功! 获得 $${reward}`, 'success');
-        showToast(`任务成功! +$${reward}`, 'success');
-
-        // 随机触发事件
-        if (Math.random() < 0.15) {
-            setTimeout(() => triggerRandomEvent(G), 500);
-        }
-    } else {
-        // 失败
-        const penalty = Math.floor(reward * 0.3);
-        G.money = Math.max(0, G.money - penalty);
-        addNotoriety(G, mission.baseRisk / 5);
-        G.missionHistory.push({ id: mission.id, success: false, day: G.day });
-        completeMissionCrew(G, assignIds, false);
-        addMessage(`❌ ${mission.id} 失败! 损失 $${penalty}`, 'error');
-        showToast(`任务失败! -$${penalty}`, 'error');
-
-        // 战损
-        if (Math.random() < 0.2) {
-            const casualty = assigned.length > 0 ? assigned[0] : null;
-            if (casualty && Math.random() < 0.3) {
-                casualty.status = 'dead';
-                G.crew = G.crew.filter(m => m.id !== casualty.id);
-                addMessage(`💀 ${casualty.name} 在任务中阵亡`, 'error');
-                showToast(`${casualty.name} 阵亡...`, 'error');
-            }
-        }
-    }
-
-    checkEndings(G);
-    renderActionsTab();
-    updateUI();
-}
-
-// ===== 渲染: 成员 =====
+// ===== 渲染: 成员（修复版，对齐实际属性名）=====
 function renderCrewTab() {
     const el = document.getElementById('tabContent');
-    const available = getAvailableCrew(G);
-    const cost = getRecruitCost(G);
+    if (!el) return;
+    const available = G.crew.filter(m => m.status !== 'dead');
 
     let html = `
         <div class="card">
-            <div class="card-header">
+            <div class="flex-between">
                 <span class="card-title">👥 成员管理</span>
-                <span>${G.crew.length} / ${G.crewSlots}</span>
+                <span>${available.length} / ${G.crewSlots || 10}</span>
             </div>
             <div class="flex gap-8" style="flex-wrap:wrap;">
-                <button class="btn-sm btn-purple" onclick="recruitMember(G); updateUI();" 
-                    ${G.money >= cost && G.crew.length < G.crewSlots ? '' : 'disabled'}>
-                    🤝 招募 ($${cost})
+                <button class="btn-sm btn-purple" onclick="recruitMember(G);updateUI();" 
+                    ${G.money >= 500 && available.length < (G.crewSlots || 10) ? '' : 'disabled'}>
+                    🤝 招募 ($500)
                 </button>
-                <button class="btn-sm btn-green" onclick="healWounded(G); updateUI();"
-                    ${G.crew.filter(m => m.status === 'wounded').length > 0 && G.money >= 50 ? '' : 'disabled'}>
-                    💊 治疗伤员
-                </button>
-                <button class="btn-sm btn-gray" onclick="showToast('招募成功率: ' + Math.round(getRecruitChance(G) * 100) + '%', 'info')">
-                    ℹ️ 成功率 ${Math.round(getRecruitChance(G) * 100)}%
-                </button>
+                <button class="btn-sm btn-green" onclick="openShop()">🏪 商店</button>
+                <button class="btn-sm btn-gray" onclick="openInventory()">🎒 背包</button>
             </div>
         </div>
     `;
 
-    if (G.crew.length === 0) {
-        html += `
-            <div class="card">
-                <p class="text-muted text-center" style="font-size:13px; padding:12px;">
-                    🤷 组织里空无一人<br>
-                    <span style="font-size:11px;">点击招募按钮寻找志同道合的伙伴</span>
-                </p>
-            </div>
-        `;
+    if (available.length === 0) {
+        html += '<div class="card"><p style="font-size:12px;color:var(--text-muted);padding:12px;text-align:center;">🤷 组织里空无一人<br><span style="font-size:11px;">点击招募按钮寻找伙伴</span></p></div>';
     } else {
-        html += `<div class="card"><div class="card-header"><span class="card-title">成员列表</span></div>`;
-
-        for (const member of G.crew) {
-            const statusMap = { idle: '🟢 空闲', mission: '🔵 任务中', wounded: '🔴 受伤', dead: '💀 阵亡' };
-            const className = CONFIG.CLASSES[member.class];
-            const loyalColor = member.loyalty < 30 ? 'text-danger' : member.loyalty < 60 ? 'text-warning' : 'text-success';
+        for (const member of available) {
+            const mClass = member.className || member.class || '未知';
+            const mLv = member.lv || 1;
+            const mStat = member.stat || 5;
+            const mLoyal = member.loyalty || 50;
+            const mAp = member.ap || 3;
+            const mMissions = member.missions || 0;
+            const loyalColor = mLoyal < 30 ? 'var(--text-danger)' : mLoyal < 60 ? 'var(--text-warning)' : 'var(--text-success)';
+            const statusText = member.status === 'idle' ? '🟢 空闲' : member.status === 'working' ? '🔵 任务中' : member.status === 'wounded' ? '🔴 受伤' : member.status === 'dead' ? '💀 阵亡' : '❓';
 
             html += `
-                <div class="strategy-card" style="margin-bottom:6px;">
+                <div class="strategy-card" style="margin-bottom:4px;cursor:pointer;" onclick="showMemberDetail(G, ${member.id})">
                     <div class="flex-between">
-                        <span><strong>${member.name}</strong></span>
-                        <span class="class-badge">${member.class}</span>
+                        <span>${member.emoji || '👤'} <strong>${member.name}</strong> <span style="font-size:10px;color:var(--text-secondary);">${mClass}</span></span>
+                        <span style="font-size:10px;color:${loyalColor};">♥${mLoyal}</span>
                     </div>
-                    <div style="font-size:11px; color:var(--text-secondary); margin:4px 0;">
-                        Lv.${member.level} | ⚔️ ${member.combat} 🧠 ${member.intel} 
-                        | 忠诚: <span class="${loyalColor}">${member.loyalty}</span>
-                        | ${statusMap[member.status] || '❓'}
-                        | 任务: ${member.missionsDone}次
+                    <div style="font-size:10px;color:var(--text-secondary);margin:2px 0;">
+                        Lv.${mLv} | ⚡${mStat} | ⏱${mAp} | 任务:${mMissions}次 | ${statusText}
                     </div>
-                    ${member.items && member.items.length > 0 ? `
-                    <div style="font-size:10px; color:var(--accent-cyan);">
-                        装备: ${member.items.map(itemId => {
-                            const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
-                            return itemDef ? itemDef.emoji + itemDef.name : itemId;
-                        }).join(', ')}
-                    </div>` : ''}
-                    <div class="flex gap-4 mt-8">
-                        ${member.status === 'idle' ? `
-                            <button class="btn-sm btn-red" onclick="if(confirm('确定驱逐 ${member.name}?')){ removeMember(G, ${member.id}); updateUI(); }">
-                                🚫 驱逐
-                            </button>
-                        ` : ''}
-                        <button class="btn-sm btn-gray" onclick="showToast('${className ? className.special : '无特殊能力'}', 'info')">
-                            ℹ️ ${className ? className.special : ''}
-                        </button>
+                    <div style="height:2px;background:var(--bg-tertiary);border-radius:1px;overflow:hidden;">
+                        <div style="height:100%;width:${mLoyal}%;background:${loyalColor};border-radius:1px;"></div>
                     </div>
                 </div>
             `;
         }
-        html += `</div>`;
     }
 
     // 职业统计
-    html += `<div class="card"><div class="card-header"><span class="card-title">📊 职业分布</span></div><div style="display:flex; flex-wrap:wrap; gap:4px;">`;
     const classCounts = {};
-    for (const m of G.crew) { classCounts[m.class] = (classCounts[m.class] || 0) + 1; }
-    for (const [cls, count] of Object.entries(classCounts)) {
-        const def = CONFIG.CLASSES[cls];
-        html += `<span class="class-badge" style="font-size:11px;">${def.emoji} ${cls} x${count}</span>`;
+    for (const m of available) {
+        const cls = m.className || m.class || '未知';
+        classCounts[cls] = (classCounts[cls] || 0) + 1;
     }
-    if (Object.keys(classCounts).length === 0) html += `<span class="text-muted" style="font-size:11px;">暂无成员</span>`;
-    html += `</div></div>`;
+    if (Object.keys(classCounts).length > 0) {
+        html += '<div class="card"><div class="card-title">📊 职业分布</div><div class="flex gap-4" style="flex-wrap:wrap;">';
+        for (const [cls, count] of Object.entries(classCounts)) {
+            html += '<span style="font-size:10px;background:var(--bg-tertiary);padding:2px 8px;border-radius:10px;color:var(--text-secondary);">' + cls + ' x' + count + '</span>';
+        }
+        html += '</div></div>';
+    }
 
     el.innerHTML = html;
 }
@@ -4668,217 +4420,149 @@ function renderCrewTab() {
 // ===== 渲染: 发展 =====
 function renderDevTab() {
     const el = document.getElementById('tabContent');
-    const phase = CONFIG.PHASES[G.phase];
+    if (!el) return;
+
+    const upgCost = (G.baseLv || G.stronghold || 1) * 1000;
+    const canUpg = G.money >= upgCost && G.crew.length >= 2;
 
     let html = `
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">📈 发展进度</span>
-                <span class="phase-badge phase-${G.phase}">${phase.name}</span>
+            <div class="card-title">🏢 据点升级</div>
+            <div style="font-size:11px;color:var(--text-secondary);">
+                等级 ${G.baseLv || G.stronghold || 1} → 人手+3 · $${upgCost} · 需2人
             </div>
-            <p class="text-muted" style="font-size:12px;">${phase.desc}</p>
-            <div class="stat-row"><span class="stat-label">等级</span><span class="stat-value">Lv.${G.level} / ${CONFIG.MAX_LEVEL}</span></div>
-            <div class="stat-row"><span class="stat-label">已过天数</span><span class="stat-value">${G.day} 天</span></div>
-            <div class="stat-row"><span class="stat-label">累计收入</span><span class="stat-value text-success">$${G.totalIncomeCollected}</span></div>
-            <div class="stat-row"><span class="stat-label">累计经验</span><span class="stat-value">${G.totalExpEarned}</span></div>
+            <button class="btn-sm ${canUpg ? 'btn-gold' : 'btn-gray'}" onclick="if(canUpg){upgradeBase();updateUI();}" ${canUpg ? '' : 'disabled'}>扩建</button>
         </div>
-
         <div class="card">
-            <div class="card-header">
-                <span class="card-title">🏁 结局条件</span>
-            </div>
-    `;
-
-    for (const ending of CONFIG.ENDINGS) {
-        if (ending.id === 'death') continue;
-        const canReach = checkEndingProgress(G, ending);
-        const progress = calculateEndingProgress(G, ending);
-        html += `
-            <div class="stat-row">
-                <span>${ending.emoji} ${ending.name}</span>
-                <span class="${canReach ? 'text-success' : 'text-muted'}" style="font-size:11px;">
-                    ${progress}% ${canReach ? '✅' : ''}
-                </span>
-            </div>
-        `;
-    }
-    html += `</div>`;
-
-    // 任务完成统计
-    const successMissions = G.missionHistory.filter(m => m.success).length;
-    const failMissions = G.missionHistory.filter(m => !m.success).length;
-    const totalMissions = successMissions + failMissions;
-    html += `
+            <div class="card-title">👮 贿赂警察</div>
+            <div style="font-size:11px;color:var(--text-secondary);">$600 提升安全度</div>
+            <button class="btn-sm ${G.money >= 600 ? 'btn-gold' : 'btn-gray'}" onclick="if(G.money>=600){bribePolice();updateUI();}" ${G.money >= 600 ? '' : 'disabled'}>贿赂</button>
+        </div>
         <div class="card">
-            <div class="card-header"><span class="card-title">📋 任务统计</span></div>
-            <div class="stat-row"><span class="stat-label">总任务</span><span class="stat-value">${totalMissions}</span></div>
-            <div class="stat-row"><span class="stat-label">成功</span><span class="stat-value text-success">${successMissions}</span></div>
-            <div class="stat-row"><span class="stat-label">失败</span><span class="stat-value text-danger">${failMissions}</span></div>
-            ${totalMissions > 0 ? `
-            <div class="stat-row">
-                <span class="stat-label">成功率</span>
-                <span class="stat-value ${successMissions/totalMissions >= 0.7 ? 'text-success' : 'text-danger'}">
-                    ${Math.round(successMissions/totalMissions * 100)}%
-                </span>
-            </div>` : ''}
+            <div class="card-title">🤝 外交关系</div>
+            <div style="font-size:11px;color:var(--text-secondary);">查看和管理与其他势力的关系</div>
+            <button class="btn-sm btn-purple" onclick="renderDiplomacyOverlay(G)">查看</button>
+        </div>
+        <div class="card">
+            <div class="card-title">🎒 背包与商店</div>
+            <div style="font-size:11px;color:var(--text-secondary);">管理道具和装备</div>
+            <div class="flex gap-8">
+                <button class="btn-sm btn-purple" onclick="openShop()">🏪 商店</button>
+                <button class="btn-sm btn-gray" onclick="openInventory()">🎒 背包 (${(G.inventory||[]).length})</button>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-title">💾 存档管理</div>
+            <div class="flex gap-8">
+                <button class="btn-sm btn-green" onclick="saveGame(G);showToast('已保存','success')">💾 保存</button>
+                <button class="btn-sm btn-gray" onclick="if(confirm('确定返回主菜单？')){deleteSave();location.reload()}">🚪 返回主菜单</button>
+            </div>
         </div>
     `;
-
-    // 道具一览
-    html += `
-        <div class="card">
-            <div class="card-header"><span class="card-title">🎒 背包</span></div>
-            ${G.inventory.length > 0 ? `
-            <div style="display:flex; flex-wrap:wrap; gap:8px;">
-                ${G.inventory.map(inv => {
-                    const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
-                    if (!itemDef) return '';
-                    return `<span style="font-size:12px; background:var(--bg-card); padding:4px 8px; border-radius:6px; border:1px solid var(--border-color);">
-                        ${itemDef.emoji} ${itemDef.name} x${inv.count || 1}
-                    </span>`;
-                }).join('')}
-            </div>` : '<p class="text-muted" style="font-size:12px;">背包空空如也</p>'}
-        </div>
-    `;
-
     el.innerHTML = html;
 }
 
-// ===== 结局进度计算 =====
-function checkEndingProgress(state, ending) {
-    switch (ending.id) {
-        case 'empire':
-            return state.notoriety >= 80 && state.influence >= 80 && state.districtCount >= 8;
-        case 'tycoon':
-            return state.money >= 5000 && state.influence >= 50;
-        case 'shadow':
-            return state.intel >= 60 && state.influence >= 60 && state.notoriety <= 30;
-        case 'warlord':
-            return state.manpower >= 50 && state.gangsDestroyed >= 6;
-        case 'escape':
-            return state.money >= 3000 && state.notoriety <= 20 && state.influence >= 30;
-        default:
-            return false;
-    }
-}
-
-function calculateEndingProgress(state, ending) {
-    // 粗略计算完成度百分比
-    let progress = 0;
-    let total = 0;
-    switch (ending.id) {
-        case 'empire':
-            progress = (state.notoriety/80)*30 + (state.influence/80)*30 + (state.districtCount/8)*40;
-            total = 100;
-            break;
-        case 'tycoon':
-            progress = (state.money/5000)*50 + (state.influence/50)*50;
-            total = 100;
-            break;
-        case 'shadow':
-            progress = (state.intel/60)*30 + (state.influence/60)*30 + (state.notoriety <= 30 ? 40 : Math.max(0, 40 - (state.notoriety - 30) * 2));
-            total = 100;
-            break;
-        case 'warlord':
-            progress = (state.manpower/50)*50 + (state.gangsDestroyed/6)*50;
-            total = 100;
-            break;
-        case 'escape':
-            progress = (state.money/3000)*30 + (state.notoriety <= 20 ? 35 : Math.max(0, 35 - (state.notoriety - 20) * 2)) + (state.influence/30)*35;
-            total = 100;
-            break;
-        default:
-            progress = 0;
-            total = 100;
-    }
-    return Math.min(100, Math.round(progress));
-}
-
-// ===== 下一天 =====
+// ===== 进度推进 =====
 function doNextDay() {
-    G.day++;
-    recoverAp(G); // 恢复1点
-    G.ap = G.maxAp; // 完全恢复
-
-    // 自动收入
+    if (!G) return;
+    G.turn = (G.turn || 1) + 1;
+    G.ap = G.maxAp || 4;
+    resetAp(G);
+    
+    // 收入
     const income = getDailyIncome(G);
     G.money += income;
-    G.totalIncomeCollected += income;
-
-    // 日常消耗
-    const upkeep = G.crew.length * 10;
-    G.money = Math.max(0, G.money - upkeep);
-
-    addMessage(`📅 第 ${G.day} 天 - 收入 +$${income}，维护费 -$${upkeep}`, 'info');
-
-    // 安全度自然变化
-    if (G.security < 50) {
-        changeSecurity(G, 1);
-    }
-    if (G.notoriety > 50 && Math.random() < 0.15) {
-        changeSecurity(G, -2);
-        addMessage('⚠️ 过高的恶名引起了警方注意，安全度下降', 'warning');
-    }
-
-    // 成员忠诚度变化
-    for (const m of G.crew) {
-        if (m.status === 'idle') {
-            m.daysInCrew++;
-            // 长期不用的成员忠诚度微降
-            if (m.daysInCrew % 5 === 0 && m.missionsDone < 3) {
-                m.loyalty = Math.max(0, m.loyalty - 2);
-            }
+    addMessage('📅 第' + G.turn + '天 | 收入 +$' + income, 'info');
+    
+    // 外交关系更新
+    if (typeof updateDiplomacy === 'function') updateDiplomacy(G);
+    
+    // 敌对行动
+    if (G.turn % 2 === 0 && typeof checkEnemyAction === 'function') {
+        const enemy = checkEnemyAction(G);
+        if (enemy) {
+            G.security = Math.max(0, G.security - 5);
+            addMessage('⚡ ' + enemy.name + ' 趁夜色搞了破坏！安全度-5', 'error');
         }
     }
+    
+    // 随机事件（30%概率）
+    if (Math.random() < 0.3 && typeof triggerRandomEvent === 'function') {
+        triggerRandomEvent(G);
+    }
+    
+    updateUI();
+    if (_currentTab) switchTab(_currentTab);
+}
 
-    // 检查忠诚度事件
-    checkLoyaltyEvents(G);
+// ===== 每日收入计算 =====
+function getDailyIncome(state) {
+    const count = Object.keys(state.districts || {}).length;
+    return state.baseLv * 30 + count * 20 + state.influence * 2 + 10;
+}
 
-    // 随机事件 (20%概率)
-    _eventCooldown = Math.max(0, _eventCooldown - 1);
-    if (Math.random() < 0.20 && _eventCooldown === 0) {
-        _eventCooldown = 2; // 事件冷却
-        setTimeout(() => triggerRandomEvent(G), 300);
+// ===== 对话事件触发 =====
+function triggerRandomEvent(state) {
+    const eventKeys = Object.keys(EVENTS);
+    if (eventKeys.length === 0) return;
+    const key = eventKeys[Math.floor(Math.random() * eventKeys.length)];
+    const event = EVENTS[key];
+    if (!event) return;
+    if (event.phase && event.phase > (state.phase || 0)) return;
+    if (state.triggeredEvents && state.triggeredEvents.includes(key)) return;
+    _currentEvent = event;
+    showEventModal(event);
+}
+
+// ===== 事件弹窗 =====
+function showEventModal(event) {
+    let choicesHtml = '';
+    let validChoices = 0;
+    for (let i = 0; i < event.choices.length; i++) {
+        const c = event.choices[i];
+        let canChoose = true;
+        if (c.req) {
+            if (c.req.money && G.money < c.req.money) canChoose = false;
+            if (c.req.intel && G.intel < c.req.intel) canChoose = false;
+            if (c.req.manpower && G.crew.length < c.req.manpower) canChoose = false;
+        }
+        const costText = c.cost && c.cost.money ? ' ($' + c.cost.money + ')' : '';
+        choicesHtml += `<button class="btn-choice ${canChoose ? 'btn-gold' : 'btn-gray'}" onclick="handleEventChoice(${i})" ${canChoose ? '' : 'disabled'}>
+            ${c.text}${costText}
+        </button>`;
+        if (canChoose) validChoices++;
     }
 
-    // 检查结局
-    checkEndings(G);
-
-    addMessage(`💰 日收入 +$${income} | 维护费 -$${upkeep} | AP已恢复`, 'info');
-    updateUI();
-}
-
-// ===== 结局画面 =====
-function renderEndingScreen(state, ending) {
-    setTimeout(() => {
-        const overlay = document.createElement('div');
-        overlay.className = 'ending-overlay';
-        overlay.id = 'endingOverlay';
-        overlay.innerHTML = `
-            <div class="ending-screen">
-                <div class="ending-emoji">${ending.emoji}</div>
-                <div class="ending-title">${ending.name}</div>
-                <div class="ending-desc">${ending.desc || '你的黑道生涯在此画上句号。'}</div>
-                <div class="ending-stats">
-                    <div class="ending-stat"><span class="stat-label">最终等级</span> <span class="stat-value">Lv.${state.level}</span></div>
-                    <div class="ending-stat"><span class="stat-label">存活天数</span> <span class="stat-value">${state.day} 天</span></div>
-                    <div class="ending-stat"><span class="stat-label">总资产</span> <span class="stat-value text-gold">$${state.totalIncomeCollected}</span></div>
-                    <div class="ending-stat"><span class="stat-label">累计经验</span> <span class="stat-value">${state.totalExpEarned}</span></div>
-                    <div class="ending-stat"><span class="stat-label">占领地盘</span> <span class="stat-value">${state.districtCount}/8</span></div>
-                    <div class="ending-stat"><span class="stat-label">消灭帮派</span> <span class="stat-value">${state.gangsDestroyed}/6</span></div>
-                    <div class="ending-stat"><span class="stat-label">组织成员</span> <span class="stat-value">${state.crew.length} 人</span></div>
+    const modalHtml = `
+        <div class="modal-overlay show" id="eventModal">
+            <div class="event-modal">
+                <div class="event-header" style="background: linear-gradient(135deg, #6d28d9, #1e1b4b);">
+                    <span class="event-icon">⚡</span>
+                    <h2>${event.title}</h2>
                 </div>
-                <div style="display:flex; flex-direction:column; gap:8px;">
-                    <button class="btn-start" onclick="location.reload()">🔄 重新开始</button>
-                    <button class="btn-start btn-start-secondary" onclick="document.getElementById('endingOverlay').remove(); addMessage('⏸️ 已返回游戏', 'info');">📖 回顾游戏</button>
+                <div class="event-body">
+                    <div class="event-desc">${event.desc}</div>
+                    <div class="event-choices">
+                        ${choicesHtml}
+                    </div>
                 </div>
             </div>
-        `;
-        document.body.appendChild(overlay);
-    }, 500);
+        </div>
+    `;
+
+    const old = document.getElementById('eventModal');
+    if (old) old.remove();
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
 }
 
-// ===== 快捷键 =====
+// ===== 键盘快捷键 =====
+document.addEventListener('DOMContentLoaded', () => {
+    if (hasSave()) {
+        const btn = document.getElementById('continueBtn');
+        if (btn) btn.style.display = 'block';
+    }
+});
+
 document.addEventListener('keydown', (e) => {
     if (!G || G.isGameOver) return;
     switch (e.key) {
@@ -4889,17 +4573,14 @@ document.addEventListener('keydown', (e) => {
         case '5': switchTab('crew'); break;
         case '6': switchTab('development'); break;
         case ' ': e.preventDefault(); doNextDay(); break;
-        case 's': if (e.ctrlKey) { e.preventDefault(); saveGame(G); showToast('存档成功', 'success'); } break;
+        case 's': if (e.ctrlKey) { saveGame(G); showToast('已保存', 'success'); } break;
         case 'Escape':
-            ['eventModal', 'shopModal', 'inventoryModal', 'combatModal', 'equipModal', 'loyaltyEventModal'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.remove();
-            });
+            document.querySelectorAll('.modal-overlay').forEach(el => el.remove());
             break;
     }
 });
 
-// ===== 追加结束 =====
+// ===== 闭幕 =====
 console.log('🌊 暗潮·地下组织模拟器 v2.0 已加载');
 console.log('🎮 快捷键: 1-6 切换标签 | Space 下一天 | Ctrl+S 保存 | Esc 关闭弹窗');
 </script>
