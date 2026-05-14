@@ -4515,6 +4515,13 @@ function doNextDay() {
     if (_currentTab) switchTab(_currentTab);
 }
 
+// ===== 任务奖励计算 =====
+function calculateMissionReward(state, mission) {
+    let reward = mission.baseReward;
+    if (state) reward += (state.level || 1) * 10;
+    return reward;
+}
+
 // ===== 每日收入计算 =====
 function getDailyIncome(state) {
     const count = Object.keys(state.districts || {}).length;
