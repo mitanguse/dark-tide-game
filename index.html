@@ -1595,7 +1595,7 @@ function assignMissionCrew(state, missionId, count) {
 }
 
 // 完成任务后恢复成员
-function completeMissionCrew(state, memberIds, success) {
+function completeMissionCrew(G, memberIds, success) {
     memberIds.forEach(id => {
         const m = G.crew.find(c => c.id === id);
         if (!m) return;
@@ -1749,11 +1749,11 @@ function executeMissionWithCrew() {
     
     if (isSuccess) {
         G.money += reward;
-        addExp(state, 10 + Math.floor(Math.random() * 15));
-        addNotoriety(state, mission.baseRisk / 10);
-        addInfluence(state, 1);
-        state.missionHistory.push({ id: mission.id, success: true, day: G.turn });
-        completeMissionCrew(state, memberIds, true);
+        addExp(G, 10 + Math.floor(Math.random() * 15));
+        addNotoriety(G, mission.baseRisk / 10);
+        addInfluence(G, 1);
+        G.missionHistory.push({ id: mission.id, success: true, day: G.turn });
+        completeMissionCrew(G, memberIds, true);
         
         let msg = '任务成功! +$' + reward;
         if (synergy > 5) msg += ' (默契配合+' + synergy + '%)';
@@ -1764,13 +1764,13 @@ function executeMissionWithCrew() {
         // 道具掉落
         checkMissionDrop();
         
-        if (Math.random() < 0.15) setTimeout(() => triggerRandomEvent(state), 500);
+        if (Math.random() < 0.15) setTimeout(() => triggerRandomEvent(G), 500);
     } else {
         const penalty = Math.floor(reward * 0.3);
         G.money = Math.max(0, G.money - penalty);
-        addNotoriety(state, mission.baseRisk / 5);
-        state.missionHistory.push({ id: mission.id, success: false, day: G.turn });
-        completeMissionCrew(state, memberIds, false);
+        addNotoriety(G, mission.baseRisk / 5);
+        G.missionHistory.push({ id: mission.id, success: false, day: G.turn });
+        completeMissionCrew(G, memberIds, false);
         
         let msg = '任务失败! -$' + penalty;
         if (synergy < -10) msg += ' (成员严重不合)';
