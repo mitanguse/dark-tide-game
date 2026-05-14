@@ -905,6 +905,7 @@ function initGameState() {
         intelLevel: 1,
         intelPoints: 0,
         intelActions: [],
+        enemies: [],
 
         // 道具
         inventory: [],
@@ -1209,7 +1210,7 @@ function createNewMember(state, options) {
         missions: 0,
         kills: 0,
         equipped: [],
-        joinedAt: state.turn || 1,
+        joinedAt: G.turn || 1,
         
         // === 隐藏的性格与关系属性 ===
         _personality: P(['暴躁','阴冷','忠诚','狡诈','热血','冷静','狂妄','谨慎']),
@@ -1225,7 +1226,7 @@ function createNewMember(state, options) {
     };
     
     // 根据条件决定是否成为卧底（不暴露给玩家）
-    if (state.turn > 3 && state.phase < 4) {
+    if (G.turn > 3 && state.phase < 4) {
         const moleChance = calculateMoleChance(state);
         if (Math.random() < moleChance) {
             member._isMole = true;
@@ -1249,8 +1250,8 @@ function createNewMember(state, options) {
 
 // 初始化新成员与其他成员的关系
 function initMemberRelations(state, newMember) {
-    if (!state.crew || state.crew.length === 0) return;
-    state.crew.forEach(existing => {
+    if (!G.crew || G.crew.length === 0) return;
+    G.crew.forEach(existing => {
         if (existing.status === 'dead') return;
         // 性格相克产生敌意
         const conflicts = {
@@ -1288,8 +1289,8 @@ function initMemberRelations(state, newMember) {
 }
 
 // 计算一组成员的团队默契（隐藏值）
-function calculateTeamSynergy(state, memberIds) {
-    const members = memberIds.map(id => state.crew.find(m => m.id === id)).filter(m => m);
+function calculateTeamSynergy(G, memberIds) {
+    const members = memberIds.map(id => G.crew.find(m => m.id === id)).filter(m => m);
     if (members.length <= 1) return 0;
     
     let synergy = 0;
@@ -1329,8 +1330,8 @@ function calculateTeamSynergy(state, memberIds) {
 // 计算卧底概率
 function calculateMoleChance(state) {
     let chance = 0.03;  // 基础3%
-    if (state.notoriety > 60) chance += 0.05;  // 恶名高了警察盯得紧
-    if (state.notoriety > 100) chance += 0.07;
+    if (G.notoriety > 60) chance += 0.05;  // 恶名高了警察盯得紧
+    if (G.notoriety > 100) chance += 0.07;
     if (state.phase >= 2) chance += 0.03;      // 势力大了容易被渗透
     if (state.security < 30) chance += 0.05;    // 安全度低容易混入
     return Math.min(chance, 0.2);               // 最高20%
@@ -1338,13 +1339,13 @@ function calculateMoleChance(state) {
 
 // 招募普通成员
 function recruitMember(state) {
-    if (state.money < 500) { showToast('需要$500', 'error'); return; }
-    if (state.crew.length >= state.maxCrew) { showToast('人手已满', 'error'); return; }
-    state.money -= 500;
+    if (G.money < 500) { showToast('需要$500', 'error'); return; }
+    if (G.crew.length >= state.maxCrew) { showToast('人手已满', 'error'); return; }
+    G.money -= 500;
     const m = createNewMember(state);
     initMemberRelations(state, m);
-    state.crew.push(m);
-    state.manpower = state.crew.length;
+    G.crew.push(m);
+    state.manpower = G.crew.length;
     showToast(m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');
     addMessage('招募: ' + m.emoji + m.name + ' Lv.' + m.lv + ' ' + m.className, 'info');
     updateUI();
@@ -1354,22 +1355,22 @@ function recruitMember(state) {
 function poachMember(state) {
     const enemies = (state.enemies || []).filter(e => e.alive);
     if (enemies.length === 0) { showToast('没有敌对帮派可挖角', 'error'); return; }
-    if (state.money < 1500) { showToast('需要$1500', 'error'); return; }
+    if (G.money < 1500) { showToast('需要$1500', 'error'); return; }
     
     // 选择一个敌对势力
     const target = enemies[Math.floor(Math.random() * enemies.length)];
     const cost = 1500 + Math.floor(target.power * 20);
-    if (state.money < cost) { showToast('需要$' + cost, 'error'); return; }
+    if (G.money < cost) { showToast('需要$' + cost, 'error'); return; }
     
-    const chance = 0.3 + state.influence * 0.003 - target.power * 0.005;
-    state.money -= cost;
+    const chance = 0.3 + G.influence * 0.003 - target.power * 0.005;
+    G.money -= cost;
     
     if (Math.random() < Math.max(0.1, Math.min(0.8, chance))) {
         const m = createNewMember(state, { lv: 3 + Math.floor(Math.random() * 4) });
         m.loyalty = 30 + Math.floor(Math.random() * 15);  // 挖来的忠诚度低
         m._origFaction = target.name;
-        state.crew.push(m);
-        state.manpower = state.crew.length;
+        G.crew.push(m);
+        state.manpower = G.crew.length;
         // 可能挖到卧底（对方反向渗透）
         if (Math.random() < 0.15) {
             m._isMole = true;
@@ -1382,11 +1383,11 @@ function poachMember(state) {
     } else {
         showToast('挖角失败，派去的人被杀了', 'error');
         addMessage('挖角' + target.name + '失败，损失$' + cost, 'error');
-        if (state.crew.length > 0 && Math.random() < 0.3) {
-            const victim = state.crew[Math.floor(Math.random() * state.crew.length)];
+        if (G.crew.length > 0 && Math.random() < 0.3) {
+            const victim = G.crew[Math.floor(Math.random() * G.crew.length)];
             victim.status = 'dead';
-            state.crew = state.crew.filter(m => m.status !== 'dead');
-            state.manpower = state.crew.length;
+            G.crew = G.crew.filter(m => m.status !== 'dead');
+            state.manpower = G.crew.length;
             showToast('派去的联络人' + victim.name + '遇害', 'error');
         }
     }
@@ -1395,13 +1396,13 @@ function poachMember(state) {
 
 // 逐出成员
 function expelMember(state, memberId) {
-    const m = state.crew.find(c => c.id === memberId);
+    const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
-    state.crew = state.crew.filter(c => c.id !== memberId);
-    state.manpower = state.crew.length;
+    G.crew = G.crew.filter(c => c.id !== memberId);
+    state.manpower = G.crew.length;
     // 逐出卧底不涨恶名
     if (!m._isMole) {
-        state.notoriety = Math.max(0, state.notoriety - 2);
+        G.notoriety = Math.max(0, G.notoriety - 2);
         addMessage('逐出了 ' + m.emoji + m.name, 'info');
     } else {
         addMessage('卧底 ' + m.emoji + m.name + ' 被逐出组织', 'success');
@@ -1412,11 +1413,11 @@ function expelMember(state, memberId) {
 
 // 击杀成员（处决）
 function executeMember(state, memberId) {
-    const m = state.crew.find(c => c.id === memberId);
+    const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
-    state.crew = state.crew.filter(c => c.id !== memberId);
-    state.manpower = state.crew.length;
-    state.notoriety += 5;
+    G.crew = G.crew.filter(c => c.id !== memberId);
+    state.manpower = G.crew.length;
+    G.notoriety += 5;
     state.security = Math.max(0, state.security - 5);
     
     // 如果是卧底，与派来方关系恶化
@@ -1440,7 +1441,7 @@ function executeMember(state, memberId) {
 
 // 成功策反卧底
 function turnMole(state, memberId) {
-    const m = state.crew.find(c => c.id === memberId);
+    const m = G.crew.find(c => c.id === memberId);
     if (!m || !m._isMole) return;
     m._isMole = false;      // 不再是卧底
     m.loyalty = 35;         // 忠诚度低，但可以培养
@@ -1468,7 +1469,7 @@ function addMemberXp(state, member, amount) {
 
 // 显示成员详情
 function showMemberDetail(state, memberId) {
-    const m = state.crew.find(c => c.id === memberId);
+    const m = G.crew.find(c => c.id === memberId);
     if (!m) return;
     
     let html = '<div class="modal-overlay show" id="memberModal"><div class="modal-content">';
@@ -1505,7 +1506,7 @@ function showMemberDetail(state, memberId) {
 }
 
 // 卧底行动检查（在每次任务后调用，不暴露具体逻辑）
-function checkMoleActivity(state, missionMembers, missionSuccess) {
+function checkMoleActivity(G, missionMembers, missionSuccess) {
     const moles = missionMembers.filter(m => m._isMole && m._moleActive && m.status !== 'dead');
     if (moles.length === 0) return null;
     
@@ -1540,7 +1541,7 @@ function checkMoleActivity(state, missionMembers, missionSuccess) {
             };
             // 收益减少
             const penalty = 100 + Math.floor(Math.random() * 200);
-            state.money = Math.max(0, state.money - penalty);
+            G.money = Math.max(0, G.money - penalty);
             addMessage('[卧底] ' + mole.emoji + mole.name + ' 私吞了部分收益 (-$' + penalty + ')', 'error');
         }
         
@@ -1561,7 +1562,7 @@ function checkMoleActivity(state, missionMembers, missionSuccess) {
 
 // 派成员出任务（自动分配）
 function assignMissionCrew(state, missionId, count) {
-    const available = state.crew.filter(m => m.status === 'idle' && m.ap >= 1);
+    const available = G.crew.filter(m => m.status === 'idle' && m.ap >= 1);
     const selected = [];
     
     // 按战力排序，优先派高级的
@@ -1579,7 +1580,7 @@ function assignMissionCrew(state, missionId, count) {
 // 完成任务后恢复成员
 function completeMissionCrew(state, memberIds, success) {
     memberIds.forEach(id => {
-        const m = state.crew.find(c => c.id === id);
+        const m = G.crew.find(c => c.id === id);
         if (!m) return;
         m.status = 'idle';
         m.missions = (m.missions || 0) + 1;
@@ -1598,19 +1599,19 @@ function openMissionSetup(missionId) {
     const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
     if (!mission) return;
     
-    const available = state.crew.filter(m => m.status === 'idle' && m.ap >= 1);
+    const available = G.crew.filter(m => m.status === 'idle' && m.ap >= 1);
     if (available.length < mission.minCrew) {
         showToast('需要至少' + mission.minCrew + '名空闲成员！当前仅' + available.length + '人', 'error');
         return;
     }
     
-    state._pendingMission = missionId;
-    state._selectedMissionCrew = [];
+    G._pendingMission = missionId;
+    G._selectedMissionCrew = [];
     
     let html = '<div class="modal-overlay show" id="missionModal"><div class="modal-content">';
     html += '<div class="modal-header"><span>⚡ ' + mission.id + '</span>';
     html += '<button class="btn-close" onclick="closeModal(\'missionModal\')">✕</button></div>';
-    html += '<div style="font-size:.65em;color:#888;margin:4px 0">' + mission.desc + ' | 奖励: $' + calculateMissionReward(state, mission) + '</div>';
+    html += '<div style="font-size:.65em;color:#888;margin:4px 0">' + mission.desc + ' | 奖励: $' + calculateMissionReward(G, mission) + '</div>';
     
     // 成员选择
     html += '<div style="margin:6px 0;font-size:.7em;color:#fbbf24">选择参战成员（至少' + mission.minCrew + '人，点选切换）</div>';
@@ -1639,32 +1640,32 @@ function openMissionSetup(missionId) {
 }
 
 function toggleMissionMember(memberId) {
-    const idx = state._selectedMissionCrew.indexOf(memberId);
+    const idx = G._selectedMissionCrew.indexOf(memberId);
     if (idx >= 0) {
-        state._selectedMissionCrew.splice(idx, 1);
+        G._selectedMissionCrew.splice(idx, 1);
     } else {
-        state._selectedMissionCrew.push(memberId);
+        G._selectedMissionCrew.push(memberId);
     }
     updateMissionUI();
 }
 
 function updateMissionUI() {
-    const count = state._selectedMissionCrew.length;
-    const mission = CONFIG.MISSIONS.find(m => m.id === state._pendingMission);
+    const count = G._selectedMissionCrew.length;
+    const mission = CONFIG.MISSIONS.find(m => m.id === G._pendingMission);
     if (!mission) return;
     
     // 更新计数
     const el = document.getElementById('missionCrewCount');
     if (el) {
-        const synergy = calculateTeamSynergy(state, state._selectedMissionCrew);
+        const synergy = calculateTeamSynergy(G, G._selectedMissionCrew);
         const synColor = synergy > 5 ? '#34d399' : synergy < -5 ? '#f87171' : '#888';
-        el.innerHTML = '已选: ' + count + '/' + (state.crew.filter(m => m.status === 'idle' && m.ap >= 1).length) + '人 | 团队默契: <span style="color:' + synColor + '">' + (synergy > 0 ? '+' : '') + synergy + '%</span>';
+        el.innerHTML = '已选: ' + count + '/' + (G.crew.filter(m => m.status === 'idle' && m.ap >= 1).length) + '人 | 团队默契: <span style="color:' + synColor + '">' + (synergy > 0 ? '+' : '') + synergy + '%</span>';
     }
     
     // 更新高亮
     document.querySelectorAll('.crew-chip').forEach(chip => {
         const id = parseInt(chip.dataset.mid);
-        const selected = state._selectedMissionCrew.includes(id);
+        const selected = G._selectedMissionCrew.includes(id);
         chip.style.borderColor = selected ? '#34d399' : '#444';
         chip.style.background = selected ? 'rgba(52,211,153,0.15)' : 'transparent';
     });
@@ -1676,32 +1677,32 @@ function updateMissionUI() {
 
 // 新版的执行任务（带选人）
 function executeMissionWithCrew() {
-    const missionId = state._pendingMission;
+    const missionId = G._pendingMission;
     const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
     if (!mission) return;
     
-    const memberIds = state._selectedMissionCrew;
+    const memberIds = G._selectedMissionCrew;
     if (!memberIds || memberIds.length < mission.minCrew) {
         showToast('至少需要' + mission.minCrew + '人', 'error');
         return;
     }
     
-    if (state.ap < 1) { showToast('行动力不足', 'error'); return; }
+    if (G.ap < 1) { showToast('行动力不足', 'error'); return; }
     
     closeModal('missionModal');
-    state.ap -= 1;
+    G.ap -= 1;
     
-    const reward = calculateMissionReward(state, mission);
-    const synergy = calculateTeamSynergy(state, memberIds);
+    const reward = calculateMissionReward(G, mission);
+    const synergy = calculateTeamSynergy(G, memberIds);
     
     // 计算成功率
     let successRate = 0.45;
-    successRate += state.level * 0.012;
-    successRate += state.influence * 0.002;
+    successRate += G.level * 0.012;
+    successRate += G.influence * 0.002;
     
     // 职业匹配
     memberIds.forEach(id => {
-        const m = state.crew.find(c => c.id === id);
+        const m = G.crew.find(c => c.id === id);
         if (!m) return;
         if (m.class === '打手' && mission.combatReq > 0) successRate += 0.05;
         if (m.class === '情报员' && mission.intelReq > 0) successRate += 0.05;
@@ -1720,21 +1721,21 @@ function executeMissionWithCrew() {
     const isSuccess = Math.random() < successRate;
     
     // 派成员出任务
-    const assigned = memberIds.map(id => state.crew.find(c => c.id === id)).filter(m => m);
+    const assigned = memberIds.map(id => G.crew.find(c => c.id === id)).filter(m => m);
     assigned.forEach(m => {
         m.status = 'working';
         m.ap = Math.max(0, (m.ap || 3) - 1);
     });
     
     // 检查卧底活动
-    const moleResult = checkMoleActivity(state, assigned, isSuccess);
+    const moleResult = checkMoleActivity(G, assigned, isSuccess);
     
     if (isSuccess) {
-        state.money += reward;
+        G.money += reward;
         addExp(state, 10 + Math.floor(Math.random() * 15));
         addNotoriety(state, mission.baseRisk / 10);
         addInfluence(state, 1);
-        state.missionHistory.push({ id: mission.id, success: true, day: state.turn });
+        state.missionHistory.push({ id: mission.id, success: true, day: G.turn });
         completeMissionCrew(state, memberIds, true);
         
         let msg = '任务成功! +$' + reward;
@@ -1749,9 +1750,9 @@ function executeMissionWithCrew() {
         if (Math.random() < 0.15) setTimeout(() => triggerRandomEvent(state), 500);
     } else {
         const penalty = Math.floor(reward * 0.3);
-        state.money = Math.max(0, state.money - penalty);
+        G.money = Math.max(0, G.money - penalty);
         addNotoriety(state, mission.baseRisk / 5);
-        state.missionHistory.push({ id: mission.id, success: false, day: state.turn });
+        state.missionHistory.push({ id: mission.id, success: false, day: G.turn });
         completeMissionCrew(state, memberIds, false);
         
         let msg = '任务失败! -$' + penalty;
@@ -1771,8 +1772,8 @@ function executeMissionWithCrew() {
                 }
             }
         });
-        state.crew = state.crew.filter(m => m.status !== 'dead');
-        state.manpower = state.crew.length;
+        G.crew = G.crew.filter(m => m.status !== 'dead');
+        state.manpower = G.crew.length;
     }
     
     checkEndings(state);
@@ -1782,7 +1783,7 @@ function executeMissionWithCrew() {
 
 // 回收AP
 function resetAp(state) {
-    state.crew.filter(m => m.status !== 'dead').forEach(m => {
+    G.crew.filter(m => m.status !== 'dead').forEach(m => {
         m.ap = m.maxAp || (3 + Math.floor(m.lv / 3));
     });
 }
@@ -3014,7 +3015,7 @@ function checkMissionDrop() {
     if (!itemId) return null;
     const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
     if (!itemDef) return null;
-    addItemToInventory(state, itemId);
+    addItemToInventory(G, itemId);
     addMessage('任务中捡到了 ' + itemDef.emoji + itemDef.name + '！已放入背包', 'success');
     return itemId;
 }
@@ -3025,7 +3026,7 @@ function openShop() {
     html += '<div class="modal-header"><span>🏪 黑市商店</span><button class="btn-close" onclick="closeModal(\'shopModal\')">✕</button></div>';
     html += '<div class="shop-grid">';
     CONFIG.ITEMS.forEach(item => {
-        const canBuy = state.money >= item.cost;
+        const canBuy = G.money >= item.cost;
         html += '<div class="shop-item ' + (canBuy ? '' : 'shop-item-disabled') + '">';
         html += '<div class="shop-item-icon">' + item.emoji + '</div>';
         html += '<div class="shop-item-info">';
@@ -3038,7 +3039,7 @@ function openShop() {
         html += '</div></div>';
     });
     html += '</div>';
-    html += '<div class="shop-footer"><span>$' + state.money + '</span><button class="btn btn-gray" onclick="closeModal(\'shopModal\')">关闭</button></div>';
+    html += '<div class="shop-footer"><span>$' + G.money + '</span><button class="btn btn-gray" onclick="closeModal(\'shopModal\')">关闭</button></div>';
     html += '</div></div>';
     document.body.insertAdjacentHTML('beforeend', html);
 }
@@ -3046,9 +3047,9 @@ function openShop() {
 function buyItem(itemId) {
     const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
     if (!itemDef) return;
-    if (state.money < itemDef.cost) { showToast('资金不足!', 'error'); return; }
-    state.money -= itemDef.cost;
-    addItemToInventory(state, itemId);
+    if (G.money < itemDef.cost) { showToast('资金不足!', 'error'); return; }
+    G.money -= itemDef.cost;
+    addItemToInventory(G, itemId);
     addMessage('买了 ' + itemDef.emoji + itemDef.name + ' $' + itemDef.cost, 'info');
     showToast('购得 ' + itemDef.name, 'success');
     closeModal('shopModal');
@@ -3057,19 +3058,19 @@ function buyItem(itemId) {
 
 // 打开背包（含送礼功能）
 function openInventory() {
-    if (!state.inventory || state.inventory.length === 0) {
+    if (!G.inventory || G.inventory.length === 0) {
         showToast('背包空空如也', 'info');
         return;
     }
     
     // 获取可送礼的成员列表
-    const idleCrew = state.crew.filter(m => m.status === 'idle' || m.status === 'working');
+    const idleCrew = G.crew.filter(m => m.status === 'idle' || m.status === 'working');
     
     let html = '<div class="modal-overlay show" id="inventoryModal"><div class="modal-content">';
     html += '<div class="modal-header"><span>🎒 背包</span><button class="btn-close" onclick="closeModal(\'inventoryModal\')">✕</button></div>';
     html += '<div class="inv-grid">';
     
-    state.inventory.forEach((inv, idx) => {
+    G.inventory.forEach((inv, idx) => {
         const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
         if (!itemDef) return;
         html += '<div class="inv-card" style="border:1px solid #333;border-radius:6px;padding:8px;margin-bottom:4px">';
@@ -3110,10 +3111,10 @@ function openInventory() {
 // 送礼给成员
 function giftItem(invIdx, memberId) {
     if (!memberId) return;
-    const m = state.crew.find(c => c.id === parseInt(memberId));
+    const m = G.crew.find(c => c.id === parseInt(memberId));
     if (!m) return;
     
-    const inv = state.inventory[invIdx];
+    const inv = G.inventory[invIdx];
     if (!inv) return;
     
     const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
@@ -3121,7 +3122,7 @@ function giftItem(invIdx, memberId) {
     
     // 消耗一个道具
     inv.count = (inv.count || 1) - 1;
-    if (inv.count <= 0) state.inventory.splice(invIdx, 1);
+    if (inv.count <= 0) G.inventory.splice(invIdx, 1);
     
     // 忠诚度提升（根据道具价值）
     const loyaltyGain = Math.floor(itemDef.cost / 80) + 5;
@@ -3143,19 +3144,19 @@ function giftItem(invIdx, memberId) {
 
 // 使用道具
 function useItem(invIdx) {
-    const inv = state.inventory[invIdx];
+    const inv = G.inventory[invIdx];
     if (!inv) return;
     const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
     if (!itemDef) return;
     
     inv.count = (inv.count || 1) - 1;
-    if (inv.count <= 0) state.inventory.splice(invIdx, 1);
+    if (inv.count <= 0) G.inventory.splice(invIdx, 1);
     
     // 道具效果
     let msg = '';
     switch (inv.id) {
         case 'medkit':
-            const injured = state.crew.filter(m => m.hp && m.hp < 80);
+            const injured = G.crew.filter(m => m.hp && m.hp < 80);
             if (injured.length > 0) {
                 injured.forEach(m => m.hp = Math.min(100, (m.hp || 80) + 30));
                 msg = '治疗了 ' + injured.length + ' 名受伤成员';
@@ -3188,7 +3189,7 @@ function useItem(invIdx) {
 
 // 道具在事件中使用的检测（事件系统调用）
 function hasItem(state, itemId) {
-    return state.inventory && state.inventory.some(i => i.id === itemId && i.count > 0);
+    return G.inventory && G.inventory.some(i => i.id === itemId && i.count > 0);
 }
 
 // ===== 情报系统 v2（深度化） =====
@@ -4091,6 +4092,8 @@ function startNewGame() {
     G = initGameState();
     G._loyaltyCheckCooldown = 0;
     initDiplomacy(G);
+    for (var i = 0; i < 3; i++) { var m = createNewMember(G); initMemberRelations(G, m); m.loyalty = 70 + Math.floor(Math.random() * 20); G.crew.push(m); }
+    G.manpower = G.crew.length;
     document.getElementById('startScreen').style.display = 'none';
     document.getElementById('gameScreen').style.display = 'flex';
     addMessage('🌃 暗潮涌动，你的地下帝国从此开始...', 'special');
