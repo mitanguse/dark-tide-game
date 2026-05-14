@@ -1157,211 +1157,314 @@ function useItem(state, itemId, targetMemberId) {
     return true;
 }
 
-// ===== 成员系统 =====
+// ===== 成员系统 v3 =====
 
-const MEMBER_NAMES = [
-    '阿强', '阿虎', '阿杰', '阿龙', '阿豪',
-    '铁柱', '大壮', '刚子', '黑子', '老王',
-    '阿飞', '阿斌', '阿坤', '阿诚', '阿威',
-    '雷哥', '明哥', '浩哥', '辉哥', '阿豹',
-    '狐狸', '老鼠', '老鬼', '蛇仔', '阿猛',
-    '阿力', '阿东', '阿西', '阿南', '阿北',
-];
-
-const MEMBER_SURNAMES = ['张', '李', '王', '刘', '陈', '林', '赵', '周', '黄', '吴', '马', '孙', '蒋', '沈', '韩'];
-
-function generateMemberName() {
-    const surname = MEMBER_SURNAMES[Math.floor(Math.random() * MEMBER_SURNAMES.length)];
-    const name = MEMBER_NAMES[Math.floor(Math.random() * MEMBER_NAMES.length)];
-    return surname + name;
-}
-
-function generateMemberClass() {
-    const classes = Object.keys(CONFIG.CLASSES);
-    return classes[Math.floor(Math.random() * classes.length)];
-}
-
-function generateMemberStats(level) {
-    const base = 5 + level * 2;
-    return {
-        combat: Math.floor(base * (0.8 + Math.random() * 0.4)),
-        intel: Math.floor(base * (0.8 + Math.random() * 0.4)),
-        loyalty: 50 + Math.floor(Math.random() * 30),
-    };
-}
-
-function createNewMember(state) {
-    const memberClass = generateMemberClass();
-    const stats = generateMemberStats(state.level);
+function createNewMember(state, options) {
+    options = options || {};
+    
+    // 根据帮派规模决定初始等级
+    let baseLv = 1;
+    if (state.phase >= 3) baseLv = 5 + Math.floor(Math.random() * 4);
+    else if (state.phase >= 2) baseLv = 3 + Math.floor(Math.random() * 3);
+    else if (state.phase >= 1) baseLv = 2 + Math.floor(Math.random() * 2);
+    if (options.lv) baseLv = options.lv;
+    
+    const jobs = CONFIG.JOBS || JOBS;
+    const names = CONFIG.MEMBER_NAMES || MEMBER_NAMES;
+    const job = options.job || jobs[Math.floor(Math.random() * jobs.length)];
+    const name = options.name || names[Math.floor(Math.random() * names.length)];
+    
+    const stat = (job.bs || 3) + Math.floor(baseLv / 3) + (Math.random() > 0.5 ? 1 : -1);
+    
     const member = {
-        id: state.nextMemberId++,
-        name: generateMemberName(),
-        class: memberClass,
-        level: 1,
-        exp: 0,
-        combat: stats.combat,
-        intel: stats.intel,
-        loyalty: stats.loyalty,
-        maxLoyalty: 100,
-        status: 'idle', // idle, mission, wounded, dead
-        items: [],
-        missionsDone: 0,
-        daysInCrew: 0,
+        id: Date.now() + Math.floor(Math.random() * 9999),
+        name: name,
+        class: job.k,
+        className: job.n,
+        emoji: job.e,
+        lv: baseLv,
+        xp: 0,
+        xpNeeded: baseLv * 20,
+        stat: Math.max(1, stat),
+        loyalty: options.loyalty || 50 + Math.floor(Math.random() * 30),
+        ap: 3 + Math.floor(baseLv / 3),
+        maxAp: 3 + Math.floor(baseLv / 3),
+        hp: 80 + Math.floor(Math.random() * 20),
+        maxHp: 100,
+        status: 'idle',
+        missions: 0,
+        kills: 0,
+        equipped: [],
+        joinedAt: state.turn || 1,
+        
+        // === 隐藏的卧底属性（不渲染到UI中）===
+        _isMole: false,
+        _moleFaction: null,     // 'police' 或 敌对帮派名
+        _moleActive: true,       // 卧底是否还在活动中
+        _sabotages: 0,          // 已破坏次数
+        _killCount: 0,          // 已杀害同事数
     };
+    
+    // 根据条件决定是否成为卧底（不暴露给玩家）
+    if (state.turn > 3 && state.phase < 4) {
+        const moleChance = calculateMoleChance(state);
+        if (Math.random() < moleChance) {
+            member._isMole = true;
+            // 决定是谁派来的
+            const enemies = (state.enemies || []).filter(e => e.alive);
+            if (enemies.length > 0 && Math.random() < 0.6) {
+                member._moleFaction = enemies[Math.floor(Math.random() * enemies.length)].name;
+            } else {
+                member._moleFaction = 'police';
+            }
+            // 卧底初始忠诚可能偏高（伪装）
+            member.loyalty = 65 + Math.floor(Math.random() * 20);
+        }
+    }
+    
+    if (options.isMole !== undefined) member._isMole = options.isMole;
+    if (options.moleFaction) member._moleFaction = options.moleFaction;
+    
     return member;
 }
 
-function getRecruitCost(state) {
-    const base = CONFIG.RECRUIT_COST.base;
-    const perLevel = CONFIG.RECRUIT_COST.perLevel;
-    const boost = state._recruitBoost || 0;
-    return Math.floor((base + perLevel * state.level) * (1 - boost));
+// 计算卧底概率
+function calculateMoleChance(state) {
+    let chance = 0.03;  // 基础3%
+    if (state.notoriety > 60) chance += 0.05;  // 恶名高了警察盯得紧
+    if (state.notoriety > 100) chance += 0.07;
+    if (state.phase >= 2) chance += 0.03;      // 势力大了容易被渗透
+    if (state.security < 30) chance += 0.05;    // 安全度低容易混入
+    return Math.min(chance, 0.2);               // 最高20%
 }
 
-function getRecruitChance(state) {
-    let chance = 0.5;
-    chance += state.influence * 0.003;
-    chance += (state._recruitBoost || 0);
-    // 有私酒buff加成
-    chance += state.districtCount * 0.02;
-    // 恶名太高降低成功率
-    if (state.notoriety > 70) chance -= 0.15;
-    if (state.notoriety > 90) chance -= 0.15;
-    return Math.min(0.95, Math.max(0.1, chance));
-}
-
+// 招募普通成员
 function recruitMember(state) {
-    const cost = getRecruitCost(state);
-    if (!spendMoney(state, cost)) {
-        showToast('资金不足!', 'error');
-        return false;
-    }
-    const chance = getRecruitChance(state);
-    if (Math.random() < chance) {
-        const member = createNewMember(state);
-        state.crew.push(member);
-        addMessage(`🎉 招募成功! ${member.class} ${member.name} 加入了组织`, 'success');
-        showToast(`招募成功! ${member.emoji || ''}${member.name}`, 'success');
-        renderCrewTab();
-        return true;
+    if (state.money < 500) { showToast('需要$500', 'error'); return; }
+    if (state.crew.length >= state.maxCrew) { showToast('人手已满', 'error'); return; }
+    state.money -= 500;
+    const m = createNewMember(state);
+    state.crew.push(m);
+    state.manpower = state.crew.length;
+    showToast(m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');
+    addMessage('招募: ' + m.emoji + m.name + ' Lv.' + m.lv + ' ' + m.className, 'info');
+    updateUI();
+}
+
+// 从敌对帮派挖角
+function poachMember(state) {
+    const enemies = (state.enemies || []).filter(e => e.alive);
+    if (enemies.length === 0) { showToast('没有敌对帮派可挖角', 'error'); return; }
+    if (state.money < 1500) { showToast('需要$1500', 'error'); return; }
+    
+    // 选择一个敌对势力
+    const target = enemies[Math.floor(Math.random() * enemies.length)];
+    const cost = 1500 + Math.floor(target.power * 20);
+    if (state.money < cost) { showToast('需要$' + cost, 'error'); return; }
+    
+    const chance = 0.3 + state.influence * 0.003 - target.power * 0.005;
+    state.money -= cost;
+    
+    if (Math.random() < Math.max(0.1, Math.min(0.8, chance))) {
+        const m = createNewMember(state, { lv: 3 + Math.floor(Math.random() * 4) });
+        m.loyalty = 30 + Math.floor(Math.random() * 15);  // 挖来的忠诚度低
+        m._origFaction = target.name;
+        state.crew.push(m);
+        state.manpower = state.crew.length;
+        // 可能挖到卧底（对方反向渗透）
+        if (Math.random() < 0.15) {
+            m._isMole = true;
+            m._moleFaction = target.name;
+        }
+        showToast('成功从' + target.name + '挖来' + m.emoji + m.name + ' Lv.' + m.lv, 'success');
+        addMessage('挖角成功: ' + m.emoji + m.name + ' 从' + target.name + '加入', 'info');
+        // 关系恶化
+        target.power = Math.min(target.maxPower || 100, target.power + 3);
     } else {
-        showToast('招募失败...', 'error');
-        addMessage(`❌ 招募失败，花费了 $${cost}`, 'error');
-        return false;
+        showToast('挖角失败，派去的人被杀了', 'error');
+        addMessage('挖角' + target.name + '失败，损失$' + cost, 'error');
+        if (state.crew.length > 0 && Math.random() < 0.3) {
+            const victim = state.crew[Math.floor(Math.random() * state.crew.length)];
+            victim.status = 'dead';
+            state.crew = state.crew.filter(m => m.status !== 'dead');
+            state.manpower = state.crew.length;
+            showToast('派去的联络人' + victim.name + '遇害', 'error');
+        }
+    }
+    updateUI();
+}
+
+// 逐出成员
+function expelMember(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m) return;
+    state.crew = state.crew.filter(c => c.id !== memberId);
+    state.manpower = state.crew.length;
+    // 逐出卧底不涨恶名
+    if (!m._isMole) {
+        state.notoriety = Math.max(0, state.notoriety - 2);
+        addMessage('逐出了 ' + m.emoji + m.name, 'info');
+    } else {
+        addMessage('卧底 ' + m.emoji + m.name + ' 被逐出组织', 'success');
+    }
+    showToast(m.name + ' 已逐出', 'info');
+    updateUI();
+}
+
+// 击杀成员（处决）
+function executeMember(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m) return;
+    state.crew = state.crew.filter(c => c.id !== memberId);
+    state.manpower = state.crew.length;
+    state.notoriety += 5;
+    state.security = Math.max(0, state.security - 5);
+    
+    // 如果是卧底，与派来方关系恶化
+    if (m._isMole && m._moleFaction) {
+        const enemy = (state.enemies || []).find(e => e.name === m._moleFaction);
+        if (enemy && enemy.alive) {
+            enemy.power = Math.min(enemy.maxPower || 100, enemy.power + 8);
+            addMessage(m._moleFaction + '因你处决了他们的卧底而震怒，战力+8', 'error');
+        }
+        if (m._moleFaction === 'police') {
+            state.security = Math.max(0, state.security - 15);
+            showToast('杀害警方卧底！警方加大了对你的打击力度', 'error');
+        }
+        addMessage('处决了卧底 ' + m.emoji + m.name + ' (' + m._moleFaction + ')', 'info');
+    } else {
+        showToast('处决了 ' + m.emoji + m.name + '，恶名+5', 'info');
+        addMessage('处决: ' + m.emoji + m.name, 'info');
+    }
+    updateUI();
+}
+
+// 成功策反卧底
+function turnMole(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m || !m._isMole) return;
+    m._isMole = false;      // 不再是卧底
+    m.loyalty = 35;         // 忠诚度低，但可以培养
+    m._moleFaction = null;
+    m.lv += 2;              // 双面间谍经验丰富
+    addMessage('成功策反卧底 ' + m.emoji + m.name + '！现在是双面间谍了', 'success');
+    showToast('策反成功！' + m.name + '已成为你的人', 'success');
+    updateUI();
+}
+
+// 提升成员经验
+function addMemberXp(state, member, amount) {
+    if (!member || member.status === 'dead') return;
+    member.xp += amount;
+    while (member.xp >= member.xpNeeded) {
+        member.xp -= member.xpNeeded;
+        member.lv++;
+        member.xpNeeded = member.lv * 20;
+        member.stat++;
+        member.maxAp = 3 + Math.floor(member.lv / 3);
+        showToast(member.emoji + member.name + ' 升级! Lv.' + member.lv, 'success');
+        addMessage(member.name + ' 升到Lv.' + member.lv + '，战力+' + member.stat, 'info');
     }
 }
 
-function removeMember(state, memberId) {
-    const idx = state.crew.findIndex(m => m.id === memberId);
-    if (idx === -1) return false;
-    const member = state.crew[idx];
-    if (member.status === 'mission') {
-        showToast('该成员正在执行任务!', 'error');
-        return false;
+// 显示成员详情
+function showMemberDetail(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m) return;
+    
+    let html = '<div class="modal-overlay show" id="memberModal"><div class="modal-content">';
+    html += '<div class="modal-header"><span>' + m.emoji + ' ' + m.name + '</span>';
+    html += '<button class="btn-close" onclick="closeModal(\'memberModal\')">✕</button></div>';
+    
+    html += '<div style="font-size:.72em;line-height:1.8">';
+    html += '<div>职业: ' + m.className + '</div>';
+    html += '<div>等级: Lv.' + m.lv + ' (经验 ' + m.xp + '/' + m.xpNeeded + ')</div>';
+    html += '<div>战力: ⚡' + (m.stat + Math.floor(m.lv / 3)) + '</div>';
+    html += '<div>忠诚: ♥' + m.loyalty + '</div>';
+    html += '<div>生命: ❤️' + m.hp + '/' + m.maxHp + '</div>';
+    html += '<div>行动力: ⏱' + m.ap + '/' + m.maxAp + '</div>';
+    html += '<div>任务: ' + m.missions + '次 | 击杀: ' + m.kills + '人</div>';
+    if (m.equipped && m.equipped.length > 0) {
+        html += '<div>装备: ' + m.equipped.map(e => {
+            const item = CONFIG.ITEMS.find(i => i.id === e);
+            return item ? item.emoji + item.name : e;
+        }).join(' ') + '</div>';
     }
-    member.status = 'dead';
-    state.crew.splice(idx, 1);
-    showToast(`${member.name} 已被移除`, 'info');
-    return true;
+    html += '<div>加入时间: 第' + m.joinedAt + '回合</div>';
+    html += '</div>';
+    
+    // 操作按钮
+    html += '<div class="btn-group" style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">';
+    html += '<button class="btn" onclick="expelMember(state, ' + m.id + ');closeModal(\'memberModal\')" style="border-color:#fbbf24">🚪 逐出</button>';
+    html += '<button class="btn btn-red" onclick="if(confirm(\'确定要处决' + m.name + '吗？恶名+5\')){executeMember(state, ' + m.id + ');closeModal(\'memberModal\')}" style="border-color:#f87171">💀 处决</button>';
+    html += '</div>';
+    
+    html += '<button class="btn" onclick="closeModal(\'memberModal\')" style="margin-top:6px">关闭</button>';
+    html += '</div></div>';
+    
+    document.body.insertAdjacentHTML('beforeend', html);
 }
 
-function assignMissionCrew(state, missionId, count) {
-    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
-    if (!mission) return false;
-    const available = getAvailableCrew(state);
-    const needed = mission.combatReq || 1;
-    const assigned = [];
-
-    for (let i = 0; i < Math.min(count || needed, available.length); i++) {
-        available[i].status = 'mission';
-        assigned.push(available[i]);
-    }
-
-    return assigned;
-}
-
-function completeMissionCrew(state, crewIds, success) {
-    for (const id of crewIds) {
-        const member = getMemberById(state, id);
-        if (!member) continue;
-        member.status = 'idle';
-        member.missionsDone++;
-        member.daysInCrew++;
-        if (success) {
-            member.exp += 10 + Math.floor(Math.random() * 15);
-            // 忠诚度变化
-            member.loyalty = Math.min(100, member.loyalty + Math.floor(Math.random() * 5));
-            // 成员升级
-            while (member.exp >= 50) {
-                member.exp -= 50;
-                member.level++;
-                member.combat += Math.floor(Math.random() * 3) + 1;
-                member.intel += Math.floor(Math.random() * 2);
-                addMessage(`⭐ ${member.name} 升级了! 等级 ${member.level}`, 'info');
+// 卧底行动检查（在每次任务后调用，不暴露具体逻辑）
+function checkMoleActivity(state, missionMembers, missionSuccess) {
+    const moles = missionMembers.filter(m => m._isMole && m._moleActive && m.status !== 'dead');
+    if (moles.length === 0) return null;
+    
+    let result = null;
+    
+    for (const mole of moles) {
+        // 卧底行为：任务失败时落井下石
+        if (!missionSuccess && Math.random() < 0.4) {
+            // 害死一个同事
+            const targets = missionMembers.filter(m => !m._isMole && m.status !== 'dead');
+            if (targets.length > 0) {
+                const victim = targets[Math.floor(Math.random() * targets.length)];
+                victim.status = 'dead';
+                mole._killCount++;
+                result = {
+                    type: 'betray',
+                    moleName: mole.name,
+                    victimName: victim.name,
+                    moleEmoji: mole.emoji,
+                };
+                addMessage('[卧底] ' + mole.emoji + mole.name + ' 在混乱中杀害了 ' + victim.name, 'error');
             }
-        } else {
-            member.loyalty = Math.max(0, member.loyalty - Math.floor(Math.random() * 15) - 5);
-            // 受伤
-            if (Math.random() < 0.3) {
-                member.status = 'wounded';
-                addMessage(`💔 ${member.name} 在任务中受伤了`, 'warning');
-            }
+        }
+        
+        // 任务成功时也有小概率搞破坏
+        if (missionSuccess && Math.random() < 0.1) {
+            mole._sabotages++;
+            result = {
+                type: 'sabotage',
+                moleName: mole.name,
+                moleEmoji: mole.emoji,
+            };
+            // 收益减少
+            const penalty = 100 + Math.floor(Math.random() * 200);
+            state.money = Math.max(0, state.money - penalty);
+            addMessage('[卧底] ' + mole.emoji + mole.name + ' 私吞了部分收益 (-$' + penalty + ')', 'error');
+        }
+        
+        // 已杀够多人可能试图刺杀老大
+        if (mole._killCount >= 2 && Math.random() < 0.05) {
+            result = {
+                type: 'assassinate',
+                moleName: mole.name,
+                moleEmoji: mole.emoji,
+            };
+            // 触发刺杀事件（由事件系统处理）
+            addMessage('⚠ 一条暗杀你的计划正在酝酿...', 'error');
         }
     }
+    
+    return result;
 }
 
-function checkLoyaltyEvents(state) {
-    if (state._loyaltyCheckCooldown > 0) {
-        state._loyaltyCheckCooldown--;
-        return;
-    }
-    for (const member of state.crew) {
-        if (member.loyalty < 30 && member.status === 'idle') {
-            // 忠诚度过低，触发事件
-            state._loyaltyCheckCooldown = 3;
-            showLoyaltyEvent(state, member);
-            return;
-        }
-    }
-}
-
-function healWounded(state) {
-    const wounded = state.crew.filter(m => m.status === 'wounded');
-    if (wounded.length === 0) {
-        showToast('没有需要治疗的成员', 'info');
-        return;
-    }
-    if (!spendMoney(state, 50 * wounded.length)) {
-        showToast('资金不足!', 'error');
-        return;
-    }
-    for (const m of wounded) {
-        m.status = 'idle';
-    }
-    addMessage(`💊 治疗了 ${wounded.length} 名受伤成员`, 'info');
-    showToast(`${wounded.length} 名成员已康复`, 'success');
-}
-
-function getCrewCombatPower(state) {
-    let power = 0;
-    for (const m of getAvailableCrew(state)) {
-        power += m.combat;
-        if (CONFIG.CLASSES[m.class] && CONFIG.CLASSES[m.class].combat >= 2) {
-            power += 5;
-        }
-    }
-    return power;
-}
-
-function getCrewIntelPower(state) {
-    let power = 0;
-    for (const m of getAvailableCrew(state)) {
-        power += m.intel;
-        if (CONFIG.CLASSES[m.class] && CONFIG.CLASSES[m.class].intel >= 2) {
-            power += 5;
-        }
-    }
-    return power;
+// 回收AP
+function resetAp(state) {
+    state.crew.filter(m => m.status !== 'dead').forEach(m => {
+        m.ap = m.maxAp || (3 + Math.floor(m.lv / 3));
+    });
 }
 
 // ===== 分支事件系统 =====
@@ -1975,6 +2078,167 @@ const EVENTS = {
             },
         ],
     },
+
+    // ===== 卧底相关 =====
+    mole_suspicion: {
+        id: 'mole_suspicion',
+        title: '🕵️ 暗流涌动',
+        desc: '你注意到最近几次行动总是走漏风声。有人在暗中破坏。手下有人私下议论，说组织里可能有内鬼。',
+        phase: 0,
+        choices: [
+            {
+                text: '🔍 派情报员彻查 (需情报员)',
+                cost: { intel: 5 },
+                req: { intel: 5, hasSpy: true },
+                result: '情报员连夜排查，揪出了一个隐藏很深的卧底！原来是敌对帮派安插的眼线。',
+                effects: { intel: -3, security: 10 },
+                chance: 0.7,
+                special: 'reveal_mole',
+            },
+            {
+                text: '💀 宁可错杀，不可放过 (恶名+5)',
+                cost: { manpower: -1, notoriety: 5 },
+                result: '你处决了几个可疑分子，虽然不确定是否杀对了人，但短期内没人敢轻举妄动了。',
+                effects: { manpower: -1, notoriety: 5, security: 8 },
+                chance: 0.5,
+            },
+            {
+                text: '🤝 按兵不动，暗中观察',
+                cost: {},
+                result: '你决定不打草惊蛇，让手下留意异常。几周后，一条线索浮出水面。',
+                effects: { intel: 5 },
+                chance: 0.6,
+            },
+        ],
+    },
+
+    assassinate_attempt: {
+        id: 'assassinate_attempt',
+        title: '🗡️ 夜半杀机',
+        desc: '深夜，你被一阵异响惊醒。有人在黑暗中摸进了你的房间，刀光一闪——',
+        phase: 1,
+        choices: [
+            {
+                text: '🛡️ 贴身保镖抵挡 (需人手≥3)',
+                cost: { manpower: 0 },
+                req: { manpower: 3 },
+                result: '你的贴身护卫与刺客搏斗，击退了袭击者。刺客在被抓住前服毒自尽了。从他身上的纹身看，是敌对帮派派来的死士。',
+                effects: { notoriety: 3 },
+                chance: 0.8,
+            },
+            {
+                text: '🔫 亲自还击',
+                cost: {},
+                result: '你从枕头下抽出枪，对着黑影连开三枪。刺客倒地，但你大腿上也中了一刀。你的威望反而因此提升——老大亲自干掉了刺客。',
+                effects: { influence: 5, hp: -20 },
+                chance: 0.6,
+            },
+            {
+                text: '🏃 跳窗逃跑',
+                cost: {},
+                result: '你从二楼窗口跳出，摔伤了脚踝。虽然狼狈，但你活了下来。这件事让你意识到安保必须加强。',
+                effects: { security: -5, money: -200 },
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 独行侠/捡到成员 =====
+    lone_wolf: {
+        id: 'lone_wolf',
+        title: '🌙 雨夜来客',
+        desc: '暴雨夜，一个浑身是伤的年轻人敲开了你的后门。他说他的村子被敌对帮派屠了，全家只剩他一人。他跪在地上，请求你收留他。',
+        phase: 0,
+        choices: [
+            {
+                text: '🤝 收留下来 (可能成为得力干将)',
+                cost: { money: 100 },
+                result: '你给他换了身干净衣服，让他跟着手下学活。这小子有股狠劲，学得很快。',
+                effects: { money: -100 },
+                chance: 1.0,
+                special: 'recruit_lone_wolf_high',
+            },
+            {
+                text: '💰 给点钱打发走',
+                cost: { money: 50 },
+                result: '你给了他一些钱，让他去别的城市讨生活。他临走时看了你一眼，那眼神你忘不掉。',
+                effects: { money: -50, influence: 2 },
+                chance: 1.0,
+            },
+            {
+                text: '🔪 赶走，我们不是收容所',
+                cost: {},
+                result: '你关上了门。外面的雨声里，他的脚步声渐渐远去。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    street_fighter: {
+        id: 'street_fighter',
+        title: '👊 街斗高手',
+        desc: '你的手下说，最近城南有个独行侠在单挑码头帮的一整队人，还打赢了。他好像在找靠山。',
+        phase: 1,
+        choices: [
+            {
+                text: '🎩 亲自去请他 (需$500)',
+                cost: { money: 500 },
+                result: '你在酒馆里找到了他。一番交谈后，他决定跟你干。这人是个天生的打手。',
+                effects: { money: -500 },
+                chance: 0.8,
+                special: 'recruit_fighter',
+            },
+            {
+                text: '派手下去接触',
+                cost: { money: 200 },
+                result: '手下回报说，那人要求见老大本人。你错过了直接招募的机会。',
+                effects: { money: -200 },
+                chance: 0.4,
+            },
+            {
+                text: '不管，多一事不如少一事',
+                cost: {},
+                result: '后来你听说他被黑水社招走了。你错过了一个好苗子。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 挖角相关 =====
+    poach_opportunity: {
+        id: 'poach_opportunity',
+        title: '💼 墙角的橄榄枝',
+        desc: '敌对帮派的一名中层偷偷派人传话，说他对现在的老大不满，想换个东家。他开了一个价。',
+        phase: 2,
+        choices: [
+            {
+                text: '💵 出钱挖过来 ($1500)',
+                cost: { money: 1500 },
+                result: '交易达成。他带着几个亲信投奔了你，还带来了敌对帮派的一些内部情报。',
+                effects: { money: -1500, intel: 8, influence: 5 },
+                chance: 0.7,
+                special: 'poach_enemy_member',
+            },
+            {
+                text: '🤔 让他当内应 (留在原地)',
+                cost: { money: 800 },
+                result: '你让他继续留在敌对帮派，定期给你提供情报。这是一步好棋。',
+                effects: { money: -800, intel: 12 },
+                chance: 0.6,
+                special: 'set_mole',
+            },
+            {
+                text: '⚠ 举报给敌对老大 (挑拨离间)',
+                cost: {},
+                result: '你匿名把消息捅给了对方老大。那个想叛变的人被当众处决，敌对帮派内部人人自危。',
+                effects: { notoriety: 3 },
+                chance: 0.5,
+                special: 'provoke_enemy',
+            },
+        ],
+    },
 };
 
 // ---- 忠诚度低事件 ----
@@ -2182,10 +2446,28 @@ function handleEventChoice(index) {
     const success = Math.random() < choice.chance;
 
     // 消耗资源
-    if (choice.cost.money) spendMoney(G, choice.cost.money);
-    if (choice.cost.intel) G.intel = Math.max(0, G.intel - choice.cost.intel);
+    if (choice.cost.money) {
+        const cost = Math.abs(choice.cost.money);
+        spendMoney(G, cost);
+    }
+    if (choice.cost.intel) {
+        const cost = Math.abs(choice.cost.intel);
+        G.intel = Math.max(0, G.intel - cost);
+    }
     if (choice.cost.manpower) {
-        G.manpower = Math.max(0, G.manpower - choice.cost.manpower);
+        const loss = Math.abs(choice.cost.manpower);
+        // 从现有成员中随机减少
+        for (let i = 0; i < loss; i++) {
+            const alive = state.crew.filter(m => m.status !== 'dead');
+            if (alive.length === 0) break;
+            const victim = alive[Math.floor(Math.random() * alive.length)];
+            victim.status = 'dead';
+        }
+        state.crew = state.crew.filter(m => m.status !== 'dead');
+        state.manpower = state.crew.length;
+    }
+    if (choice.cost.notoriety) {
+        addNotoriety(G, choice.cost.notoriety);
     }
 
     let resultText = choice.result;
@@ -2232,6 +2514,11 @@ function handleEventChoice(index) {
         }
     }
 
+    // 处理特殊效果
+    if (choice.special) {
+        handleEventSpecial(G, choice.special);
+    }
+
     if (!G.triggeredEvents.includes(event.id)) {
         G.triggeredEvents.push(event.id);
     }
@@ -2268,7 +2555,6 @@ function gainRandomDistrict(state, count) {
     let gained = 0;
     const unlocked = CONFIG.DISTRICTS.filter(d => {
         if (state.districts[d.id]) return false;
-        // 阶段限制
         const idx = CONFIG.DISTRICTS.indexOf(d);
         if (idx > state.phase * 2 + 1) return false;
         return true;
@@ -2289,6 +2575,99 @@ function gainRandomDistrict(state, count) {
         }
     }
     return gained;
+}
+
+// ==== 事件特殊效果处理 ====
+function handleEventSpecial(state, special) {
+    switch (special) {
+        case 'reveal_mole': {
+            // 揪出一个隐藏的卧底
+            const moles = state.crew.filter(m => m._isMole && m.status !== 'dead');
+            if (moles.length > 0) {
+                const mole = moles[Math.floor(Math.random() * moles.length)];
+                showMoleReveal(mole);
+                addMessage('卧底曝光: ' + mole.emoji + mole.name + ' (' + mole._moleFaction + ')', 'error');
+            }
+            break;
+        }
+        case 'recruit_lone_wolf_high': {
+            const m = createNewMember(state, { lv: 3 + Math.floor(Math.random() * 3), loyalty: 75 });
+            m.stat = (m.stat || 5) + 3;
+            state.crew.push(m);
+            state.manpower = state.crew.length;
+            addMessage('独行侠 ' + m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');
+            showToast(m.emoji + m.name + ' 加入了你的组织！', 'success');
+            break;
+        }
+        case 'recruit_fighter': {
+            const m = createNewMember(state, { lv: 4 + Math.floor(Math.random() * 3), loyalty: 65 });
+            m.class = 'thug';
+            m.className = '打手';
+            m.emoji = '💪';
+            m.stat = (m.stat || 5) + 5;
+            state.crew.push(m);
+            state.manpower = state.crew.length;
+            addMessage('街斗高手 ' + m.emoji + m.name + ' Lv.' + m.lv + ' 加入', 'success');
+            showToast('💪 ' + m.name + ' 加入！战力惊人', 'success');
+            break;
+        }
+        case 'poach_enemy_member': {
+            const m = createNewMember(state, { lv: 5 + Math.floor(Math.random() * 3), loyalty: 30 });
+            state.crew.push(m);
+            state.manpower = state.crew.length;
+            // 可能是敌对反向安插的卧底
+            if (Math.random() < 0.2) {
+                m._isMole = true;
+                m._moleFaction = '被挖角的帮派';
+            }
+            addMessage('挖来 ' + m.emoji + m.name + ' Lv.' + m.lv + ' (忠诚' + m.loyalty + ')', 'info');
+            showToast('挖角成功！' + m.emoji + m.name, 'success');
+            break;
+        }
+        case 'set_mole': {
+            state._hasMole = true;
+            state._moleIntel = (state._moleIntel || 0) + 3;
+            addMessage('你在敌对帮派中安插了一个内应', 'success');
+            showToast('内应就位！', 'success');
+            break;
+        }
+        case 'provoke_enemy': {
+            // 挑拨离间，削弱某个敌对
+            const enemies = (state.enemies || []).filter(e => e.alive);
+            if (enemies.length > 0) {
+                const target = enemies[Math.floor(Math.random() * enemies.length)];
+                target.power = Math.max(3, target.power - 5);
+                addMessage('挑拨离间成功！' + target.name + ' 内部混乱，战力-5', 'success');
+                showToast(target.name + ' 内部出现分裂', 'success');
+            }
+            break;
+        }
+    }
+}
+
+// 卧底曝光弹窗
+function showMoleReveal(mole) {
+    if (!mole) return;
+    const factionName = mole._moleFaction || '未知势力';
+    const html = `
+        <div class="modal-overlay show" id="moleModal">
+            <div class="modal-content" style="border:2px solid #f87171">
+                <div class="modal-header"><span>🕵️ 卧底曝光！</span></div>
+                <div style="font-size:.75em;line-height:1.8;padding:8px 0">
+                    <p style="color:#f87171;font-weight:bold">${mole.emoji} ${mole.name}（${mole.className}）竟然是 ${factionName} 派来的卧底！</p>
+                    <p>他在组织里潜伏了 ${Math.max(1, (state.turn || 1) - mole.joinedAt)} 个回合，执行过 ${mole.missions || 0} 次任务，杀害了 ${mole._killCount || 0} 名弟兄。</p>
+                </div>
+                <div class="event-choices">
+                    <button class="btn-choice btn-gold" onclick="turnMole(state, ${mole.id});closeModal('moleModal')">🤝 策反他（双面间谍）</button>
+                    <button class="btn-choice btn-red" onclick="executeMember(state, ${mole.id});closeModal('moleModal')">💀 处决（恶名+5）</button>
+                    <button class="btn-choice btn-gray" onclick="expelMember(state, ${mole.id});closeModal('moleModal')">🚪 逐出组织</button>
+                </div>
+            </div>
+        </div>
+    `;
+    const old = document.getElementById('moleModal');
+    if (old) old.remove();
+    document.body.insertAdjacentHTML('beforeend', html);
 }
 
 // ===== 道具系统 v2 =====
