@@ -4515,6 +4515,12 @@ function doNextDay() {
     if (_currentTab) switchTab(_currentTab);
 }
 
+// ===== 弹窗管理 =====
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
 // ===== 任务奖励计算 =====
 function calculateMissionReward(state, mission) {
     let reward = mission.baseReward;
