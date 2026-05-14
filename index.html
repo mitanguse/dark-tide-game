@@ -1607,7 +1607,7 @@ function openMissionSetup(missionId) {
     
     let html = '<div class="modal-overlay show" id="missionModal"><div class="modal-content">';
     html += '<div class="modal-header"><span>⚡ ' + mission.id + '</span>';
-    html += '<button class="btn-close" onclick="closeModal('missionModal')">✕</button></div>';
+    html += '<button class="btn-close" onclick="closeModal(\'missionModal\')">✕</button></div>';
     html += '<div style="font-size:.65em;color:#888;margin:4px 0">' + mission.desc + ' | 奖励: $' + calculateMissionReward(state, mission) + '</div>';
     
     // 成员选择
@@ -1630,7 +1630,7 @@ function openMissionSetup(missionId) {
     
     html += '<div class="btn-group" style="margin-top:6px">';
     html += '<button class="btn btn-gold" onclick="executeMissionWithCrew()" id="missionGoBtn" disabled>⚡ 执行任务</button>';
-    html += '<button class="btn" onclick="closeModal('missionModal')">取消</button>';
+    html += '<button class="btn" onclick="closeModal(\'missionModal\')">取消</button>';
     html += '</div></div></div>';
     
     document.body.insertAdjacentHTML('beforeend', html);
