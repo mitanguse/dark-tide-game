@@ -3755,7 +3755,7 @@ function openDistrictBattle(districtId) {
     // 检查可用成员
     const available = G.crew.filter(m => m.status === 'idle');
     if (available.length < 2) {
-        showToast('需要至少5名可用成员参加战斗！当前仅' + available.length + '人', 'error');
+        showToast('需要至少2名可用成员！当前仅' + available.length + '人', 'error');
         return;
     }
     
@@ -3766,7 +3766,7 @@ function openDistrictBattle(districtId) {
     let html = '<div class="modal-overlay show" id="battleModal"><div class="modal-content">';
     html += '<div class="modal-header"><span>⚔️ 夺取 ' + dist.icon + ' ' + dist.name + '</span></div>';
     html += '<p style="font-size:.75em;color:#888;margin:4px 0">目标防御: ' + defPower + ' | 守方: ' + enemyName + '</p>';
-    html += '<p style="font-size:.65em;color:#f87171;margin:4px 0">⚠ 至少选择5人，战斗有伤亡风险</p>';
+    html += '<p style="font-size:.65em;color:#f87171;margin:4px 0">⚠ 至少选择2人，战斗有伤亡风险</p>';
     
     // 策略选择
     html += '<div style="margin:8px 0">';
@@ -3845,7 +3845,7 @@ function executeBattle(districtId) {
     const members = G._selectedBattleMembers;
     
     if (!strat || !members || members.length < strat.manpowerMin) {
-        showToast('至少选择' + strat.manpowerMin + '人！', 'error');
+        showToast('至少选择' + strat.manpowerMin)！', 'error');
         return;
     }
     
