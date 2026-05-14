@@ -760,19 +760,19 @@ const CONFIG = {
         '医师': { emoji: '💊', desc: '战场医疗支持', combat: 1, intel: 0, income: 1, special: '成员存活率+20%' },
     },
 
-    // 任务类型
+    // 任务类型（含所需人数和冲突提示）
     MISSIONS: [
-        { id: '收保护费', phase: 0, baseReward: 50, baseRisk: 10, combatReq: 1, intelReq: 0, desc: '向小商户收取保护费' },
-        { id: '街头斗殴', phase: 0, baseReward: 80, baseRisk: 15, combatReq: 2, intelReq: 0, desc: '在街头解决敌对势力' },
-        { id: '情报收集', phase: 0, baseReward: 60, baseRisk: 8, combatReq: 0, intelReq: 1, desc: '收集周边地区情报' },
-        { id: '黑市交易', phase: 1, baseReward: 150, baseRisk: 15, combatReq: 0, intelReq: 1, desc: '在黑市进行非法交易' },
-        { id: '地盘火并', phase: 1, baseReward: 200, baseRisk: 25, combatReq: 2, intelReq: 1, desc: '抢夺敌对帮派地盘' },
-        { id: '敲诈勒索', phase: 1, baseReward: 120, baseRisk: 12, combatReq: 1, intelReq: 0, desc: '对富商进行敲诈' },
-        { id: '暗杀行动', phase: 2, baseReward: 350, baseRisk: 30, combatReq: 2, intelReq: 2, desc: '暗杀敌对帮派头目' },
-        { id: '军火走私', phase: 2, baseReward: 400, baseRisk: 30, combatReq: 1, intelReq: 2, desc: '大规模军火交易' },
-        { id: '毒品交易', phase: 2, baseReward: 300, baseRisk: 25, combatReq: 1, intelReq: 1, desc: '操控毒品流通渠道' },
-        { id: '政商勾结', phase: 3, baseReward: 600, baseRisk: 20, combatReq: 0, intelReq: 3, desc: '渗透政商高层' },
-        { id: '帮派战争', phase: 3, baseReward: 1000, baseRisk: 40, combatReq: 3, intelReq: 2, desc: '发动全面帮派战争' },
+        { id: '收保护费', phase: 0, baseReward: 50, baseRisk: 10, combatReq: 1, intelReq: 0, minCrew: 1, desc: '向小商户收取保护费' },
+        { id: '街头斗殴', phase: 0, baseReward: 80, baseRisk: 15, combatReq: 2, intelReq: 0, minCrew: 2, desc: '在街头解决敌对势力' },
+        { id: '情报收集', phase: 0, baseReward: 60, baseRisk: 8, combatReq: 0, intelReq: 1, minCrew: 1, desc: '收集周边地区情报' },
+        { id: '黑市交易', phase: 1, baseReward: 150, baseRisk: 15, combatReq: 0, intelReq: 1, minCrew: 2, desc: '在黑市进行非法交易' },
+        { id: '地盘火并', phase: 1, baseReward: 200, baseRisk: 25, combatReq: 2, intelReq: 1, minCrew: 3, desc: '抢夺敌对帮派地盘' },
+        { id: '敲诈勒索', phase: 1, baseReward: 120, baseRisk: 12, combatReq: 1, intelReq: 0, minCrew: 2, desc: '对富商进行敲诈' },
+        { id: '暗杀行动', phase: 2, baseReward: 350, baseRisk: 30, combatReq: 2, intelReq: 2, minCrew: 3, desc: '暗杀敌对帮派头目' },
+        { id: '军火走私', phase: 2, baseReward: 400, baseRisk: 30, combatReq: 1, intelReq: 2, minCrew: 3, desc: '大规模军火交易' },
+        { id: '毒品交易', phase: 2, baseReward: 300, baseRisk: 25, combatReq: 1, intelReq: 1, minCrew: 2, desc: '操控毒品流通渠道' },
+        { id: '政商勾结', phase: 3, baseReward: 600, baseRisk: 20, combatReq: 0, intelReq: 3, minCrew: 3, desc: '渗透政商高层' },
+        { id: '帮派战争', phase: 3, baseReward: 1000, baseRisk: 40, combatReq: 3, intelReq: 2, minCrew: 5, desc: '发动全面帮派战争' },
     ],
 
     // 敌对帮派
@@ -1204,6 +1204,11 @@ function createNewMember(state, options) {
         equipped: [],
         joinedAt: state.turn || 1,
         
+        // === 隐藏的性格与关系属性 ===
+        _personality: P(['暴躁','阴冷','忠诚','狡诈','热血','冷静','狂妄','谨慎']),
+        _rivalries: [],    // 看不对眼的人 [id, id, ...]
+        _bonds: [],        // 关系铁的兄弟 [id, id, ...]
+        
         // === 隐藏的卧底属性（不渲染到UI中）===
         _isMole: false,
         _moleFaction: null,     // 'police' 或 敌对帮派名
@@ -1235,6 +1240,85 @@ function createNewMember(state, options) {
     return member;
 }
 
+// 初始化新成员与其他成员的关系
+function initMemberRelations(state, newMember) {
+    if (!state.crew || state.crew.length === 0) return;
+    state.crew.forEach(existing => {
+        if (existing.status === 'dead') return;
+        // 性格相克产生敌意
+        const conflicts = {
+            '暴躁': ['狂妄','狡诈'],
+            '阴冷': ['热血','狂妄'],
+            '忠诚': ['狡诈','阴冷'],
+            '狡诈': ['忠诚','热血'],
+            '热血': ['阴冷','冷静'],
+            '冷静': ['热血','狂妄'],
+            '狂妄': ['冷静','暴躁'],
+            '谨慎': ['狂妄','暴躁'],
+        };
+        const np = newMember._personality;
+        const ep = existing._personality;
+        if (conflicts[np] && conflicts[np].includes(ep)) {
+            if (Math.random() < 0.4) {
+                newMember._rivalries.push(existing.id);
+                existing._rivalries = existing._rivalries || [];
+                if (!existing._rivalries.includes(newMember.id)) {
+                    existing._rivalries.push(newMember.id);
+                }
+            }
+        }
+        // 相同性格或互补产生默契
+        if (np === ep || (conflicts[ep] && !conflicts[ep].includes(np))) {
+            if (Math.random() < 0.3) {
+                newMember._bonds.push(existing.id);
+                existing._bonds = existing._bonds || [];
+                if (!existing._bonds.includes(newMember.id)) {
+                    existing._bonds.push(newMember.id);
+                }
+            }
+        }
+    });
+}
+
+// 计算一组成员的团队默契（隐藏值）
+function calculateTeamSynergy(state, memberIds) {
+    const members = memberIds.map(id => state.crew.find(m => m.id === id)).filter(m => m);
+    if (members.length <= 1) return 0;
+    
+    let synergy = 0;
+    
+    for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+            const a = members[i];
+            const b = members[j];
+            
+            // 有仇
+            if (a._rivalries && a._rivalries.includes(b.id)) {
+                synergy -= 8;
+            }
+            // 有默契
+            if (a._bonds && a._bonds.includes(b.id)) {
+                synergy += 6;
+            }
+            // 相同职业竞争
+            if (a.class === b.class) {
+                synergy -= 2;
+            }
+            // 医师让团队更稳定
+            if (a.class === '医师' || b.class === '医师') {
+                synergy += 2;
+            }
+        }
+    }
+    
+    // 有卧底会拖累团队
+    if (members.some(m => m._isMole && m._moleActive)) {
+        synergy -= 10;
+    }
+    
+    return synergy;
+}
+
 // 计算卧底概率
 function calculateMoleChance(state) {
     let chance = 0.03;  // 基础3%
@@ -1251,6 +1335,7 @@ function recruitMember(state) {
     if (state.crew.length >= state.maxCrew) { showToast('人手已满', 'error'); return; }
     state.money -= 500;
     const m = createNewMember(state);
+    initMemberRelations(state, m);
     state.crew.push(m);
     state.manpower = state.crew.length;
     showToast(m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');
@@ -1465,6 +1550,227 @@ function checkMoleActivity(state, missionMembers, missionSuccess) {
     }
     
     return result;
+}
+
+// 派成员出任务（自动分配）
+function assignMissionCrew(state, missionId, count) {
+    const available = state.crew.filter(m => m.status === 'idle' && m.ap >= 1);
+    const selected = [];
+    
+    // 按战力排序，优先派高级的
+    available.sort((a, b) => (b.lv + (b.stat||0)) - (a.lv + (a.stat||0)));
+    
+    for (let i = 0; i < Math.min(count, available.length); i++) {
+        selected.push(available[i]);
+        available[i].status = 'working';
+        available[i].ap = Math.max(0, available[i].ap - 1);
+    }
+    
+    return selected;
+}
+
+// 完成任务后恢复成员
+function completeMissionCrew(state, memberIds, success) {
+    memberIds.forEach(id => {
+        const m = state.crew.find(c => c.id === id);
+        if (!m) return;
+        m.status = 'idle';
+        m.missions = (m.missions || 0) + 1;
+        if (success) {
+            m.loyalty = Math.min(100, (m.loyalty || 50) + 2);
+            addMemberXp(state, m, 10 + Math.floor(Math.random() * 10));
+        } else {
+            m.loyalty = Math.max(5, (m.loyalty || 50) - 5);
+            addMemberXp(state, m, 3 + Math.floor(Math.random() * 5));
+        }
+    });
+}
+
+// 任务选人界面
+function openMissionSetup(missionId) {
+    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
+    if (!mission) return;
+    
+    const available = state.crew.filter(m => m.status === 'idle' && m.ap >= 1);
+    if (available.length < mission.minCrew) {
+        showToast('需要至少' + mission.minCrew + '名空闲成员！当前仅' + available.length + '人', 'error');
+        return;
+    }
+    
+    state._pendingMission = missionId;
+    state._selectedMissionCrew = [];
+    
+    let html = '<div class="modal-overlay show" id="missionModal"><div class="modal-content">';
+    html += '<div class="modal-header"><span>⚡ ' + mission.id + '</span>';
+    html += '<button class="btn-close" onclick="closeModal('missionModal')">✕</button></div>';
+    html += '<div style="font-size:.65em;color:#888;margin:4px 0">' + mission.desc + ' | 奖励: $' + calculateMissionReward(state, mission) + '</div>';
+    
+    // 成员选择
+    html += '<div style="margin:6px 0;font-size:.7em;color:#fbbf24">选择参战成员（至少' + mission.minCrew + '人，点选切换）</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;max-height:200px;overflow-y:auto;padding:2px">';
+    
+    available.forEach(m => {
+        const isMatch = (m.class === '打手' && mission.combatReq > 0) || (m.class === '情报员' && mission.intelReq > 0) || m.class === '杀手' || m.class === '狙击手';
+        html += '<div class="crew-chip" data-mid="' + m.id + '" onclick="toggleMissionMember(' + m.id + ')" style="border:1px solid #444;border-radius:20px;padding:4px 10px;font-size:.65em;cursor:pointer;background:transparent">';
+        html += m.emoji + ' ' + m.name + ' Lv.' + m.lv;
+        if (isMatch) html += ' <span style="color:#34d399">✓</span>';
+        html += ' <span style="color:#888">⏱' + m.ap + '</span>';
+        html += '</div>';
+    });
+    
+    html += '</div>';
+    
+    // 已选人数
+    html += '<div style="font-size:.65em;color:#888;margin:4px 0" id="missionCrewCount">已选: 0/' + available.length + '人 | 团队默契: <span id="synergyDisplay">计算中...</span></div>';
+    
+    html += '<div class="btn-group" style="margin-top:6px">';
+    html += '<button class="btn btn-gold" onclick="executeMissionWithCrew()" id="missionGoBtn" disabled>⚡ 执行任务</button>';
+    html += '<button class="btn" onclick="closeModal('missionModal')">取消</button>';
+    html += '</div></div></div>';
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function toggleMissionMember(memberId) {
+    const idx = state._selectedMissionCrew.indexOf(memberId);
+    if (idx >= 0) {
+        state._selectedMissionCrew.splice(idx, 1);
+    } else {
+        state._selectedMissionCrew.push(memberId);
+    }
+    updateMissionUI();
+}
+
+function updateMissionUI() {
+    const count = state._selectedMissionCrew.length;
+    const mission = CONFIG.MISSIONS.find(m => m.id === state._pendingMission);
+    if (!mission) return;
+    
+    // 更新计数
+    const el = document.getElementById('missionCrewCount');
+    if (el) {
+        const synergy = calculateTeamSynergy(state, state._selectedMissionCrew);
+        const synColor = synergy > 5 ? '#34d399' : synergy < -5 ? '#f87171' : '#888';
+        el.innerHTML = '已选: ' + count + '/' + (state.crew.filter(m => m.status === 'idle' && m.ap >= 1).length) + '人 | 团队默契: <span style="color:' + synColor + '">' + (synergy > 0 ? '+' : '') + synergy + '%</span>';
+    }
+    
+    // 更新高亮
+    document.querySelectorAll('.crew-chip').forEach(chip => {
+        const id = parseInt(chip.dataset.mid);
+        const selected = state._selectedMissionCrew.includes(id);
+        chip.style.borderColor = selected ? '#34d399' : '#444';
+        chip.style.background = selected ? 'rgba(52,211,153,0.15)' : 'transparent';
+    });
+    
+    // 启用/禁用按钮
+    const btn = document.getElementById('missionGoBtn');
+    if (btn) btn.disabled = count < mission.minCrew;
+}
+
+// 新版的执行任务（带选人）
+function executeMissionWithCrew() {
+    const missionId = state._pendingMission;
+    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
+    if (!mission) return;
+    
+    const memberIds = state._selectedMissionCrew;
+    if (!memberIds || memberIds.length < mission.minCrew) {
+        showToast('至少需要' + mission.minCrew + '人', 'error');
+        return;
+    }
+    
+    if (state.ap < 1) { showToast('行动力不足', 'error'); return; }
+    
+    closeModal('missionModal');
+    state.ap -= 1;
+    
+    const reward = calculateMissionReward(state, mission);
+    const synergy = calculateTeamSynergy(state, memberIds);
+    
+    // 计算成功率
+    let successRate = 0.45;
+    successRate += state.level * 0.012;
+    successRate += state.influence * 0.002;
+    
+    // 职业匹配
+    memberIds.forEach(id => {
+        const m = state.crew.find(c => c.id === id);
+        if (!m) return;
+        if (m.class === '打手' && mission.combatReq > 0) successRate += 0.05;
+        if (m.class === '情报员' && mission.intelReq > 0) successRate += 0.05;
+        if (m.class === '杀手') successRate += 0.03;
+        if (m.class === '狙击手') successRate += 0.03;
+    });
+    
+    // 团队默契影响
+    successRate += synergy * 0.005;  // 默契每点±0.5%
+    
+    // 人数奖励（人越多配合越难，但力量越大）
+    successRate += memberIds.length * 0.02;
+    
+    successRate = Math.max(0.1, Math.min(0.95, successRate));
+    
+    const isSuccess = Math.random() < successRate;
+    
+    // 派成员出任务
+    const assigned = memberIds.map(id => state.crew.find(c => c.id === id)).filter(m => m);
+    assigned.forEach(m => {
+        m.status = 'working';
+        m.ap = Math.max(0, (m.ap || 3) - 1);
+    });
+    
+    // 检查卧底活动
+    const moleResult = checkMoleActivity(state, assigned, isSuccess);
+    
+    if (isSuccess) {
+        state.money += reward;
+        addExp(state, 10 + Math.floor(Math.random() * 15));
+        addNotoriety(state, mission.baseRisk / 10);
+        addInfluence(state, 1);
+        state.missionHistory.push({ id: mission.id, success: true, day: state.turn });
+        completeMissionCrew(state, memberIds, true);
+        
+        let msg = '任务成功! +$' + reward;
+        if (synergy > 5) msg += ' (默契配合+' + synergy + '%)';
+        else if (synergy < -5) msg += ' (成员不合-' + Math.abs(synergy) + '%)';
+        addMessage('[任务] ' + missionId + ' 成功! $' + reward, 'success');
+        showToast(msg, 'success');
+        
+        // 道具掉落
+        checkMissionDrop();
+        
+        if (Math.random() < 0.15) setTimeout(() => triggerRandomEvent(state), 500);
+    } else {
+        const penalty = Math.floor(reward * 0.3);
+        state.money = Math.max(0, state.money - penalty);
+        addNotoriety(state, mission.baseRisk / 5);
+        state.missionHistory.push({ id: mission.id, success: false, day: state.turn });
+        completeMissionCrew(state, memberIds, false);
+        
+        let msg = '任务失败! -$' + penalty;
+        if (synergy < -10) msg += ' (成员严重不合)';
+        addMessage('[任务] ' + missionId + ' 失败! -$' + penalty, 'error');
+        showToast(msg, 'error');
+        
+        // 战损 - 成员不合会加大损失
+        const lossChance = 0.15 + (synergy < 0 ? Math.abs(synergy) * 0.01 : 0);
+        assigned.forEach(m => {
+            if (Math.random() < lossChance) {
+                m.hp = (m.hp || 80) - 30;
+                if ((m.hp || 50) <= 0 && Math.random() < 0.5) {
+                    m.status = 'dead';
+                    addMessage(m.name + ' 在任务中阵亡', 'error');
+                    showToast(m.name + ' 阵亡...', 'error');
+                }
+            }
+        });
+        state.crew = state.crew.filter(m => m.status !== 'dead');
+        state.manpower = state.crew.length;
+    }
+    
+    checkEndings(state);
+    renderActionsTab();
+    updateUI();
 }
 
 // 回收AP
@@ -4160,12 +4466,12 @@ function renderActionsTab() {
                     <span>⚔️ 战斗: ${mission.combatReq}</span>
                     <span>📡 情报: ${mission.intelReq}</span>
                     <span>⚠️ 风险: ${mission.baseRisk}%</span>
-                    <span>👥 需要: ${mission.combatReq || 1}人</span>
+                    <span>👥 需要: ${mission.minCrew || 1}人</span>
                 </div>
                 <button class="btn-sm ${canDo && matchingCrew.length >= (mission.combatReq || 1) ? 'btn-gold' : 'btn-gray'}" 
-                        onclick="executeMission('${mission.id}')" 
-                        ${canDo && matchingCrew.length >= (mission.combatReq || 1) ? '' : 'disabled'}>
-                    ${canDo ? '⚡ 执行 (1AP)' : G.ap < 1 ? '行动力不足' : matchingCrew.length < (mission.combatReq || 1) ? '人手不足' : '条件不足'}
+                        onclick="openMissionSetup('${mission.id}')" 
+                        ${canDo && matchingCrew.length >= (mission.minCrew || 1) ? '' : 'disabled'}>
+                    ${canDo ? '⚡ 选人执行 (1AP)' : G.ap < 1 ? '行动力不足' : matchingCrew.length < (mission.minCrew || 1) ? '人手不足' : '条件不足'}
                 </button>
                 ` : ''}
             </div>
