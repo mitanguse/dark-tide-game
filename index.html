@@ -4518,7 +4518,10 @@ function doNextDay() {
 // ===== 每日收入计算 =====
 function getDailyIncome(state) {
     const count = Object.keys(state.districts || {}).length;
-    return state.baseLv * 30 + count * 20 + state.influence * 2 + 10;
+    const lv = state.baseLv || state.stronghold || 1;
+    const inf = state.influence || 0;
+    if (isNaN(lv) || isNaN(count) || isNaN(inf)) return 10;
+    return lv * 30 + count * 20 + inf * 2 + 10;
 }
 
 // ===== 对话事件触发 =====
