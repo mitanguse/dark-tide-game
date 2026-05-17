@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0a0a12">
+<title>残阳天道 · 修仙人生模拟器</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #0a0a12;
+  color: #e2e8f0;
+  font-family: -apple-system, "Noto Sans SC", "Microsoft YaHei", "PingFang SC", sans-serif;
+  height: 100dvh;
+  overflow: hidden;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+/* ===== HEADER ===== */
+.header {
+  background: linear-gradient(135deg, #0f0f1a, #1a1a2e);
+  border-bottom: 1px solid #2a2a3e;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  flex-shrink: 0;
+}
+.header h1 {
+  font-size: 15px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #c084fc, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+.header-controls { display: flex; gap: 4px; }
+.header-controls button {
+  background: #1e1e30;
+  border: 1px solid #2a2a3e;
+  color: #c084fc;
+  padding: 4px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  min-height: 32px;
+  line-height: 1;
+}
+
+/* ===== STATUS BAR (collapsible) ===== */
+.status-bar {
+  background: #0d0d18;
+  border-bottom: 1px solid #1e1e30;
+  flex-shrink: 0;
+}
+.status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  min-height: 40px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.status-header:active { background: #14142a; }
+.summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  overflow: hidden;
+  flex: 1;
+}
+.pill {
+  background: #1e1e30;
+  border-radius: 10px;
+  padding: 2px 8px;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.pill.realm { color: #c084fc; }
+.pill.hp { color: #ef4444; }
+.pill.loc { color: #fbbf24; }
+.toggle-icon {
+  color: #6b7280;
+  font-size: 12px;
+  transition: transform 0.3s;
+  flex-shrink: 0;
+  margin-left: 4px;
+}
+.toggle-icon.open { transform: rotate(180deg); }
+
+.status-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.35s ease;
+}
+.status-body.open { max-height: 80vh; }
+.status-inner {
+  padding: 8px 12px 16px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  font-size: 13px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 16px;
+}
+.section-full { grid-column: 1 / -1; }
+.section-title {
+  font-size: 11px;
+  color: #6b7280;
+  letter-spacing: 2px;
+  margin: 8px 0 4px;
+  padding-bottom: 3px;
+  border-bottom: 1px solid #1e1e30;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 0;
+  line-height: 1.5;
+}
+.stat-label { color: #94a3b8; }
+.stat-value { color: #e2e8f0; font-weight: 500; }
+.stat-value.gold { color: #fbbf24; }
+.stat-value.purple { color: #c084fc; }
+.stat-value.red { color: #ef4444; }
+.stat-value.green { color: #22c55e; }
+
+.bar-wrap { display: flex; align-items: center; gap: 6px; padding: 1px 0; grid-column: 1 / -1; }
+.bar-outer { flex: 1; height: 6px; background: #1a1a2e; border-radius: 3px; overflow: hidden; }
+.bar-inner { height: 100%; border-radius: 3px; transition: width 0.5s; }
+.bar-hp .bar-inner { background: linear-gradient(90deg, #ef4444, #f97316); }
+.bar-qi .bar-inner { background: linear-gradient(90deg, #6366f1, #c084fc); }
+.bar-life .bar-inner { background: linear-gradient(90deg, #22c55e, #10b981); }
+.bar-human .bar-inner { background: linear-gradient(90deg, #eab308, #fbbf24); }
+.bar-prog .bar-inner { background: linear-gradient(90deg, #3b82f6, #6366f1); }
+.bar-text { min-width: 48px; text-align: right; font-size: 11px; color: #94a3b8; }
+
+.item-list { list-style: none; }
+.item-list li { padding: 2px 0 2px 8px; border-left: 2px solid #2a2a3e; margin: 1px 0; font-size: 12px; color: #94a3b8; }
+
+/* ===== CHAT ===== */
+.main { display: flex; flex-direction: column; height: calc(100dvh - 48px); overflow: hidden; }
+.chat-area { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+.msgs::-webkit-scrollbar { width: 4px; }
+.msgs::-webkit-scrollbar-thumb { background: #2a2a3e; border-radius: 2px; }
+
+.msg { margin-bottom: 12px; line-height: 1.7; font-size: 14px; white-space: pre-wrap; word-wrap: break-word; }
+.msg-sys { color: #c084fc; text-align: center; font-size: 13px; opacity: 0.8; }
+.msg-me {
+  background: #14142a;
+  border: 1px solid #2a2a3e;
+  border-radius: 10px;
+  padding: 8px 12px;
+  max-width: 85%;
+  margin-left: auto;
+  color: #a5b4fc;
+}
+.msg-ai { color: #e2e8f0; border-left: 3px solid #c084fc; padding-left: 12px; }
+
+/* ===== QUICK BUTTONS ===== */
+.quick-bar {
+  display: flex;
+  gap: 6px;
+  padding: 6px 12px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+.quick-btn {
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #94a3b8;
+  padding: 5px 12px;
+  border-radius: 14px;
+  cursor: pointer;
+  font-size: 12px;
+  min-height: 30px;
+}
+.quick-btn:active { background: #2a2a3e; border-color: #c084fc; color: #c084fc; }
+
+/* ===== SUGGESTIONS ===== */
+.suggest-bar {
+  display: flex;
+  gap: 6px;
+  padding: 4px 12px 2px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  min-height: 0;
+  overflow: hidden;
+  transition: min-height 0.3s, padding 0.3s;
+}
+.suggest-bar:empty {
+  min-height: 0;
+  padding: 0 12px;
+}
+.suggest-btn {
+  background: linear-gradient(135deg, #2a1a3e, #1e1a3e);
+  border: 1px solid #4a2a6e;
+  color: #c084fc;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  font-size: 13px;
+  min-height: 32px;
+  white-space: nowrap;
+  animation: fadeIn 0.3s;
+}
+.suggest-btn:active { background: #3a2a5e; border-color: #a855f7; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+/* ===== INPUT ===== */
+.input-area {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid #1e1e30;
+  background: #0d0d18;
+  flex-shrink: 0;
+  padding-bottom: max(8px, env(safe-area-inset-bottom));
+}
+.input-area input {
+  flex: 1;
+  background: #1a1a2e;
+  border: 1px solid #2a2a3e;
+  color: #e2e8f0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 16px;
+  outline: none;
+  min-height: 40px;
+}
+.input-area input:focus { border-color: #c084fc; }
+.input-area input::placeholder { color: #4a4a5e; }
+.send-btn {
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: none;
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: 40px;
+  min-width: 52px;
+}
+.send-btn:disabled { opacity: 0.4; }
+
+/* ===== MODAL (bottom sheet) ===== */
+.modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 1000;
+}
+.modal {
+  background: #14141e;
+  border: 1px solid #2a2a3e;
+  border-radius: 16px 16px 0 0;
+  padding: 24px 20px;
+  padding-bottom: max(24px, env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 500px;
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: up 0.3s;
+}
+@keyframes up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.modal h2 { font-size: 18px; color: #c084fc; margin-bottom: 14px; text-align: center; }
+.modal p { color: #94a3b8; font-size: 14px; line-height: 1.7; margin-bottom: 10px; }
+.modal .btn-p {
+  display: block; width: 100%; padding: 12px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  border: none; color: #fff; border-radius: 10px;
+  font-size: 15px; font-weight: 600; cursor: pointer;
+  margin-top: 14px; min-height: 44px;
+}
+.modal .btn-s {
+  display: block; width: 100%; padding: 10px;
+  background: #1e1e30; border: 1px solid #2a2a3e;
+  color: #94a3b8; border-radius: 10px;
+  font-size: 14px; cursor: pointer; margin-top: 6px; min-height: 44px;
+}
+.modal input {
+  width: 100%; padding: 12px 14px;
+  background: #1a1a2e; border: 1px solid #2a2a3e;
+  color: #e2e8f0; border-radius: 10px;
+  font-size: 16px; outline: none; margin: 6px 0;
+}
+.modal input:focus { border-color: #c084fc; }
+
+.roll-card {
+  background: #1a1a2e; border: 1px solid #2a2a3e;
+  border-radius: 10px; padding: 16px; text-align: center;
+}
+.roll-card .nm { font-size: 18px; color: #e2e8f0; font-weight: 600; margin-top: 4px; }
+.roll-card .desc { font-size: 12px; color: #6b7280; margin-top: 4px; }
+
+.entrance {
+  text-align: center;
+  padding: 60px 20px;
+  color: #c084fc;
+  font-size: 16px;
+  line-height: 2;
+}
+
+.loading { color: #6b7280; font-style: italic; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%,100% { opacity: 0.4; } 50% { opacity: 1; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌌 残阳天道</h1>
+  <div class="header-controls">
+    <button onclick="saveGame()">💾</button>
+    <button onclick="loadGame()">📂</button>
+    <button onclick="showSettings()">⚙️</button>
+  </div>
+</div>
+
+<!-- Status Bar -->
+<div class="status-bar">
+  <div class="status-header" id="statusHeader" onclick="toggleStatus()">
+    <div class="summary" id="summaryBar">等待创建角色...</div>
+    <div class="toggle-icon" id="toggleIcon">▼</div>
+  </div>
+  <div class="status-body" id="statusBody">
+    <div class="status-inner" id="statusInner"></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="chat-area">
+    <div class="msgs" id="msgs">
+      <div class="msg msg-sys">
+        欢迎来到残阳天道 · 修仙人生模拟器<br>
+        灵末时代，天道有缺。<br>
+        点击「开始修仙」创造你的角色。
+      </div>
+    </div>
+    <div class="suggest-bar" id="suggestBar"></div>
+    <div class="quick-bar" id="quickBar">
+      <button class="quick-btn" onclick="q('我要开始修炼')">🧘 修炼</button>
+      <button class="quick-btn" onclick="q('我想在附近探索一下')">🔍 探索</button>
+      <button class="quick-btn" onclick="q('我要闭关一段时间')">🧿 闭关</button>
+      <button class="quick-btn" onclick="q('我想找人打听消息')">💬 打听</button>
+      <button class="quick-btn" onclick="q('我想去坊市看看')">🏪 交易</button>
+      <button class="quick-btn" onclick="q('我准备尝试突破当前境界')">⬆️ 突破</button>
+    </div>
+    <div class="input-area">
+      <input type="text" id="inp" placeholder="你想做什么..." onkeydown="if(event.key==='Enter') send()" autofocus>
+      <button class="send-btn" id="snd" onclick="send()">发送</button>
+    </div>
+  </div>
+</div>
+
+<div id="modalRoot"></div>
+
+<script>
+// ===== WORLD DATA =====
+const W = `【天衍宗/天衍城】
+灵末时代第一大宗门。以推演天机著称。掌教：陈象先（金丹后期）。
+宗内三脉：天机脉（卜算）、星象脉（阵法）、灵枢脉（修炼）。
+暗中「优化」低阶修士和凡人。
+
+【百草谷】
+三大宗门之一，以丹道医术闻名。谷主：青木真人（金丹中期）。
+禁忌研究：「人造灵气」。
+
+【散修联盟】
+总部在巨型龟甲上的流浪城镇。九老会决策。内部有「献祭契约」。
+
+【归墟教】
+总部归墟原，研究死后世界和灵气本质。方法极端：濒死体验。
+
+【凡人世家】
+公输家（机关术）、墨家（符阵）、范家（贸易情报）。破灵弩可伤筑基。
+
+【灵根】金（锋锐）木（生机）水（变幻）火（爆烈）土（厚重）
+品质：上品×1.0 中品×0.7 下品×0.4
+天灵根×1.5但心魔难渡。变异灵根：雷/冰/风/暗。
+
+【境界】炼气120岁→筑基250岁(失去一段记忆)→金丹500岁(失去情感)→元婴1500岁(失去自我认知)→化神5000岁(失去共情)→炼虚20000岁→合道→渡劫(献祭全部人性)
+灵末时代突破难度三倍。
+
+【飞升之谜】飞升者再未归来。魂灯三日内灭。天道回收灵气？
+
+【道心】决定修炼上限。心魔源于执念。废灵根渡心魔劫反而最易。
+
+【秘境】迷踪林 星落湖底宫 倒悬山`
+
+// ===== STATE =====
+let S = null, H = [], loading = false, statusOpen = false;
+
+function def() { return {
+  player: {
+    name: "无名修士",
+    root: { type: "火灵根", quality: "中品", count: 2, variant: null },
+    realm: "炼气", lv: 1,
+    hp: 100, mhp: 100, qi: 30, mqi: 30,
+    atk: 5, def: 3, spd: 4, cmp: 6,
+    life: 120, mLife: 120,
+    human: 100,
+    lostM: [], lostE: [],
+    prog: 0, btCount: 0,
+    faction: null, rep: {},
+    money: 20,
+    items: [{ n: "聚气丹", c: 1 }],
+    contacts: [],
+    techs: [], arts: [],
+    flags: {}
+  },
+  world: {
+    loc: "天衍城",
+    time: { y: 1, m: 1, d: 1 }
+  }
+};}
+
+// ===== CREATE =====
+function create() {
+  const types = ["金灵根","木灵根","水灵根","火灵根","土灵根"];
+  const vTypes = ["雷灵根","冰灵根","风灵根","暗灵根"];
+  let t = types[Math.floor(Math.random()*5)];
+  let q = (()=>{let r=Math.random(); return r<.15?"上品":r<.75?"中品":"下品";})();
+  let c = Math.random()<.01?1:Math.random()<.16?2:Math.random()<.66?3:4;
+  let v = null;
+  if (Math.random()<.05) { v=vTypes[Math.floor(Math.random()*4)]; c=1; }
+
+  const qd = {"上品":"×1.0","中品":"×0.7","下品":"×0.4"};
+  const cd = {1:"天灵根×1.5",2:"双灵根",3:"三灵根",4:"四灵根前路艰难"};
+
+  let vBonus = v ? `<br><span style="color:#fbbf24;">变异：${v}</span>` : "";
+  let emoji = v?.includes("雷")?"⚡":v?.includes("冰")?"❄️":v?.includes("风")?"🌪️":v?.includes("暗")?"🌑":"🔥";
+
+  modal(`
+    <h2>✨ 灵根觉醒</h2>
+    <div class="roll-card"><div style="font-size:40px;">${emoji}</div>
+    <div class="nm" style="color:${v?"#fbbf24":"#c084fc"}">${t}${v?"→"+v:""}</div>
+    <div class="desc">品质 ${q} ${qd[q]} · ${cd[c]}</div>${vBonus}</div>
+    <p style="text-align:center;color:#6b7280;font-size:12px;margin:8px 0;">可重roll最多两次</p>
+    <button class="btn-s" onclick="create()">🎲 重新roll点</button>
+    <button class="btn-p" onclick="confirmRoot('${t}','${q}',${c},${JSON.stringify(v)})">✅ 确认</button>
+  `);
+}
+
+function confirmRoot(t,q,c,v) {
+  S = def();
+  S.player.root = { type:t, quality:q, count:c, variant:v };
+  let qm = q==="上品"?1:q==="中品"?0.7:0.4;
+  S.player.cmp = Math.round(6*qm*(c===1?1.3:1));
+  S.player.atk = t==="金灵根"||t==="火灵根"?8:5;
+  S.player.def = t==="土灵根"||t==="水灵根"?8:5;
+  if (v) {
+    if (v==="雷灵根") { S.player.atk=12; S.player.cmp+=1; }
+    else if (v==="冰灵根") { S.player.atk=8; S.player.def=8; }
+    else if (v==="风灵根") { S.player.spd=10; }
+    else if (v==="暗灵根") { S.player.cmp+=3; }
+  }
+  modal(`
+    <h2>📜 入道</h2>
+    <p>灵根已定。你叫什么名字？</p>
+    <input id="nm" placeholder="道号或姓名..." value="无名修士">
+    <p style="color:#6b7280;font-size:12px;">出身背景（可选）</p>
+    <input id="bg" placeholder="出身..." value="一个普通求道者">
+    <button class="btn-p" onclick="start()">🌌 踏入修仙界</button>
+  `);
+  setTimeout(()=>document.getElementById("nm")?.focus(), 100);
+}
+
+function start() {
+  const nm = document.getElementById("nm")?.value?.trim()||"无名修士";
+  const bg = document.getElementById("bg")?.value?.trim()||"";
+  S.player.name = nm;
+  if (bg) S.player.flags.bg = bg;
+  closeModal();
+  document.getElementById("msgs").innerHTML = `<div class="msg msg-sys">🌌 ${nm}，踏入修仙界。</div>`;
+  updateUI();
+  sendToAI(`你是一个刚觉醒灵根的求道者${bg?"，"+bg:""}。此刻站在天衍城门前。请用古风叙事描述场景。开头：你站在天衍城的大门前……`, true);
+}
+
+// ===== AI =====
+function sysPrompt() {
+  return `# 身份
+你是《残阳天道》的「天道」，一个冷酷有诗意的修仙世界叙述者。
+
+# 世界观
+${W}
+
+# 规则
+1. 用第二人称「你」描述
+2. 回复末尾可加 [STATE]{...}[/STATE] 更新状态
+3. 保持古风、诗意、残酷、神秘
+4. 玩家可自由行动
+5. 突破必须付出代价
+6. 不要替玩家做决定
+7. 世界黑暗但别刻意虐
+
+# 输出格式
+先写叙事。然后可选的：
+[OPTIONS]选项1|选项2|选项3|...[/OPTIONS] 提供3~4个建议行动
+[STATE]{...}[/STATE] 更新状态（只有变化的字段）
+[CHAR]名字|身份|势力|关系(友好/中立/敌视/陌生)|一句话描述[/CHAR] 介绍新认识的人物
+
+# 当前
+玩家：${S.player.name}
+灵根：${S.player.root.variant||S.player.root.type}·${S.player.root.quality}
+境界：${S.player.realm}${S.player.lv}层
+位置：${S.world.loc}
+人性：${S.player.human}/100
+进度：${S.player.prog}%`;
+}
+
+function sendToAI(msg, isSys) {
+  if (loading) return;
+  loading = true; document.getElementById("snd").disabled = true;
+
+  const el = document.getElementById("msgs");
+  if (!isSys) el.innerHTML += `<div class="msg msg-me">${esc(msg)}</div>`;
+  const ld = document.createElement("div");
+  ld.className = "msg msg-sys loading"; ld.textContent = "天道沉思中……";
+  el.appendChild(ld); el.scrollTop = el.scrollHeight;
+
+  const msgs = [{role:"system",content:sysPrompt()}];
+  if (H.length>0) H.slice(-10).forEach(m=>msgs.push(m));
+  msgs.push({role:"user",content:isSys?msg:`[${S.player.name}]：${msg}`});
+
+  const key = localStorage.getItem("k");
+  if (!key) { ld.remove(); showKey(); loading=false; document.getElementById("snd").disabled=false; return; }
+
+  fetch("https://api.deepseek.com/chat/completions", {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+key},
+    body:JSON.stringify({model:"deepseek-chat",messages:msgs,temperature:.8,max_tokens:2000})
+  }).then(r=>{if(!r.ok){if(r.status===401){localStorage.removeItem("k");throw Error("API Key无效")}throw Error("API错误 "+r.status)}return r.json()})
+  .then(d=>{
+    ld.remove();
+    const c = d.choices?.[0]?.message?.content||"";
+    if (!c) throw Error("AI返回为空");
+    let narr = c;
+    // Parse [OPTIONS]
+    const om = c.match(/\[OPTIONS\]([\s\S]*?)\[\/OPTIONS\]/);
+    if (om) {
+      const opts = om[1].split('|').map(s=>s.trim()).filter(s=>s);
+      showOptions(opts);
+      narr = c.replace(/\[OPTIONS\][\s\S]*?\[\/OPTIONS\]/,"").trim();
+    } else {
+      showOptions([]);
+    }
+    // Parse [CHAR]
+    const cm = c.matchAll(/\[CHAR\]([\s\S]*?)\[\/CHAR\]/g);
+    for (const m of cm) {
+      const parts = m[1].split('|').map(s=>s.trim());
+      if (parts.length >= 1 && parts[0]) {
+        const existing = S.player.contacts.findIndex(x => x.name === parts[0]);
+        const entry = { name: parts[0], title: parts[1]||'', faction: parts[2]||'', relation: parts[3]||'中立', desc: parts[4]||'' };
+        if (existing >= 0) { S.player.contacts[existing] = entry; }
+        else { S.player.contacts.push(entry); }
+      }
+    }
+    if (cm.length > 0) narr = narr.replace(/\[CHAR\][\s\S]*?\[\/CHAR\]/g,"").trim();
+
+    // Parse [STATE]
+    const sm = c.match(/\[STATE\]([\s\S]*?)\[\/STATE\]/);
+    if (sm) {
+      narr = c.replace(/\[STATE\][\s\S]*?\[\/STATE\]/,"").trim();
+      try { apply(JSON.parse(sm[1].trim())); } catch(e){}
+    }
+    document.getElementById("msgs").innerHTML += `<div class="msg msg-ai">${esc(narr)}</div>`;
+    document.getElementById("msgs").scrollTop = document.getElementById("msgs").scrollHeight;
+    H.push({role:"user",content:msgs[msgs.length-1].content});
+    H.push({role:"assistant",content:c});
+    saveLS();
+    loading=false; document.getElementById("snd").disabled=false; document.getElementById("inp").focus();
+  }).catch(e=>{
+    ld.remove();
+    document.getElementById("msgs").innerHTML += `<div class="msg msg-sys" style="color:#ef4444;">⚠️ ${esc(e.message)}</div>`;
+    loading=false; document.getElementById("snd").disabled=false;
+  });
+}
+
+function apply(u) {
+  if (!S) return;
+  if (u.hp!==undefined) S.player.hp=Math.max(0,Math.min(u.hp,S.player.mhp));
+  if (u.qi!==undefined) S.player.qi=Math.max(0,Math.min(u.qi,S.player.mqi));
+  if (u.money!==undefined) S.player.money=u.money;
+  if (u.realm) S.player.realm=u.realm;
+  if (u.lv!==undefined) S.player.lv=u.lv;
+  if (u.loc) S.world.loc=u.loc;
+  if (u.human!==undefined) S.player.human=Math.max(0,Math.min(u.human,100));
+  if (u.prog!==undefined) S.player.prog=Math.min(100,u.prog);
+  if (u.life!==undefined) S.player.life=u.life;
+  if (u.items) S.player.items=u.items;
+  if (u.techs) S.player.techs=u.techs;
+  if (u.arts) S.player.arts=u.arts;
+  if (u.faction) S.player.faction=u.faction;
+  if (u.flags) Object.assign(S.player.flags,u.flags);
+  if (u.lostM) S.player.lostM=u.lostM;
+  if (u.lostE) S.player.lostE=u.lostE;
+  if (u.time) Object.assign(S.world.time,u.time);
+  updateUI();
+}
+
+// ===== UI =====
+function updateUI() {
+  if (!S) return;
+  const p = S.player, w = S.world;
+  const rn = p.root.variant||p.root.type;
+  document.getElementById("summaryBar").innerHTML =
+    `<span class="pill realm">${p.realm}${p.lv}层</span>` +
+    `<span class="pill hp">❤️${p.hp}</span>` +
+    `<span class="pill loc">📍${w.loc}</span>` +
+    `<span style="color:#94a3b8;font-size:12px;">${p.name} · ${rn}</span>` +
+    (p.contacts.length?`<span class="pill" style="color:#22c55e;">👥${p.contacts.length}</span>`:'');
+
+  const items = p.items.length ? p.items.map(i=>`<li>📦 ${i.n}${i.c>1?' ×'+i.c:''}</li>`).join('') : '<li style="color:#4a4a5e;">空</li>';
+
+  const t1 = p.techs.length ? p.techs.map(t=>`<li>📖 ${t.n}${t.g?' · '+t.g:''}</li>`).join('') : '';
+  const a1 = p.arts.length ? p.arts.map(a=>`<li>⚔️ ${a.n}${a.t?' · '+a.t:''}</li>`).join('') : '';
+  const lostM = p.lostM.length ? p.lostM.map(m=>`<li style="color:#ef4444;">💭 ${m}</li>`).join('') : '';
+  const lostE = p.lostE.length ? p.lostE.map(e=>`<li style="color:#ef4444;">💔 ${e}</li>`).join('') : '';
+
+  const humanColor = p.human>60?'':p.human>30?'color:#fbbf24;':'color:#ef4444;';
+
+  document.getElementById("statusInner").innerHTML = `
+    <div class="section-full section-title">境界</div>
+    <div class="stat-row"><span class="stat-label">修为</span><span class="stat-value purple">${p.realm}${p.lv}层</span></div>
+    <div class="stat-row"><span class="stat-label">突破</span><span class="stat-value">${p.btCount}次</span></div>
+    <div class="bar-wrap"><div class="bar-outer bar-prog"><div class="bar-inner" style="width:${p.prog}%"></div></div><span class="bar-text">${p.prog}%</span></div>
+
+    <div class="section-full section-title">状态</div>
+    <div class="bar-wrap"><span style="min-width:20px;">❤️</span><div class="bar-outer bar-hp"><div class="bar-inner" style="width:${(p.hp/p.mhp*100)}%"></div></div><span class="bar-text">${p.hp}/${p.mhp}</span></div>
+    <div class="bar-wrap"><span style="min-width:20px;">💠</span><div class="bar-outer bar-qi"><div class="bar-inner" style="width:${(p.qi/p.mqi*100)}%"></div></div><span class="bar-text">${p.qi}/${p.mqi}</span></div>
+    <div class="bar-wrap"><span style="min-width:20px;">⏳</span><div class="bar-outer bar-life"><div class="bar-inner" style="width:${(p.life/p.mLife*100)}%"></div></div><span class="bar-text">${p.life}</span></div>
+    <div class="bar-wrap"><span style="min-width:20px;">🧠</span><div class="bar-outer bar-human"><div class="bar-inner" style="width:${p.human}%"></div></div><span class="bar-text" style="${humanColor}">${p.human}%</span></div>
+
+    <div class="stat-row"><span class="stat-label">⚔️攻击</span><span class="stat-value">${p.atk}</span></div>
+    <div class="stat-row"><span class="stat-label">🛡️防御</span><span class="stat-value">${p.def}</span></div>
+    <div class="stat-row"><span class="stat-label">💨速度</span><span class="stat-value">${p.spd}</span></div>
+    <div class="stat-row"><span class="stat-label">🧠悟性</span><span class="stat-value">${p.cmp}</span></div>
+
+    <div class="section-full section-title">江湖</div>
+    <div class="stat-row"><span class="stat-label">📍位置</span><span class="stat-value gold">${w.loc}</span></div>
+    <div class="stat-row"><span class="stat-label">🏛️势力</span><span class="stat-value">${p.faction||"无"}</span></div>
+    <div class="stat-row"><span class="stat-label">💰灵石</span><span class="stat-value gold">${p.money}</span></div>
+
+    <div class="section-full section-title">📦 背包</div>
+    <ul class="item-list">${items}</ul>
+    ${t1?`<div class="section-full section-title">📖 功法</div><ul class="item-list">${t1}</ul>`:''}
+    ${a1?`<div class="section-full section-title">⚔️ 法器</div><ul class="item-list">${a1}</ul>`:''}
+    ${lostM?`<div class="section-full section-title" style="color:#ef4444;">💔 已失去</div><ul class="item-list">${lostM}</ul>`:''}
+    ${lostE?lostE:''}
+
+    <div class="section-full section-title">👥 关系</div>
+    ${p.contacts.length?p.contacts.map(c=>{
+      const rc = c.relation==='友好'?'green':c.relation==='敌视'?'red':c.relation==='陌生'?'':'gold';
+      return `<div class="stat-row"><span class="stat-label">${c.title?c.title+'·':''}${c.name}</span><span class="stat-value ${rc}">${c.relation}</span></div>`;
+    }).join('')+p.contacts.map(c=>c.desc?`<div style="font-size:11px;color:#6b7280;margin-bottom:4px;padding-left:8px;">${c.desc}</div>`:'').join(''):'<div style="color:#4a4a5e;font-size:12px;">尚未结识任何人</div>'}
+  `;
+}
+
+function toggleStatus() {
+  statusOpen = !statusOpen;
+  document.getElementById("statusBody").classList.toggle("open",statusOpen);
+  document.getElementById("toggleIcon").classList.toggle("open",statusOpen);
+}
+
+// ===== SAVE =====
+function saveLS() {
+  try { localStorage.setItem("as",JSON.stringify({S,H,ts:Date.now()})); } catch(e){}
+}
+
+function saveGame() {
+  if (!S) return;
+  saveLS();
+  modal(`
+    <h2>💾 存档</h2>
+    ${[1,2,3].map(i=>{
+      const d = localStorage.getItem("sv"+i);
+      let info = "空";
+      if (d) try { const x=JSON.parse(d); info=x.S?.player?.name+" · "+x.S?.player?.realm+(x.S?.player?.lv||"")+"层"; } catch(e){ info="损坏"; }
+      return `<button class="btn-s" onclick="doSave(${i})">槽位${i}：${info}</button>`;
+    }).join('')}
+    <button class="btn-s" onclick="closeModal()" style="margin-top:12px;">取消</button>
+  `);
+}
+
+function doSave(i) {
+  localStorage.setItem("sv"+i,JSON.stringify({S,H,ts:Date.now()}));
+  modal(`<h2>✅ 已存档</h2><p>槽位${i}保存成功。</p><button class="btn-p" onclick="closeModal()">确定</button>`);
+}
+
+function loadGame() {
+  modal(`
+    <h2>📂 读档</h2>
+    ${[1,2,3].map(i=>{
+      const d = localStorage.getItem("sv"+i);
+      let info="空"; if(d) try{const x=JSON.parse(d);info=x.S?.player?.name+" · "+x.S?.player?.realm+(x.S?.player?.lv||"")+"层";}catch(e){info="损坏";}
+      return `<button class="btn-s" onclick="doLoad(${i})">槽位${i}：${info}</button>`;
+    }).join('')}
+    <button class="btn-s" onclick="doLoad('as')">自动存档</button>
+    <button class="btn-s" onclick="closeModal()" style="margin-top:12px;">取消</button>
+  `);
+}
+
+function doLoad(s) {
+  const k = s==='as'?'as':"sv"+s;
+  const d = localStorage.getItem(k);
+  if (!d) return alert("空");
+  try {
+    const x=JSON.parse(d); S=x.S; H=x.H||[];
+    updateUI();
+    document.getElementById("msgs").innerHTML="";
+    if (H.length) {
+      H.forEach(m=>{
+        if (m.role==="user") document.getElementById("msgs").innerHTML+=`<div class="msg msg-me">${esc(m.content)}</div>`;
+        else if (m.role==="assistant") {
+          const n=m.content.replace(/\[STATE\][\s\S]*?\[\/STATE\]/,"").trim();
+          if (n) document.getElementById("msgs").innerHTML+=`<div class="msg msg-ai">${esc(n)}</div>`;
+        }
+      });
+    } else { document.getElementById("msgs").innerHTML=`<div class="msg msg-sys">📂 存档已加载。</div>`; }
+    document.getElementById("msgs").scrollTop=document.getElementById("msgs").scrollHeight;
+    closeModal();
+  } catch(e){ alert("存档损坏"); }
+}
+
+// ===== SETTINGS =====
+function showSettings() {
+  const k = localStorage.getItem("k")||"";
+  modal(`
+    <h2>⚙️ 设置</h2>
+    <p>DeepSeek API Key</p>
+    <input type="password" id="ki" placeholder="sk-..." value="${k}">
+    <button class="btn-p" onclick="saveKey()">💾 保存</button>
+    <button class="btn-s" onclick="localStorage.removeItem('k');alert('已清除');closeModal()">清除 Key</button>
+    <button class="btn-s" onclick="closeModal()">关闭</button>
+  `);
+}
+
+function saveKey() {
+  const v = document.getElementById("ki")?.value?.trim();
+  if (v) { localStorage.setItem("k",v); alert("已保存"); closeModal(); }
+  else alert("输入API Key");
+}
+
+function showKey() {
+  modal(`
+    <h2>🔑 需要 API Key</h2>
+    <p>请设置 DeepSeek API Key</p>
+    <input type="password" id="ki" placeholder="sk-...">
+    <button class="btn-p" onclick="saveKey();closeModal()">保存</button>
+  `);
+}
+
+// ===== ACTIONS =====
+function send() {
+  const inp = document.getElementById("inp");
+  const t = inp.value.trim();
+  if (!t||!S||loading) return;
+  inp.value = "";
+  showOptions([]);
+  sendToAI(t, false);
+}
+
+function q(a) {
+  if (!S) { create(); return; }
+  document.getElementById("inp").value = a;
+  send();
+}
+
+function showOptions(opts) {
+  const bar = document.getElementById("suggestBar");
+  bar.innerHTML = opts.map(o => `<button class="suggest-btn" onclick="pickSuggest('${escAttr(o)}')">${esc(o)}</button>`).join('');
+}
+
+function pickSuggest(t) {
+  document.getElementById("inp").value = t;
+  send();
+}
+
+function escAttr(t) {
+  return t.replace(/'/g, "\\'").replace(/"/g, "&quot;");
+}
+
+function closeModal() { document.getElementById("modalRoot").innerHTML = ""; }
+
+function modal(html) {
+  document.getElementById("modalRoot").innerHTML = `<div class="modal-overlay"><div class="modal">${html}</div></div>`;
+}
+
+function esc(t) {
+  const d = document.createElement("div");
+  d.textContent = t;
+  return d.innerHTML;
+}
+
+// ===== INIT =====
+const auto = localStorage.getItem("as");
+if (auto) {
+  try {
+    const d = JSON.parse(auto);
+    if (d.S) {
+      modal(`
+        <h2>🌌 残阳天道</h2>
+        <p>检测到上次存档<br><strong>${d.S.player.name}</strong> · ${d.S.player.realm}${d.S.player.lv}层</p>
+        <button class="btn-p" onclick="cont()">📂 继续</button>
+        <button class="btn-s" onclick="create();closeModal();">🆕 新游戏</button>
+      `);
+    }
+  } catch(e){}
+} else {
+  modal(`
+    <h2>🌌 残阳天道</h2>
+    <p style="text-align:center;line-height:2;">
+      灵末时代，天道有缺。<br>
+      突破要献祭人性。<br>
+      飞升者再未归来。
+    </p>
+    <button class="btn-p" onclick="create()">开始修仙</button>
+  `);
+}
+
+function cont() {
+  const d = JSON.parse(localStorage.getItem("as"));
+  if (d) { S=d.S; H=d.H||[]; updateUI();
+    document.getElementById("msgs").innerHTML="";
+    if (H.length) H.forEach(m=>{
+      if (m.role==="user") document.getElementById("msgs").innerHTML+=`<div class="msg msg-me">${esc(m.content)}</div>`;
+      else if (m.role==="assistant") {
+        const n=m.content.replace(/\[STATE\][\s\S]*?\[\/STATE\]/,"").trim();
+        if (n) document.getElementById("msgs").innerHTML+=`<div class="msg msg-ai">${esc(n)}</div>`;
+      }
+    });
+    document.getElementById("msgs").scrollTop=document.getElementById("msgs").scrollHeight;
+  }
+  closeModal();
+}
+
+document.addEventListener("keydown", e=>{if(e.key==="Escape")closeModal();});
+</script>
+</body>
+</html>
