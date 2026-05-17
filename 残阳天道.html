@@ -207,20 +207,35 @@ body {
 .quick-btn:active { background: #2a2a3e; border-color: #c084fc; color: #c084fc; }
 
 /* ===== SUGGESTIONS ===== */
+.suggest-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 2px 10px;
+  background: #1a1a2e;
+  border: 1px dashed #3a3a5e;
+  border-radius: 12px;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 11px;
+  min-height: 24px;
+  flex-shrink: 0;
+  margin: 4px 12px 2px;
+  width: fit-content;
+}
+.suggest-toggle.show { display: inline-flex; }
+.suggest-toggle:active { border-color: #c084fc; color: #c084fc; }
+
 .suggest-bar {
-  display: flex;
+  display: none;
   gap: 6px;
   padding: 4px 12px 2px;
   flex-wrap: wrap;
   flex-shrink: 0;
-  min-height: 0;
-  overflow: hidden;
-  transition: min-height 0.3s, padding 0.3s;
 }
-.suggest-bar:empty {
-  min-height: 0;
-  padding: 0 12px;
-}
+.suggest-bar.open { display: flex; }
+
 .suggest-btn {
   background: linear-gradient(135deg, #2a1a3e, #1e1a3e);
   border: 1px solid #4a2a6e;
@@ -370,6 +385,7 @@ body {
         点击「开始修仙」创造你的角色。
       </div>
     </div>
+    <div class="suggest-toggle" id="suggestToggle" onclick="toggleSuggest()">💡 查看建议</div>
     <div class="suggest-bar" id="suggestBar"></div>
     <div class="quick-bar" id="quickBar">
       <button class="quick-btn" onclick="q('我要开始修炼')">🧘 修炼</button>
@@ -802,7 +818,21 @@ function q(a) {
 
 function showOptions(opts) {
   const bar = document.getElementById("suggestBar");
+  const toggle = document.getElementById("suggestToggle");
   bar.innerHTML = opts.map(o => `<button class="suggest-btn" onclick="pickSuggest('${escAttr(o)}')">${esc(o)}</button>`).join('');
+  if (opts.length) {
+    toggle.classList.add("show");
+    toggle.textContent = "💡 " + opts.length + "个建议";
+    bar.classList.remove("open");
+  } else {
+    toggle.classList.remove("show");
+    bar.classList.remove("open");
+  }
+}
+
+function toggleSuggest() {
+  const bar = document.getElementById("suggestBar");
+  bar.classList.toggle("open");
 }
 
 function pickSuggest(t) {
