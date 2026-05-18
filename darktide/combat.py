@@ -194,10 +194,16 @@ function executeBattle(districtId) {
     
     if (roll < chance) {
         // 胜利
-        bDist.owner = 'player';
-        bDist.defense = Math.max(3, Math.floor(defPower * 0.4));
+        // 确保地将盘添加到G.districts（首次占领时复制自CONFIG）
+        if (!G.districts[districtId]) {
+            G.districts[districtId] = { id: bDist.id, baseIncome: bDist.baseIncome, baseSecurity: bDist.baseSecurity, owner: 'player', control: 100, security: 50 };
+        } else {
+            G.districts[districtId].owner = 'player';
+        }
+        G.districts[districtId].defense = Math.max(3, Math.floor(defPower * 0.4));
         G.influence += 5 + Math.floor(Math.random() * 5);
         G.notoriety += 5;
+        G.districtCount = Object.keys(G.districts).length;
         G.districtCount = Object.values(G.districts).filter(d => d.owner === 'player').length;
         
         // 胜利也有伤亡

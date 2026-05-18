@@ -393,7 +393,7 @@ function renderDevTab() {
         <div class="card">
             <div class="card-title">👮 贿赂警察</div>
             <div style="font-size:11px;color:var(--text-secondary);">$600 提升安全度</div>
-            <button class="btn-sm ${G.money >= 600 ? 'btn-gold' : 'btn-gray'}" onclick="if(G.money>=600){bribePolice();updateUI();}" ${G.money >= 600 ? '' : 'disabled'}>贿赂</button>
+            <button class="btn-sm ${G.money >= 500 ? 'btn-gold' : 'btn-gray'}" onclick="if(G.money>=500){bribePolice();updateUI();}" ${G.money >= 500 ? '' : 'disabled'}>贿赂 ($500)</button>
         </div>
         <div class="card">
             <div class="card-title">🤝 外交关系</div>

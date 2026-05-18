@@ -283,18 +283,18 @@ function renderDiplomacyOverlay(state) {
             html += '</div>';
         } else if (rel >= 40) {
             html += '<div style="display:flex;gap:4px;margin-top:3px">';
-            html += '<button class="btn-sm" onclick="improveGangRelation(state,\\'' + e.name + '\\');renderDiplomacyOverlay(state)" ' + (canImprove?'':'disabled') + ' style="font-size:.55em">🤝 改善关系</button>';
-            html += '<button class="btn-sm btn-gold" onclick="proposeAlliance(state,\\'' + e.name + '\\');renderDiplomacyOverlay(state)" style="font-size:.55em">🤝 提议联盟</button>';
+            html += '<button class="btn-sm" onclick="improveGangRelation(G,\\'' + e.name + '\\');renderDiplomacyOverlay(G)" ' + (canImprove?'':'disabled') + ' style="font-size:.55em">🤝 改善关系</button>';
+            html += '<button class="btn-sm btn-gold" onclick="proposeAlliance(G,\\'' + e.name + '\\');renderDiplomacyOverlay(G)" style="font-size:.55em">🤝 提议联盟</button>';
             html += '</div>';
         } else {
             html += '<div style="margin-top:3px">';
-            html += '<button class="btn-sm" onclick="improveGangRelation(state,\\'' + e.name + '\\');renderDiplomacyOverlay(state)" ' + (canImprove?'':'disabled') + ' style="font-size:.55em">🤝 改善关系</button>';
+            html += '<button class="btn-sm" onclick="improveGangRelation(G,\\'' + e.name + '\\');renderDiplomacyOverlay(G)" ' + (canImprove?'':'disabled') + ' style="font-size:.55em">🤝 改善关系</button>';
             html += '</div>';
         }
         // 袭击按钮（所有敌对帮派可用）
         const intelOk = state.intel >= 5;
         html += '<div style="margin-top:3px">';
-        html += '<button class="btn-sm btn-red" onclick="raidGang(state,\\'' + e.name + '\\');renderDiplomacyOverlay(state)" ' + (intelOk?'':'disabled') + ' style="font-size:.55em">⚔️ 袭击(5情报)</button>';
+        html += '<button class="btn-sm btn-red" onclick="raidGang(G,\\'' + e.name + '\\');renderDiplomacyOverlay(G)" ' + (intelOk?'':'disabled') + ' style="font-size:.55em">⚔️ 袭击(5情报)</button>';
         html += '</div>';
         html += '</div>';
     });
@@ -314,7 +314,7 @@ function renderDiplomacyOverlay(state) {
     html += '<div style="width:' + pBar + '%;height:100%;background:' + pColor + ';border-radius:2px"></div></div>';
     html += '<div style="display:flex;gap:4px;margin-top:3px">';
     const canBribe = state._policeBribeCooldown <= state.turn;
-    html += '<button class="btn-sm" onclick="improvePoliceRelation(state);renderDiplomacyOverlay(state)" ' + (canBribe?'':'disabled') + ' style="font-size:.55em">💰 贿赂 (需$' + (500 + Math.max(0, -pRel * 5)) + ')</button>';
+    html += '<button class="btn-sm" onclick="improvePoliceRelation(G);renderDiplomacyOverlay(G)" ' + (canBribe?'':'disabled') + ' style="font-size:.55em">💰 贿赂 (需$' + (500 + Math.max(0, -pRel * 5)) + ')</button>';
     html += '</div></div>';
     
     // 关系影响说明

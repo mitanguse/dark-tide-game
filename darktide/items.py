@@ -239,6 +239,6 @@ function useItem(invIdx) {
 
 // 道具在事件中使用的检测（事件系统调用）
 function hasItem(state, itemId) {
-    return G.inventory && G.inventory.some(i => i.id === itemId && i.count > 0);
+    return state.inventory && state.inventory.some(i => i.id === itemId && i.count > 0);
 }
 """

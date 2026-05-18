@@ -994,13 +994,13 @@ function handleEventChoice(index) {
         const loss = Math.abs(choice.cost.manpower);
         // 从现有成员中随机减少
         for (let i = 0; i < loss; i++) {
-            const alive = state.crew.filter(m => m.status !== 'dead');
+            const alive = G.crew.filter(m => m.status !== 'dead');
             if (alive.length === 0) break;
             const victim = alive[Math.floor(Math.random() * alive.length)];
             victim.status = 'dead';
         }
-        state.crew = state.crew.filter(m => m.status !== 'dead');
-        state.manpower = state.crew.length;
+        G.crew = G.crew.filter(m => m.status !== 'dead');
+        G.manpower = G.crew.length;
     }
     if (choice.cost.notoriety) {
         addNotoriety(G, choice.cost.notoriety);
@@ -1183,12 +1183,12 @@ function showMoleReveal(mole) {
                 <div class="modal-header"><span>🕵️ 卧底曝光！</span></div>
                 <div style="font-size:.75em;line-height:1.8;padding:8px 0">
                     <p style="color:#f87171;font-weight:bold">${mole.emoji} ${mole.name}（${mole.className}）竟然是 ${factionName} 派来的卧底！</p>
-                    <p>他在组织里潜伏了 ${Math.max(1, (state.turn || 1) - mole.joinedAt)} 个回合，执行过 ${mole.missions || 0} 次任务，杀害了 ${mole._killCount || 0} 名弟兄。</p>
+                    <p>他在组织里潜伏了 ${Math.max(1, (G.turn || 1) - mole.joinedAt)} 个回合，执行过 ${mole.missions || 0} 次任务，杀害了 ${mole._killCount || 0} 名弟兄。</p>
                 </div>
                 <div class="event-choices">
-                    <button class="btn-choice btn-gold" onclick="turnMole(state, ${mole.id});closeModal('moleModal')">🤝 策反他（双面间谍）</button>
-                    <button class="btn-choice btn-red" onclick="executeMember(state, ${mole.id});closeModal('moleModal')">💀 处决（恶名+5）</button>
-                    <button class="btn-choice btn-gray" onclick="expelMember(state, ${mole.id});closeModal('moleModal')">🚪 逐出组织</button>
+                    <button class="btn-choice btn-gold" onclick="turnMole(G, ${mole.id});closeModal('moleModal')">🤝 策反他（双面间谍）</button>
+                    <button class="btn-choice btn-red" onclick="executeMember(G, ${mole.id});closeModal('moleModal')">💀 处决（恶名+5）</button>
+                    <button class="btn-choice btn-gray" onclick="expelMember(G, ${mole.id});closeModal('moleModal')">🚪 逐出组织</button>
                 </div>
             </div>
         </div>
