@@ -143,6 +143,11 @@ body{background:#0b0b14;color:#ccc;font-family:-apple-system,'Noto Sans SC',sans
     </div>
   </div>
 
+  <div class="tab" id="tab-ranking">
+    <div style="font-size:0.72em;color:#555;margin-bottom:6px">🏆 成员战力排行榜</div>
+    <div id="ranking-list"></div>
+  </div>
+
   <div class="tab" id="tab-develop">
     <div class="card"><h4>🏢 扩建据点</h4><div class="desc">Lv.<span id="dl">1</span> · 人手上限 <span id="dm">5</span></div><div class="extra">$<span id="dc">1000</span> · 需2人</div><button class="btn" onclick="upgradeBase()">扩建</button></div>
     <div class="card"><h4>🔫 升级装备</h4><div class="desc">Lv.<span id="el">0</span> → 提升任务成功率</div><div class="extra">$<span id="ec">800</span></div><button class="btn purple" onclick="upgradeEquip()">升级</button></div>
@@ -158,6 +163,7 @@ body{background:#0b0b14;color:#ccc;font-family:-apple-system,'Noto Sans SC',sans
   <div class="nav-item" data-tab="missions"><span class="ni">💀</span>行动</div>
   <div class="nav-item" data-tab="members"><span class="ni">👤</span>成员</div>
   <div class="nav-item" data-tab="enemies"><span class="ni">⚔️</span>敌对</div>
+  <div class="nav-item" data-tab="ranking"><span class="ni">🏆</span>排行</div>
   <div class="nav-item" data-tab="develop"><span class="ni">🏢</span>发展</div>
 </div>
 
@@ -289,7 +295,7 @@ function recruit(){
   const role=pick(ROLES);
   const skill=rng(1,10)+G.phase*2;
   const loyal=rng(30,70);
-  G.members.push({name,role,skill,loyal,alive:true,missions:0,kills:0});
+  G.members.push({name,role,skill,loyal,alive:true,missions:0,kills:0,earnings:0});
   addLog(`招募「${name}」${role} ⚡${skill} ♥${loyal}`,'success');
   showModal('✅ 招募成功',`「${name}」加入组织<br>职业：${role}<br>能力：${skill}  忠诚：${loyal}`);
   updateUI();
@@ -318,6 +324,7 @@ function showMemberDetail(idx){
       忠诚：♥${m.loyal}<br>
       任务执行：${m.missions}次<br>
       击杀：${m.kills}人<br>
+      累计佣金：$${m.earnings||0}<br>
       <div style="margin-top:6px;font-size:0.72em;color:#555">
         💡 忠诚度影响：低忠诚成员可能叛变或逃跑
       </div>
@@ -434,13 +441,18 @@ function executeMission(memberIdx){
 
   const rv = m.p.split('-').map(Number);
   if(Math.random() < chance){
-    const reward = Math.floor((rng(rv[0],rv[1]) + G.phase*100) * rewardMult);
-    G.money += reward;
+    const totalReward = Math.floor((rng(rv[0],rv[1]) + G.phase*100) * rewardMult);
+    // 佣金抽成：越厉害的成员抽成越多
+    const cutPercent = Math.min(0.50, 0.10 + member.skill * 0.015);
+    const commission = Math.floor(totalReward * cutPercent);
+    const orgShare = totalReward - commission;
+    member.earnings = (member.earnings || 0) + commission;
+    G.money += orgShare;
     G.influence += rng(1,4);
     if(matched){member.kills += rng(0,2)}
     const extra = matched ? '<br>（职业匹配 +20%成功率 +30%收益）' : '<br>（职业不匹配 -15%成功率 -15%收益）';
-    addLog(`✅ ${m.n} +$${reward}`,'success');
-    showModal('✅ 任务成功',`${matchText}<br><br>获得 $${reward}，影响力提升${extra}`);
+    addLog(`✅ ${m.n} +$${orgShare}（${member.name}抽成$${commission}）`,'success');
+    showModal('✅ 任务成功',`${matchText}<br><br>💰 任务总回报：$${totalReward}<br>📊 ${member.name}抽成 ${Math.round(cutPercent*100)}%（战力越高抽成越多）<br>🏢 组织实际收入：$${orgShare}<br><br>影响力提升${extra}`);
   } else {
     const pen = rng(100,400);
     G.money = Math.max(0, G.money - pen);
@@ -555,6 +567,34 @@ function renderIntelContent(){
 }
 
 // ============================
+//  RANKING
+// ============================
+function renderRanking(){
+  const list=document.getElementById('ranking-list');
+  if(!list)return;
+  const alive=G.members.filter(m=>m.alive);
+  if(!alive.length){list.innerHTML='<div style="font-size:0.72em;color:#444;padding:8px">暂无可用成员</div>';return}
+  const ranked = [...alive].map(m=>({
+    ...m,
+    powerScore: m.skill + m.missions*2 + m.kills*3
+  })).sort((a,b)=>b.powerScore - a.powerScore);
+  const em={'打手':'💪','情报员':'👁️','黑客':'💻','杀手':'🗡️','走私犯':'📦','爆破手':'💥','狙击手':'🎯','医师':'💊'};
+  list.innerHTML='<div style="display:flex;font-size:0.65em;color:#555;padding:4px 8px;border-bottom:1px solid #1e1e38"><span style="width:28px">#</span><span style="flex:1">成员</span><span style="width:40px;text-align:right">⚡</span><span style="width:44px;text-align:right">评分</span><span style="width:36px;text-align:right">💰</span></div>'+
+  ranked.map((m,i)=>{
+    const medal = i===0?'🥇':i===1?'🥈':i===2?'🥉':'';
+    const rankColor = i===0?'#fbbf24':i===1?'#94a3b8':i===2?'#d97706':'#888';
+    return `<div style="display:flex;align-items:center;padding:6px 8px;border-bottom:1px solid #0f0f1e;font-size:0.72em">
+      <span style="width:28px;color:${rankColor};font-weight:700">${medal||i+1}</span>
+      <span style="flex:1">${em[m.role]||'👤'} ${m.name}<br><span style="font-size:0.85em;color:#666">${m.role}</span></span>
+      <span style="width:40px;text-align:right;color:#60a5fa">${m.skill}</span>
+      <span style="width:44px;text-align:right;color:#a78bfa">${m.powerScore}</span>
+      <span style="width:36px;text-align:right;color:#fbbf24">${m.earnings||0}</span>
+    </div>`;
+  }).join('')+
+  '<div style="margin-top:8px;font-size:0.65em;color:#555;padding:4px 8px">评分 = 战力 + 任务数×2 + 击杀数×3 &nbsp;·&nbsp; 💰 = 累计佣金</div>';
+}
+
+// ============================
 //  CORRUPTION & UPGRADES
 // ============================
 function bribePolice(){
@@ -640,7 +680,7 @@ function getEvents(){
     {t:'👮 警方突袭',d:'条子扫荡了街区！你的人正在紧急清理现场。',fn:g=>{g.safety=Math.max(0,g.safety-15);g.influence-=3;showModal('👮 警方突袭','安全度-15 影响力-3');addLog('警方突袭','warning')}},
     {t:'💰 神秘买家',d:'一位匿名买家找上门来要收购情报，出价不错。',fn:g=>{const v=G.intelPrice*TMULT[G.intelTier]*1.5;const a=Math.min(g.intel,4);g.money+=Math.floor(v*a);g.intel-=a;showModal('💰 交易完成','获得 $'+Math.floor(v*a));addLog('与神秘买家交易','success')}},
     {t:'🔥 地盘冲突',d:'敌对帮派想侵占你的地盘！',cs:[{text:'💪 应战（需2人）',fn:g=>{if(hands()<2){showModal('人手不足','需要2个可用人手');return}g.safety-=5;g.influence+=8;showModal('⚔️ 胜利','影响力+8 安全-5');addLog('火并胜利','success')}},{text:'🏃 撤退',fn:g=>{g.influence-=8;g.money-=200;showModal('撤退','影响力-8 资金-200');addLog('撤退','warning')}}]},
-    {t:'👧 街头弃儿',d:'巷子里发现一个无家可归的孩子，眼神里透着一股狠劲。',cs:[{text:'💚 收留（免费）',fn:g=>{const n=pick(['小野','阿弃','巷子']);g.members.push({name:n,role:'杀手',skill:rng(3,8)+g.phase*2,loyal:90,alive:true,missions:0,kills:0});showModal('👧 新成员',`「${n}」加入组织！<br>天生忠诚90，值得信赖`);addLog(`收留弃儿「${n}」`,'success')}},{text:'❌ 离开',fn:g=>{showModal('','你转身离开了巷子');addLog('没有管那个孩子','info')}}]},
+    {t:'👧 街头弃儿',d:'巷子里发现一个无家可归的孩子，眼神里透着一股狠劲。',cs:[{text:'💚 收留（免费）',fn:g=>{const n=pick(['小野','阿弃','巷子']);g.members.push({name:n,role:'杀手',skill:rng(3,8)+g.phase*2,loyal:90,alive:true,missions:0,kills:0,earnings:0});showModal('👧 新成员',`「${n}」加入组织！<br>天生忠诚90，值得信赖`);addLog(`收留弃儿「${n}」`,'success')}},{text:'❌ 离开',fn:g=>{showModal('','你转身离开了巷子');addLog('没有管那个孩子','info')}}]},
     {t:'💀 内鬼暗杀',d:'组织里出了叛徒！他趁着夜色发动了暗杀！',cs:[{text:'🛡️ 全力防御',fn:g=>{if(Math.random()<0.5){showModal('成功','内鬼被当场击毙');addLog('内鬼被击毙','success')}else{if(G.members.filter(m=>m.alive).length>0)killMember('被内鬼暗杀了');showModal('惨烈','内鬼得手了...');addLog('内鬼得手','warning')}}},{text:'🏃 紧急避难',fn:g=>{g.money=Math.max(0,g.money-rng(300,800));g.safety=Math.max(0,g.safety-10);showModal('躲过一劫','损失了部分资金');addLog('紧急避难','warning')}}]},
     {t:'🗡️ 敌对杀手',d:'敌对组织的杀手潜入你的地盘！',cs:[{text:'⚔️ 反杀',fn:g=>{if(Math.random()<0.5){showModal('击退','杀手被击退');addLog('击退杀手','success')}else{if(G.members.filter(m=>m.alive).length>0)killMember('被敌对杀手杀害');addLog('被暗杀','warning')}}},{text:'💰 花钱消灾($800)',fn:g=>{g.money-=800;showModal('安全了','花了$800买命');addLog('花钱消灾','info')}}]},
     {t:'💎 意外收获',d:'手下在一处废弃据点发现了走私物资！',cs:[{text:'💰 卖掉(+$1500)',fn:g=>{g.money+=1500;showModal('+$1500','物资卖了好价钱');addLog('+$1500','success')}},{text:'📡 换成情报(+8)',fn:g=>{g.intel+=8;const s=pick(INTEL_STORIES[G.intelTier]);g.intelLog.unshift({text:`[${TIERS[G.intelTier]}] ${s}`,tier:G.intelTier});showModal('+8情报','换成了情报');addLog('+8情报','success')}}]},
@@ -743,7 +783,7 @@ function updateUI(){
   document.getElementById('ec').textContent=800+G.equipLv*400
   document.getElementById('card-pol').style.display=G.phase>=1?'block':'none'
   document.getElementById('card-share').style.display=G.phase>=2?'block':'none'
-  renderMembers();renderMissions();renderEnemies();renderIntelContent();checkGameOver()
+  renderMembers();renderMissions();renderEnemies();renderIntelContent();renderRanking();checkGameOver()
 }
 
 initEnemies()
