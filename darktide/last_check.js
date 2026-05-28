@@ -1,0 +1,3198 @@
+// ===== 工具函数 =====
+const R=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+const P=a=>a[Math.floor(Math.random()*a.length)];
+const C=(v,mn,mx)=>Math.max(mn,Math.min(mx,v));
+
+// ===== 游戏配置 =====
+const CONFIG = {
+    // 阶段
+    PHASES: [\n        { id: 0, name: '码头恶犬', desc: '底层混混，挣扎求存', levelMin: 1, levelMax: 5 },\n        { id: 1, name: '酒馆之王', desc: '街面话事人，掌控一方', levelMin: 6, levelMax: 10 },\n        { id: 2, name: '暗夜贵族', desc: '地下势力巨头，呼风唤雨', levelMin: 11, levelMax: 15 },\n        { id: 3, name: '无冕之王', desc: '整座城市的影子统治者', levelMin: 16, levelMax: 20 },
+    ],
+
+    // 职业
+    CLASSES: {\n        '打手': { emoji: '💪', desc: '近战格斗专家', combat: 2, intel: 0, income: 1, special: '战斗时+10%成功率' },\n        '情报员': { emoji: '👁️', desc: '情报收集专家', combat: 0, intel: 2, income: 1, special: '情报获取效率+25%' },\n        '黑客': { emoji: '💻', desc: '网络渗透高手', combat: 0, intel: 2, income: 1, special: '电子行动成功率+15%' },\n        '杀手': { emoji: '🗡️', desc: '暗杀与渗透', combat: 2, intel: 1, income: 0, special: '暗杀任务成功率+20%' },\n        '走私贩': { emoji: '📦', desc: '物资流通专家', combat: 0, intel: 1, income: 2, special: '收入+30%' },\n        '爆破手': { emoji: '💥', desc: '爆炸物专家', combat: 2, intel: 0, income: 0, special: '破坏行动效率+25%' },\n        '狙击手': { emoji: '🎯', desc: '远程精准打击', combat: 2, intel: 1, income: 0, special: '暗杀/狙击成功率+25%' },\n        '医师': { emoji: '💊', desc: '战场医疗支持', combat: 1, intel: 0, income: 1, special: '成员存活率+20%' },
+    },
+
+    // 任务类型（含所需人数和冲突提示）
+    MISSIONS: [\n        { id: '收保护费', phase: 0, baseReward: 50, baseRisk: 10, combatReq: 1, intelReq: 0, minCrew: 1, desc: '向小商户收取保护费' },\n        { id: '街头斗殴', phase: 0, baseReward: 80, baseRisk: 15, combatReq: 2, intelReq: 0, minCrew: 2, desc: '在街头解决敌对势力' },\n        { id: '情报收集', phase: 0, baseReward: 60, baseRisk: 8, combatReq: 0, intelReq: 1, minCrew: 1, desc: '收集周边地区情报' },\n        { id: '黑市交易', phase: 1, baseReward: 150, baseRisk: 15, combatReq: 0, intelReq: 1, minCrew: 2, desc: '在黑市进行非法交易' },\n        { id: '地盘火并', phase: 1, baseReward: 200, baseRisk: 25, combatReq: 2, intelReq: 1, minCrew: 3, desc: '抢夺敌对帮派地盘' },\n        { id: '敲诈勒索', phase: 1, baseReward: 120, baseRisk: 12, combatReq: 1, intelReq: 0, minCrew: 2, desc: '对富商进行敲诈' },\n        { id: '暗杀行动', phase: 2, baseReward: 350, baseRisk: 30, combatReq: 2, intelReq: 2, minCrew: 3, desc: '暗杀敌对帮派头目' },\n        { id: '军火走私', phase: 2, baseReward: 400, baseRisk: 30, combatReq: 1, intelReq: 2, minCrew: 3, desc: '大规模军火交易' },\n        { id: '毒品交易', phase: 2, baseReward: 300, baseRisk: 25, combatReq: 1, intelReq: 1, minCrew: 2, desc: '操控毒品流通渠道' },\n        { id: '政商勾结', phase: 3, baseReward: 600, baseRisk: 20, combatReq: 0, intelReq: 3, minCrew: 3, desc: '渗透政商高层' },\n        { id: '帮派战争', phase: 3, baseReward: 1000, baseRisk: 40, combatReq: 3, intelReq: 2, minCrew: 5, desc: '发动全面帮派战争' },
+    ],
+
+    // 敌对帮派
+    GANGS: [\n        { name: '码头帮', color: '#4a90d9', desc: '码头工人起家，控制港口物流', hostile: 0 },\n        { name: '黑水社', color: '#2d5a27', desc: '前军人组成的雇佣兵组织', hostile: 0 },\n        { name: '暗影会', color: '#6b238e', desc: '神秘的情报贩子集团', hostile: 0 },\n        { name: '铁血盟', color: '#8b0000', desc: '暴力至上的激进帮派', hostile: 0 },\n        { name: '血手党', color: '#cc0000', desc: '残忍的毒品垄断组织', hostile: 0 },\n        { name: '夜枭团', color: '#2c2c2c', desc: '精通高科技的新型犯罪集团', hostile: 0 },
+    ],
+
+    // 街区
+    DISTRICTS: [\n        { id: '贫民区', baseSecurity: 10, baseIncome: 10, desc: '脏乱差的城区边缘', special: null },\n        { id: '码头区', baseSecurity: 15, baseIncome: 20, desc: '货运码头与仓库区', special: '走私收入+20%' },\n        { id: '工业区', baseSecurity: 12, baseIncome: 15, desc: '工厂和工业设施', special: '招募费用-15%' },\n        { id: '唐人街', baseSecurity: 18, baseIncome: 18, desc: '华人聚集的商业区', special: '情报效率+15%' },\n        { id: '商业区', baseSecurity: 20, baseIncome: 30, desc: '市中心商业核心', special: '收入+25%' },\n        { id: '红灯区', baseSecurity: 8, baseIncome: 25, desc: '夜生活娱乐中心', special: '招募吸引力+20%' },\n        { id: '港口区', baseSecurity: 14, baseIncome: 22, desc: '国际贸易港口', special: '贸易收入+30%' },\n        { id: '中心区', baseSecurity: 25, baseIncome: 35, desc: '城市权力中心', special: '影响力+2/天' },
+    ],
+
+    // 情报等级
+    INTEL_LEVELS: [\n        { id: 1, name: '街头流言', desc: '零散的街头传闻', minIntel: 0 },\n        { id: 2, name: '区域情报', desc: '基本掌握区域动态', minIntel: 10 },\n        { id: 3, name: '城市机密', desc: '知晓城市核心秘密', minIntel: 25 },\n        { id: 4, name: '高层黑料', desc: '掌握上流社会把柄', minIntel: 50 },
+    ],
+
+    // 道具
+    ITEMS: [\n        { id: 'razorhat', name: '剃刀帽', emoji: '🧢', cost: 300, desc: '战斗力+5%', effect: { type: 'combat', value: 0.05 }, desc_long: '戴上它，街头没人敢惹你' },\n        { id: 'pocketwatch', name: '怀表', emoji: '⌚', cost: 500, desc: '行动节省1AP', effect: { type: 'ap_save', value: 1 }, desc_long: '精准计时，效率至上' },\n        { id: 'moonshine', name: '私酒', emoji: '🍷', cost: 200, desc: '招募吸引力+10%', effect: { type: 'recruit', value: 0.10 }, desc_long: '好酒总能交到朋友' },\n        { id: 'vest', name: '防弹衣', emoji: '🛡️', cost: 800, desc: '安全度+10', effect: { type: 'security', value: 10 }, desc_long: '保命装备，值得投资' },\n        { id: 'encryptedPhone', name: '加密手机', emoji: '📱', cost: 600, desc: '情报效率+20%', effect: { type: 'intel', value: 0.20 }, desc_long: '没人能窃听你的通话' },\n        { id: 'bribeDoc', name: '贿赂文件', emoji: '📄', cost: 1000, desc: '影响力+10一次性', effect: { type: 'influence_once', value: 10 }, desc_long: '白纸黑字，拿捏人性' },\n        { id: 'medkit', name: '急救包', emoji: '💊', cost: 400, desc: '防止成员死亡一次', effect: { type: 'save_member', value: 1 }, desc_long: '关键时刻能救命' },\n        { id: 'blackUmbrella', name: '黑伞', emoji: '🌂', cost: 700, desc: '恶名-10一次性', effect: { type: 'notoriety_once', value: -10 }, desc_long: '消失在雨夜中' },
+    ],
+
+    // 结局
+    ENDINGS: [
+        {\n            id: 'empire', name: '暗夜帝国', emoji: '👑',\n            condition: '恶名≥80 且 影响力≥80 且 占有全部8个街区',
+            check: (g) => g.notoriety >= 80 && g.influence >= 80 && g.districtCount >= 8
+        },
+        {\n            id: 'tycoon', name: '商业巨鳄', emoji: '💰',\n            condition: '资金≥5000 且 影响力≥50',
+            check: (g) => g.money >= 5000 && g.influence >= 50
+        },
+        {\n            id: 'shadow', name: '幕后黑手', emoji: '🕵️',\n            condition: '情报≥60 且 影响力≥60 且 恶名≤30',
+            check: (g) => g.intel >= 60 && g.influence >= 60 && g.notoriety <= 30
+        },
+        {\n            id: 'warlord', name: '战争之王', emoji: '⚔️',\n            condition: '人手≥50 且 消灭全部敌对帮派',
+            check: (g) => g.members >= 50 && g.gangsDestroyed >= 6
+        },
+        {\n            id: 'death', name: '黑道末日', emoji: '💀',\n            condition: '恶名≥100 或 安全度≤0',
+            check: (g) => g.notoriety >= 100 || g.security <= 0
+        },
+        {\n            id: 'escape', name: '金盆洗手', emoji: '🏖️',\n            condition: '资金≥3000 且 恶名≤20 且 影响力≥30',
+            check: (g) => g.money >= 3000 && g.notoriety <= 20 && g.influence >= 30
+        },
+    ],
+
+    MAX_LEVEL: 20,
+    BASE_AP: 4,
+    MAX_CREW: 10,
+    RECRUIT_COST: { base: 100, perLevel: 50 },
+    DISBAND_REFUND: 0.3,
+};
+
+// ===== 游戏状态管理 =====
+
+// ---- 初始化游戏状态 ----
+function initGameState() {
+    return {
+        // 资源
+        money: 200,
+        manpower: 3,
+        intel: 0,
+        influence: 5,
+        security: 50,
+        notoriety: 0,
+        stronghold: 1,
+
+        // 角色
+        level: 1,
+        exp: 0,
+        phase: 0,
+        ap: CONFIG.BASE_AP,
+        maxAp: CONFIG.BASE_AP,
+        day: 1,
+
+        // 成员 (非NPC)
+        crew: [],
+        crewSlots: CONFIG.MAX_CREW,
+        nextMemberId: 1,
+
+        // 地盘
+        districts: {},
+        districtCount: 0,
+
+        // 敌对帮派
+        gangs: {},
+        gangsDestroyed: 0,
+        activeGangId: 0,
+
+        // 情报
+        intelLevel: 1,
+        intelPoints: 0,
+        intelActions: [],
+
+        // 道具
+        inventory: [],
+
+        // 外交关系
+        policeRelation: 0,       // -100~100，负=敌对 正=友好\n        gangRelations: {},       // { '码头帮': 0, '黑水社': -20, ... }
+        alliance: null,          // 当前盟友帮派名，或null
+        _diplomacyCooldown: 0,   // 外交冷却回合
+        _policeBribeCooldown: 0, // 贿赂警察冷却
+
+        // 事件标记
+        triggeredEvents: [],
+        missionHistory: [],
+        eventQueue: [],
+
+        // 状态
+        isGameOver: false,
+        ending: null,\n        settings: { musicOn: true, sfxOn: true, textSpeed: 'normal' },
+
+        // 游戏时间追踪
+        totalIncomeCollected: 0,
+        totalExpEarned: 0,
+    };
+}
+
+// ---- 存档系统 ----\nconst SAVE_KEY = 'darktide_save';
+
+function saveGame(state) {
+    try {
+        const saveData = {
+            version: 1,
+            timestamp: Date.now(),
+            day: state.day,
+            phase: state.phase,
+            level: state.level,
+            state: state,
+        };
+        localStorage.setItem(SAVE_KEY, JSON.stringify(saveData));
+        return true;
+    } catch (e) {\n        console.error('保存失败:', e);
+        return false;
+    }
+}
+
+function loadGame() {
+    try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        // 版本兼容检查
+        if (!data.version || data.version < 1) return null;
+        return data.state;
+    } catch (e) {\n        console.error('读取存档失败:', e);
+        return null;
+    }
+}
+
+function deleteSave() {
+    localStorage.removeItem(SAVE_KEY);
+}
+
+function hasSave() {
+    return localStorage.getItem(SAVE_KEY) !== null;
+}
+
+// ---- 资源变更 ----
+function addMoney(state, amount) {
+    state.money = Math.max(0, state.money + amount);
+    return amount > 0;
+}
+
+function spendMoney(state, amount) {
+    if (state.money < amount) return false;
+    state.money -= amount;
+    return true;
+}
+
+function addNotoriety(state, amount) {
+    state.notoriety = Math.max(0, Math.min(100, state.notoriety + amount));
+    checkEndings(state);
+}
+
+function addInfluence(state, amount) {
+    state.influence = Math.max(0, Math.min(100, state.influence + amount));
+    checkEndings(state);
+}
+
+function changeSecurity(state, amount) {
+    state.security = Math.max(0, Math.min(100, state.security + amount));
+    checkEndings(state);
+}
+
+function addIntel(state, amount) {
+    state.intel = Math.max(0, state.intel + amount);
+    // 检查情报等级
+    for (const lvl of [...CONFIG.INTEL_LEVELS].reverse()) {
+        if (state.intel >= lvl.minIntel && lvl.id > state.intelLevel) {
+            state.intelLevel = lvl.id;\n            addMessage(`情报等级提升: ${lvl.name} - ${lvl.desc}`, 'info');
+            break;
+        }
+    }
+}
+
+function addExp(state, amount) {
+    state.exp += amount;
+    state.totalExpEarned += amount;
+    while (state.exp >= expToNext(state) && state.level < CONFIG.MAX_LEVEL) {
+        state.exp -= expToNext(state);
+        state.level++;
+        state.phase = getPhase(state);
+        state.maxAp = CONFIG.BASE_AP + Math.floor(state.level / 5);\n        addMessage(`等级提升! 当前等级: ${state.level} (${CONFIG.PHASES[state.phase].name})`, 'success');
+        // 升级奖励
+        if (state.level % 5 === 0) {\n            addMessage('阶段突破! 解锁新任务和区域!', 'special');
+        }
+    }
+}
+
+function expToNext(state) {
+    return Math.floor(50 * Math.pow(1.2, state.level - 1));
+}
+
+function getPhase(state) {
+    for (const p of CONFIG.PHASES) {
+        if (state.level >= p.levelMin && state.level <= p.levelMax) return p.id;
+    }
+    return 3;
+}
+
+function useAp(state, cost) {
+    if (state.ap < cost) return false;
+    state.ap -= cost;
+    return true;
+}
+
+function recoverAp(state) {
+    state.ap = Math.min(state.maxAp, state.ap + 1);
+}
+
+function canDoMission(state, mission) {
+    if (mission.phase > state.phase) return false;
+    if (state.ap < 1) return false;
+    if (mission.combatReq > 0 && state.manpower < mission.combatReq) return false;
+    return true;
+}
+
+// ---- 成员管理 ----
+function getMemberById(state, id) {
+    return state.crew.find(m => m.id === id);
+}
+
+function getAvailableCrew(state) {\n    return state.crew.filter(m => m.status === 'idle');
+}
+
+function countCrewByClass(state, className) {\n    return state.crew.filter(m => m.class === className && m.status !== 'dead').length;
+}
+
+// ---- 检查结局 ----
+function checkEndings(state) {
+    for (const ending of CONFIG.ENDINGS) {\n        if (ending.id === 'death' && ending.check(state)) {
+            triggerEnding(state, ending);
+            return;
+        }
+    }
+    // 正常结局检查
+    if (state.day >= 60) {
+        for (const ending of CONFIG.ENDINGS) {\n            if (ending.id !== 'death' && ending.check(state)) {
+                triggerEnding(state, ending);
+                return;
+            }
+        }
+        // 没有触发任何好结局，触发默认结局\n        triggerEnding(state, { id: 'default', name: '黑道生涯', emoji: '🎲', desc: '你的故事在黑暗中落幕，无人知晓。' });
+    }
+}
+
+function triggerEnding(state, ending) {
+    state.isGameOver = true;
+    state.ending = ending;
+    state.triggeredEnding = true;\n    addMessage(`★ 结局触发: ${ending.emoji} ${ending.name}`, 'ending');
+    renderEndingScreen(state, ending);
+}
+
+// ---- 道具管理 ----
+function addItemToInventory(state, itemId) {
+    const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
+    if (!itemDef) return false;
+    const existing = state.inventory.find(i => i.id === itemId);
+    if (existing) {
+        existing.count = (existing.count || 1) + 1;
+    } else {
+        state.inventory.push({ id: itemId, count: 1 });
+    }
+    return true;
+}
+
+function useItem(state, itemId, targetMemberId) {
+    const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
+    if (!itemDef) return false;
+    const inv = state.inventory.find(i => i.id === itemId);
+    if (!inv || inv.count < 1) return false;
+
+    // 应用效果
+    switch (itemDef.effect.type) {\n        case 'combat':
+            // 装备到成员
+            if (targetMemberId) {
+                const member = getMemberById(state, targetMemberId);
+                if (member) {
+                    member.items = member.items || [];
+                    member.items.push(itemId);
+                    inv.count--;
+                    if (inv.count <= 0) {
+                        state.inventory = state.inventory.filter(i => i.id !== itemId);
+                    }\n                    addMessage(`已为 ${member.name} 装备 ${itemDef.emoji}${itemDef.name}`, 'info');
+                    return true;
+                }
+            }
+            return false;\n        case 'recruit':
+            // 全局buff，使用就消耗
+            state._recruitBoost = (state._recruitBoost || 0) + itemDef.effect.value;
+            inv.count--;
+            break;\n        case 'security':
+            changeSecurity(state, itemDef.effect.value);
+            inv.count--;
+            break;\n        case 'intel':
+            state._intelBoost = (state._intelBoost || 0) + itemDef.effect.value;
+            inv.count--;
+            break;\n        case 'influence_once':
+            addInfluence(state, itemDef.effect.value);
+            inv.count--;
+            break;\n        case 'notoriety_once':
+            addNotoriety(state, itemDef.effect.value);
+            inv.count--;
+            break;\n        case 'save_member':
+            // 被动效果，使用后标记
+            state._medkitActive = (state._medkitActive || 0) + 1;
+            inv.count--;
+            break;
+    }
+    if (inv.count <= 0) {
+        state.inventory = state.inventory.filter(i => i.id !== itemId);
+    }\n    addMessage(`使用了 ${itemDef.emoji}${itemDef.name}`, 'info');
+    return true;
+}
+
+// ===== 成员系统 v3 =====
+
+function createNewMember(state, options) {
+    options = options || {};
+    
+    // 根据帮派规模决定初始等级
+    let baseLv = 1;
+    if (state.phase >= 3) baseLv = 5 + Math.floor(Math.random() * 4);
+    else if (state.phase >= 2) baseLv = 3 + Math.floor(Math.random() * 3);
+    else if (state.phase >= 1) baseLv = 2 + Math.floor(Math.random() * 2);
+    if (options.lv) baseLv = options.lv;
+    
+    const jobs = CONFIG.JOBS || JOBS;
+    const names = CONFIG.MEMBER_NAMES || MEMBER_NAMES;
+    const job = options.job || jobs[Math.floor(Math.random() * jobs.length)];
+    const name = options.name || names[Math.floor(Math.random() * names.length)];
+    
+    const stat = (job.bs || 3) + Math.floor(baseLv / 3) + (Math.random() > 0.5 ? 1 : -1);
+    
+    const member = {
+        id: Date.now() + Math.floor(Math.random() * 9999),
+        name: name,
+        class: job.k,
+        className: job.n,
+        emoji: job.e,
+        lv: baseLv,
+        xp: 0,
+        xpNeeded: baseLv * 20,
+        stat: Math.max(1, stat),
+        loyalty: options.loyalty || 50 + Math.floor(Math.random() * 30),
+        ap: 3 + Math.floor(baseLv / 3),
+        maxAp: 3 + Math.floor(baseLv / 3),
+        hp: 80 + Math.floor(Math.random() * 20),
+        maxHp: 100,\n        status: 'idle',
+        missions: 0,
+        kills: 0,
+        equipped: [],
+        joinedAt: state.turn || 1,
+        
+        // === 隐藏的性格与关系属性 ===\n        _personality: P(['暴躁','阴冷','忠诚','狡诈','热血','冷静','狂妄','谨慎']),
+        _rivalries: [],    // 看不对眼的人 [id, id, ...]
+        _bonds: [],        // 关系铁的兄弟 [id, id, ...]
+        
+        // === 隐藏的卧底属性（不渲染到UI中）===
+        _isMole: false,\n        _moleFaction: null,     // 'police' 或 敌对帮派名
+        _moleActive: true,       // 卧底是否还在活动中
+        _sabotages: 0,          // 已破坏次数
+        _killCount: 0,          // 已杀害同事数
+    };
+    
+    // 根据条件决定是否成为卧底（不暴露给玩家）
+    if (state.turn > 3 && state.phase < 4) {
+        const moleChance = calculateMoleChance(state);
+        if (Math.random() < moleChance) {
+            member._isMole = true;
+            // 决定是谁派来的
+            const enemies = (state.enemies || []).filter(e => e.alive);
+            if (enemies.length > 0 && Math.random() < 0.6) {
+                member._moleFaction = enemies[Math.floor(Math.random() * enemies.length)].name;
+            } else {\n                member._moleFaction = 'police';
+            }
+            // 卧底初始忠诚可能偏高（伪装）
+            member.loyalty = 65 + Math.floor(Math.random() * 20);
+        }
+    }
+    
+    if (options.isMole !== undefined) member._isMole = options.isMole;
+    if (options.moleFaction) member._moleFaction = options.moleFaction;
+    
+    return member;
+}
+
+// 初始化新成员与其他成员的关系
+function initMemberRelations(state, newMember) {
+    if (!state.crew || state.crew.length === 0) return;
+    state.crew.forEach(existing => {\n        if (existing.status === 'dead') return;
+        // 性格相克产生敌意
+        const conflicts = {\n            '暴躁': ['狂妄','狡诈'],\n            '阴冷': ['热血','狂妄'],\n            '忠诚': ['狡诈','阴冷'],\n            '狡诈': ['忠诚','热血'],\n            '热血': ['阴冷','冷静'],\n            '冷静': ['热血','狂妄'],\n            '狂妄': ['冷静','暴躁'],\n            '谨慎': ['狂妄','暴躁'],
+        };
+        const np = newMember._personality;
+        const ep = existing._personality;
+        if (conflicts[np] && conflicts[np].includes(ep)) {
+            if (Math.random() < 0.4) {
+                newMember._rivalries.push(existing.id);
+                existing._rivalries = existing._rivalries || [];
+                if (!existing._rivalries.includes(newMember.id)) {
+                    existing._rivalries.push(newMember.id);
+                }
+            }
+        }
+        // 相同性格或互补产生默契
+        if (np === ep || (conflicts[ep] && !conflicts[ep].includes(np))) {
+            if (Math.random() < 0.3) {
+                newMember._bonds.push(existing.id);
+                existing._bonds = existing._bonds || [];
+                if (!existing._bonds.includes(newMember.id)) {
+                    existing._bonds.push(newMember.id);
+                }
+            }
+        }
+    });
+}
+
+// 计算一组成员的团队默契（隐藏值）
+function calculateTeamSynergy(state, memberIds) {
+    const members = memberIds.map(id => state.crew.find(m => m.id === id)).filter(m => m);
+    if (members.length <= 1) return 0;
+    
+    let synergy = 0;
+    
+    for (let i = 0; i < members.length; i++) {
+        for (let j = i + 1; j < members.length; j++) {
+            const a = members[i];
+            const b = members[j];
+            
+            // 有仇
+            if (a._rivalries && a._rivalries.includes(b.id)) {
+                synergy -= 8;
+            }
+            // 有默契
+            if (a._bonds && a._bonds.includes(b.id)) {
+                synergy += 6;
+            }
+            // 相同职业竞争
+            if (a.class === b.class) {
+                synergy -= 2;
+            }
+            // 医师让团队更稳定\n            if (a.class === '医师' || b.class === '医师') {
+                synergy += 2;
+            }
+        }
+    }
+    
+    // 有卧底会拖累团队
+    if (members.some(m => m._isMole && m._moleActive)) {
+        synergy -= 10;
+    }
+    
+    return synergy;
+}
+
+// 计算卧底概率
+function calculateMoleChance(state) {
+    let chance = 0.03;  // 基础3%
+    if (state.notoriety > 60) chance += 0.05;  // 恶名高了警察盯得紧
+    if (state.notoriety > 100) chance += 0.07;
+    if (state.phase >= 2) chance += 0.03;      // 势力大了容易被渗透
+    if (state.security < 30) chance += 0.05;    // 安全度低容易混入
+    return Math.min(chance, 0.2);               // 最高20%
+}
+
+// 招募普通成员
+function recruitMember(state) {\n    if (state.money < 500) { showToast('需要$500', 'error'); return; }\n    if (state.crew.length >= state.maxCrew) { showToast('人手已满', 'error'); return; }
+    state.money -= 500;
+    const m = createNewMember(state);
+    initMemberRelations(state, m);
+    state.crew.push(m);
+    state.manpower = state.crew.length;\n    showToast(m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');\n    addMessage('招募: ' + m.emoji + m.name + ' Lv.' + m.lv + ' ' + m.className, 'info');
+    updateUI();
+}
+
+// 从敌对帮派挖角
+function poachMember(state) {
+    const enemies = (state.enemies || []).filter(e => e.alive);\n    if (enemies.length === 0) { showToast('没有敌对帮派可挖角', 'error'); return; }\n    if (state.money < 1500) { showToast('需要$1500', 'error'); return; }
+    
+    // 选择一个敌对势力
+    const target = enemies[Math.floor(Math.random() * enemies.length)];
+    const cost = 1500 + Math.floor(target.power * 20);\n    if (state.money < cost) { showToast('需要$' + cost, 'error'); return; }
+    
+    const chance = 0.3 + state.influence * 0.003 - target.power * 0.005;
+    state.money -= cost;
+    
+    if (Math.random() < Math.max(0.1, Math.min(0.8, chance))) {
+        const m = createNewMember(state, { lv: 3 + Math.floor(Math.random() * 4) });
+        m.loyalty = 30 + Math.floor(Math.random() * 15);  // 挖来的忠诚度低
+        m._origFaction = target.name;
+        state.crew.push(m);
+        state.manpower = state.crew.length;
+        // 可能挖到卧底（对方反向渗透）
+        if (Math.random() < 0.15) {
+            m._isMole = true;
+            m._moleFaction = target.name;
+        }\n        showToast('成功从' + target.name + '挖来' + m.emoji + m.name + ' Lv.' + m.lv, 'success');\n        addMessage('挖角成功: ' + m.emoji + m.name + ' 从' + target.name + '加入', 'info');
+        // 关系恶化
+        target.power = Math.min(target.maxPower || 100, target.power + 3);
+    } else {\n        showToast('挖角失败，派去的人被杀了', 'error');\n        addMessage('挖角' + target.name + '失败，损失$' + cost, 'error');
+        if (state.crew.length > 0 && Math.random() < 0.3) {
+            const victim = state.crew[Math.floor(Math.random() * state.crew.length)];\n            victim.status = 'dead';\n            state.crew = state.crew.filter(m => m.status !== 'dead');
+            state.manpower = state.crew.length;\n            showToast('派去的联络人' + victim.name + '遇害', 'error');
+        }
+    }
+    updateUI();
+}
+
+// 逐出成员
+function expelMember(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m) return;
+    state.crew = state.crew.filter(c => c.id !== memberId);
+    state.manpower = state.crew.length;
+    // 逐出卧底不涨恶名
+    if (!m._isMole) {
+        state.notoriety = Math.max(0, state.notoriety - 2);\n        addMessage('逐出了 ' + m.emoji + m.name, 'info');
+    } else {\n        addMessage('卧底 ' + m.emoji + m.name + ' 被逐出组织', 'success');
+    }\n    showToast(m.name + ' 已逐出', 'info');
+    updateUI();
+}
+
+// 击杀成员（处决）
+function executeMember(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m) return;
+    state.crew = state.crew.filter(c => c.id !== memberId);
+    state.manpower = state.crew.length;
+    state.notoriety += 5;
+    state.security = Math.max(0, state.security - 5);
+    
+    // 如果是卧底，与派来方关系恶化
+    if (m._isMole && m._moleFaction) {
+        const enemy = (state.enemies || []).find(e => e.name === m._moleFaction);
+        if (enemy && enemy.alive) {
+            enemy.power = Math.min(enemy.maxPower || 100, enemy.power + 8);\n            addMessage(m._moleFaction + '因你处决了他们的卧底而震怒，战力+8', 'error');
+        }\n        if (m._moleFaction === 'police') {
+            state.security = Math.max(0, state.security - 15);\n            showToast('杀害警方卧底！警方加大了对你的打击力度', 'error');
+        }\n        addMessage('处决了卧底 ' + m.emoji + m.name + ' (' + m._moleFaction + ')', 'info');
+    } else {\n        showToast('处决了 ' + m.emoji + m.name + '，恶名+5', 'info');\n        addMessage('处决: ' + m.emoji + m.name, 'info');
+    }
+    updateUI();
+}
+
+// 成功策反卧底
+function turnMole(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m || !m._isMole) return;
+    m._isMole = false;      // 不再是卧底
+    m.loyalty = 35;         // 忠诚度低，但可以培养
+    m._moleFaction = null;
+    m.lv += 2;              // 双面间谍经验丰富\n    addMessage('成功策反卧底 ' + m.emoji + m.name + '！现在是双面间谍了', 'success');\n    showToast('策反成功！' + m.name + '已成为你的人', 'success');
+    updateUI();
+}
+
+// 提升成员经验
+function addMemberXp(state, member, amount) {\n    if (!member || member.status === 'dead') return;
+    member.xp += amount;
+    while (member.xp >= member.xpNeeded) {
+        member.xp -= member.xpNeeded;
+        member.lv++;
+        member.xpNeeded = member.lv * 20;
+        member.stat++;
+        member.maxAp = 3 + Math.floor(member.lv / 3);\n        showToast(member.emoji + member.name + ' 升级! Lv.' + member.lv, 'success');\n        addMessage(member.name + ' 升到Lv.' + member.lv + '，战力+' + member.stat, 'info');
+    }
+}
+
+// 显示成员详情
+function showMemberDetail(state, memberId) {
+    const m = state.crew.find(c => c.id === memberId);
+    if (!m) return;
+    \n    let html = '<div class="modal-overlay show" id="memberModal"><div class="modal-content">';\n    html += '<div class="modal-header"><span>' + m.emoji + ' ' + m.name + '</span>';\n    html += '<button class="btn-close" onclick="closeModal(\'memberModal\')">✕</button></div>';
+    \n    html += '<div style="font-size:.72em;line-height:1.8">';\n    html += '<div>职业: ' + m.className + '</div>';\n    html += '<div>等级: Lv.' + m.lv + ' (经验 ' + m.xp + '/' + m.xpNeeded + ')</div>';\n    html += '<div>战力: ⚡' + (m.stat + Math.floor(m.lv / 3)) + '</div>';\n    html += '<div>忠诚: ♥' + m.loyalty + '</div>';\n    html += '<div>生命: ❤️' + m.hp + '/' + m.maxHp + '</div>';\n    html += '<div>行动力: ⏱' + m.ap + '/' + m.maxAp + '</div>';\n    html += '<div>任务: ' + m.missions + '次 | 击杀: ' + m.kills + '人</div>';
+    if (m.equipped && m.equipped.length > 0) {\n        html += '<div>装备: ' + m.equipped.map(e => {
+            const item = CONFIG.ITEMS.find(i => i.id === e);
+            return item ? item.emoji + item.name : e;\n        }).join(' ') + '</div>';
+    }\n    html += '<div>加入时间: 第' + m.joinedAt + '回合</div>';\n    html += '</div>';
+    
+    // 操作按钮\n    html += '<div class="btn-group" style="margin-top:8px;display:flex;gap:4px;flex-wrap:wrap">';\n    html += '<button class="btn" onclick="expelMember(state, ' + m.id + ');closeModal(\'memberModal\')" style="border-color:#fbbf24">🚪 逐出</button>';\n    html += '<button class="btn btn-red" onclick="if(confirm(\'确定要处决' + m.name + '吗？恶名+5\')){executeMember(state, ' + m.id + ');closeModal(\'memberModal\')}" style="border-color:#f87171">💀 处决</button>';\n    html += '</div>';
+    \n    html += '<button class="btn" onclick="closeModal(\'memberModal\')" style="margin-top:6px">关闭</button>';\n    html += '</div></div>';
+    \n    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// 卧底行动检查（在每次任务后调用，不暴露具体逻辑）
+function checkMoleActivity(state, missionMembers, missionSuccess) {\n    const moles = missionMembers.filter(m => m._isMole && m._moleActive && m.status !== 'dead');
+    if (moles.length === 0) return null;
+    
+    let result = null;
+    
+    for (const mole of moles) {
+        // 卧底行为：任务失败时落井下石
+        if (!missionSuccess && Math.random() < 0.4) {
+            // 害死一个同事\n            const targets = missionMembers.filter(m => !m._isMole && m.status !== 'dead');
+            if (targets.length > 0) {
+                const victim = targets[Math.floor(Math.random() * targets.length)];\n                victim.status = 'dead';
+                mole._killCount++;
+                result = {\n                    type: 'betray',
+                    moleName: mole.name,
+                    victimName: victim.name,
+                    moleEmoji: mole.emoji,
+                };\n                addMessage('[卧底] ' + mole.emoji + mole.name + ' 在混乱中杀害了 ' + victim.name, 'error');
+            }
+        }
+        
+        // 任务成功时也有小概率搞破坏
+        if (missionSuccess && Math.random() < 0.1) {
+            mole._sabotages++;
+            result = {\n                type: 'sabotage',
+                moleName: mole.name,
+                moleEmoji: mole.emoji,
+            };
+            // 收益减少
+            const penalty = 100 + Math.floor(Math.random() * 200);
+            state.money = Math.max(0, state.money - penalty);\n            addMessage('[卧底] ' + mole.emoji + mole.name + ' 私吞了部分收益 (-$' + penalty + ')', 'error');
+        }
+        
+        // 已杀够多人可能试图刺杀老大
+        if (mole._killCount >= 2 && Math.random() < 0.05) {
+            result = {\n                type: 'assassinate',
+                moleName: mole.name,
+                moleEmoji: mole.emoji,
+            };
+            // 触发刺杀事件（由事件系统处理）\n            addMessage('⚠ 一条暗杀你的计划正在酝酿...', 'error');
+        }
+    }
+    
+    return result;
+}
+
+// 派成员出任务（自动分配）
+function assignMissionCrew(state, missionId, count) {\n    const available = state.crew.filter(m => m.status === 'idle' && m.ap >= 1);
+    const selected = [];
+    
+    // 按战力排序，优先派高级的
+    available.sort((a, b) => (b.lv + (b.stat||0)) - (a.lv + (a.stat||0)));
+    
+    for (let i = 0; i < Math.min(count, available.length); i++) {
+        selected.push(available[i]);\n        available[i].status = 'working';
+        available[i].ap = Math.max(0, available[i].ap - 1);
+    }
+    
+    return selected;
+}
+
+// 完成任务后恢复成员
+function completeMissionCrew(state, memberIds, success) {
+    memberIds.forEach(id => {
+        const m = state.crew.find(c => c.id === id);
+        if (!m) return;\n        m.status = 'idle';
+        m.missions = (m.missions || 0) + 1;
+        if (success) {
+            m.loyalty = Math.min(100, (m.loyalty || 50) + 2);
+            addMemberXp(state, m, 10 + Math.floor(Math.random() * 10));
+        } else {
+            m.loyalty = Math.max(5, (m.loyalty || 50) - 5);
+            addMemberXp(state, m, 3 + Math.floor(Math.random() * 5));
+        }
+    });
+}
+
+// 任务选人界面
+function openMissionSetup(missionId) {
+    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
+    if (!mission) return;
+    \n    const available = state.crew.filter(m => m.status === 'idle' && m.ap >= 1);
+    if (available.length < mission.minCrew) {\n        showToast('需要至少' + mission.minCrew + '名空闲成员！当前仅' + available.length + '人', 'error');
+        return;
+    }
+    
+    state._pendingMission = missionId;
+    state._selectedMissionCrew = [];
+    \n    let html = '<div class="modal-overlay show" id="missionModal"><div class="modal-content">';\n    html += '<div class="modal-header"><span>⚡ ' + mission.id + '</span>';\n    html += '<button class="btn-close" onclick="closeModal(\'missionModal\')">✕</button></div>';\n    html += '<div style="font-size:.65em;color:#888;margin:4px 0">' + mission.desc + ' | 奖励: $' + calculateMissionReward(state, mission) + '</div>';
+    
+    // 成员选择\n    html += '<div style="margin:6px 0;font-size:.7em;color:#fbbf24">选择参战成员（至少' + mission.minCrew + '人，点选切换）</div>';\n    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;max-height:200px;overflow-y:auto;padding:2px">';
+    
+    available.forEach(m => {\n        const isMatch = (m.class === '打手' && mission.combatReq > 0) || (m.class === '情报员' && mission.intelReq > 0) || m.class === '杀手' || m.class === '狙击手';\n        html += '<div class="crew-chip" data-mid="' + m.id + '" onclick="toggleMissionMember(' + m.id + ')" style="border:1px solid #444;border-radius:20px;padding:4px 10px;font-size:.65em;cursor:pointer;background:transparent">';\n        html += m.emoji + ' ' + m.name + ' Lv.' + m.lv;\n        if (isMatch) html += ' <span style="color:#34d399">✓</span>';\n        html += ' <span style="color:#888">⏱' + m.ap + '</span>';\n        html += '</div>';
+    });
+    \n    html += '</div>';
+    
+    // 已选人数\n    html += '<div style="font-size:.65em;color:#888;margin:4px 0" id="missionCrewCount">已选: 0/' + available.length + '人 | 团队默契: <span id="synergyDisplay">计算中...</span></div>';
+    \n    html += '<div class="btn-group" style="margin-top:6px">';\n    html += '<button class="btn btn-gold" onclick="executeMissionWithCrew()" id="missionGoBtn" disabled>⚡ 执行任务</button>';\n    html += '<button class="btn" onclick="closeModal(\'missionModal\')">取消</button>';\n    html += '</div></div></div>';
+    \n    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function toggleMissionMember(memberId) {
+    const idx = state._selectedMissionCrew.indexOf(memberId);
+    if (idx >= 0) {
+        state._selectedMissionCrew.splice(idx, 1);
+    } else {
+        state._selectedMissionCrew.push(memberId);
+    }
+    updateMissionUI();
+}
+
+function updateMissionUI() {
+    const count = state._selectedMissionCrew.length;
+    const mission = CONFIG.MISSIONS.find(m => m.id === state._pendingMission);
+    if (!mission) return;
+    
+    // 更新计数\n    const el = document.getElementById('missionCrewCount');
+    if (el) {
+        const synergy = calculateTeamSynergy(state, state._selectedMissionCrew);\n        const synColor = synergy > 5 ? '#34d399' : synergy < -5 ? '#f87171' : '#888';\n        el.innerHTML = '已选: ' + count + '/' + (state.crew.filter(m => m.status === 'idle' && m.ap >= 1).length) + '人 | 团队默契: <span style="color:' + synColor + '">' + (synergy > 0 ? '+' : '') + synergy + '%</span>';
+    }
+    
+    // 更新高亮\n    document.querySelectorAll('.crew-chip').forEach(chip => {
+        const id = parseInt(chip.dataset.mid);
+        const selected = state._selectedMissionCrew.includes(id);\n        chip.style.borderColor = selected ? '#34d399' : '#444';\n        chip.style.background = selected ? 'rgba(52,211,153,0.15)' : 'transparent';
+    });
+    
+    // 启用/禁用按钮\n    const btn = document.getElementById('missionGoBtn');
+    if (btn) btn.disabled = count < mission.minCrew;
+}
+
+// 新版的执行任务（带选人）
+function executeMissionWithCrew() {
+    const missionId = state._pendingMission;
+    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
+    if (!mission) return;
+    
+    const memberIds = state._selectedMissionCrew;
+    if (!memberIds || memberIds.length < mission.minCrew) {\n        showToast('至少需要' + mission.minCrew + '人', 'error');
+        return;
+    }
+    \n    if (state.ap < 1) { showToast('行动力不足', 'error'); return; }
+    \n    closeModal('missionModal');
+    state.ap -= 1;
+    
+    const reward = calculateMissionReward(state, mission);
+    const synergy = calculateTeamSynergy(state, memberIds);
+    
+    // 计算成功率
+    let successRate = 0.45;
+    successRate += state.level * 0.012;
+    successRate += state.influence * 0.002;
+    
+    // 职业匹配
+    memberIds.forEach(id => {
+        const m = state.crew.find(c => c.id === id);
+        if (!m) return;\n        if (m.class === '打手' && mission.combatReq > 0) successRate += 0.05;\n        if (m.class === '情报员' && mission.intelReq > 0) successRate += 0.05;\n        if (m.class === '杀手') successRate += 0.03;\n        if (m.class === '狙击手') successRate += 0.03;
+    });
+    
+    // 团队默契影响
+    successRate += synergy * 0.005;  // 默契每点±0.5%
+    
+    // 人数奖励（人越多配合越难，但力量越大）
+    successRate += memberIds.length * 0.02;
+    
+    successRate = Math.max(0.1, Math.min(0.95, successRate));
+    
+    const isSuccess = Math.random() < successRate;
+    
+    // 派成员出任务
+    const assigned = memberIds.map(id => state.crew.find(c => c.id === id)).filter(m => m);
+    assigned.forEach(m => {\n        m.status = 'working';
+        m.ap = Math.max(0, (m.ap || 3) - 1);
+    });
+    
+    // 检查卧底活动
+    const moleResult = checkMoleActivity(state, assigned, isSuccess);
+    
+    if (isSuccess) {
+        state.money += reward;
+        addExp(state, 10 + Math.floor(Math.random() * 15));
+        addNotoriety(state, mission.baseRisk / 10);
+        addInfluence(state, 1);
+        state.missionHistory.push({ id: mission.id, success: true, day: state.turn });
+        completeMissionCrew(state, memberIds, true);
+        \n        let msg = '任务成功! +$' + reward;\n        if (synergy > 5) msg += ' (默契配合+' + synergy + '%)';\n        else if (synergy < -5) msg += ' (成员不合-' + Math.abs(synergy) + '%)';\n        addMessage('[任务] ' + missionId + ' 成功! $' + reward, 'success');\n        showToast(msg, 'success');
+        
+        // 道具掉落
+        checkMissionDrop();
+        
+        if (Math.random() < 0.15) setTimeout(() => triggerRandomEvent(state), 500);
+    } else {
+        const penalty = Math.floor(reward * 0.3);
+        state.money = Math.max(0, state.money - penalty);
+        addNotoriety(state, mission.baseRisk / 5);
+        state.missionHistory.push({ id: mission.id, success: false, day: state.turn });
+        completeMissionCrew(state, memberIds, false);
+        \n        let msg = '任务失败! -$' + penalty;\n        if (synergy < -10) msg += ' (成员严重不合)';\n        addMessage('[任务] ' + missionId + ' 失败! -$' + penalty, 'error');\n        showToast(msg, 'error');
+        
+        // 战损 - 成员不合会加大损失
+        const lossChance = 0.15 + (synergy < 0 ? Math.abs(synergy) * 0.01 : 0);
+        assigned.forEach(m => {
+            if (Math.random() < lossChance) {
+                m.hp = (m.hp || 80) - 30;
+                if ((m.hp || 50) <= 0 && Math.random() < 0.5) {\n                    m.status = 'dead';\n                    addMessage(m.name + ' 在任务中阵亡', 'error');\n                    showToast(m.name + ' 阵亡...', 'error');
+                }
+            }
+        });\n        state.crew = state.crew.filter(m => m.status !== 'dead');
+        state.manpower = state.crew.length;
+    }
+    
+    checkEndings(state);
+    renderActionsTab();
+    updateUI();
+}
+
+// 回收AP
+function resetAp(state) {\n    state.crew.filter(m => m.status !== 'dead').forEach(m => {
+        m.ap = m.maxAp || (3 + Math.floor(m.lv / 3));
+    });
+}
+
+// ===== 分支事件系统 =====
+
+// ---- 事件定义 ----
+const EVENTS = {
+    // ===== 警方相关 =====
+    police_raid: {\n        id: 'police_raid',\n        title: '🛡️ 警方突击检查',\n        desc: '警方突然在全市展开大规模突击检查！你的几个据点面临暴露风险。',
+        phase: 0,
+        choices: [
+            {\n                text: '💰 贿赂警方 ($500)',
+                cost: { money: 500 },\n                result: '你花重金买通了负责行动的警官，突击检查"正好"绕过了你的据点。',
+                effects: { money: -500, notoriety: 5 },
+                chance: 0.8,
+            },
+            {\n                text: '⚔️ 硬刚到底 (人手≥5)',
+                cost: { manpower: 0 },
+                req: { manpower: 5 },\n                result: '你的手下和警方发生了激烈冲突！虽然击退了警察，但损失惨重。',
+                effects: { manpower: -2, notoriety: 15, security: -10 },
+                chance: 0.5,
+            },
+            {\n                text: '🏃 撤退躲藏',
+                cost: {},\n                result: '你命令所有人暂时撤退隐藏，风头过后再出来。安全但损失了几天收入。',
+                effects: { money: -200, security: 5 },
+                chance: 1.0,
+            },
+        ],
+    },
+
+    police_infiltrate: {\n        id: 'police_infiltrate',\n        title: '🕵️ 发现警方卧底',\n        desc: '你收到消息，组织内部可能混入了警方的卧底！需要立刻处理。',
+        phase: 1,
+        choices: [
+            {\n                text: '🔍 暗中调查 (情报≥10)',
+                cost: { intel: 5 },
+                req: { intel: 10 },\n                result: '经过细致调查，你揪出了卧底，顺藤摸瓜获取了警方的情报网络。',
+                effects: { intel: 15, influence: 5, notoriety: 5 },
+                chance: 0.9,
+            },
+            {\n                text: '⚡ 全员审查',
+                cost: { money: 300 },\n                result: '你进行了一轮铁腕审查，虽然抓到了卧底但也让手下人人自危。',
+                effects: { money: -300, security: 10, loyalty: -5, notoriety: 5 },
+                chance: 0.7,
+            },
+            {\n                text: '💀 杀鸡儆猴',
+                cost: {},\n                result: '你处决了几个可疑分子，不确定是否杀对了人，但短期内没人敢背叛了。',
+                effects: { manpower: -1, security: 15, influence: -5, notoriety: 10 },
+                chance: 0.6,
+            },
+        ],
+    },
+
+    // ===== 忠诚度相关 =====
+    loyalty_crisis: {\n        id: 'loyalty_crisis',\n        title: '😤 忠诚危机',\n        desc: '几名核心成员对你的领导方式不满，私下串联想要"换个大哥"。',
+        phase: 1,
+        choices: [
+            {\n                text: '💰 给好处安抚 ($400)',
+                cost: { money: 400 },\n                result: '你给核心成员们加了分成，又送了一批好货，暂时稳住了人心。',
+                effects: { money: -400, loyalty: 15 },
+                chance: 0.85,
+            },
+            {\n                text: '🗡️ 杀鸡儆猴',
+                cost: { manpower: 1 },\n                result: '你把带头闹事的做掉了，血腥镇压让所有人都不敢再吭声。',
+                effects: { manpower: -1, loyalty: -10, notoriety: 10, security: 5 },
+                chance: 0.7,
+            },
+            {\n                text: '🤝 谈话感化 (影响力≥20)',
+                cost: {},
+                req: { influence: 20 },\n                result: '你找每个人单独谈话，画大饼讲理想，又许诺了更好的未来。大部分人被你说服了。',
+                effects: { loyalty: 20, influence: 5 },
+                chance: 0.9,
+            },
+        ],
+    },
+
+    // ===== 帮派冲突 =====
+    gang_war: {\n        id: 'gang_war',\n        title: '⚔️ 帮派挑衅',\n        desc: '敌对帮派在你的地盘上挑衅闹事，砸了你的场子！如果不回应，威望将一落千丈。',
+        phase: 0,
+        choices: [
+            {\n                text: '⚡ 立刻反击 (人手≥3)',
+                cost: { manpower: 0 },
+                req: { manpower: 3 },\n                result: '你带人杀了个回马枪，打得对方措手不及。地盘保住了，但梁子结得更深了。',
+                effects: { notoriety: 10, security: 5, influence: 5 },
+                chance: 0.6,
+            },
+            {\n                text: '🕊️ 谈判讲和 (资金≥300)',
+                cost: { money: 300 },
+                req: { money: 300 },\n                result: '你约对方老大出来喝茶谈判，让出了一部分利益换来暂时和平。',
+                effects: { money: -300, influence: -5, security: 10 },
+                chance: 0.8,
+            },
+            {\n                text: '🔥 以退为进',
+                cost: {},\n                result: '你暂时退让，让对方以为你怂了。暗地里你正在准备一次更大规模的报复。',
+                effects: { money: -100, security: -10, notoriety: 5 },
+                chance: 0.7,
+            },
+        ],
+    },
+
+    gang_alliance: {\n        id: 'gang_alliance',\n        title: '🤝 帮派联盟提议',\n        desc: '一个中型帮派派来使者，提议与你结成攻守同盟，共同对抗更大的敌人。',
+        phase: 2,
+        choices: [
+            {\n                text: '✅ 接受联盟 (影响力≥25)',
+                cost: {},
+                req: { influence: 25 },\n                result: '双方歃血为盟，你的势力得到了可靠盟友的支援，前途一片光明。',
+                effects: { influence: 10, manpower: 3, security: 10 },
+                chance: 0.9,
+            },
+            {\n                text: '🚫 拒绝并吞并',
+                cost: { manpower: 5 },\n                result: '你假意谈判，在会面时设伏吞并了对方的精锐力量！',
+                effects: { manpower: 3, notoriety: 15, influence: 5, security: -5 },
+                chance: 0.5,
+            },
+            {\n                text: '💰 要求进贡 ($1000)',
+                cost: { money: 0 },
+                req: { money: 1000 },\n                result: '你狮子大开口要求对方定期进贡，对方表面上答应了但心怀不满。',
+                effects: { money: 500, influence: -5, security: -5 },
+                chance: 0.6,
+            },
+        ],
+    },
+
+    // ===== 商业机会 =====
+    business_opportunity: {\n        id: 'business_opportunity',\n        title: '💼 意外商机',\n        desc: '一个神秘商人找你合作，有一批"特殊商品"需要快速脱手，利润丰厚但风险不小。',
+        phase: 0,
+        choices: [
+            {\n                text: '✅ 接下生意 ($500本金)',
+                cost: { money: 500 },\n                result: '你接下了这批货，三天后全部出手，赚得盆满钵满！',
+                effects: { money: 1200, notoriety: 10 },
+                chance: 0.6,
+            },
+            {\n                text: '🕵️ 先调查货源 (情报≥8)',
+                cost: { intel: 3 },
+                req: { intel: 8 },\n                result: '你发现这批货是警方的钓鱼执法，成功躲过一劫还反向获取了警方情报！',
+                effects: { intel: 10, influence: 5 },
+                chance: 0.95,
+            },
+            {\n                text: '❌ 婉言谢绝',
+                cost: {},\n                result: '你谨慎地拒绝了这笔生意。安全至上。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    black_market_deal: {\n        id: 'black_market_deal',\n        title: '🔫 黑市军火交易',\n        desc: '军火贩子搞到了一批军方淘汰装备，问你有没有兴趣。这批货能大幅提升你的战斗力。',
+        phase: 2,
+        choices: [
+            {\n                text: '💰 全款购入 ($1500)',
+                cost: { money: 1500 },\n                result: '你买下了整批军火，手下战斗力飙升！现在你们装备精良。',
+                effects: { money: -1500, combat_power: 20, notoriety: 10 },
+                chance: 0.9,
+            },
+            {\n                text: '🔫 黑吃黑 (人手≥8)',
+                cost: { manpower: 0 },
+                req: { manpower: 8 },\n                result: '你设下圈套抢了军火贩子，货拿到了而且没花一分钱！但结下了新仇家。',
+                effects: { money: 500, manpower: -1, notoriety: 15, security: -5 },
+                chance: 0.4,
+            },
+            {\n                text: '🤝 中介分成',
+                cost: {},\n                result: '你介绍给了另一个帮派，从中赚了一笔中介费。',
+                effects: { money: 300, influence: 3 },
+                chance: 0.85,
+            },
+        ],
+    },
+
+    // ===== 内部事务 =====
+    internal_affair: {\n        id: 'internal_affair',\n        title: '📋 内部整顿',\n        desc: '你发现组织内部管理混乱，账目不清，有人中饱私囊。需要整肃纪律。',
+        phase: 1,
+        choices: [
+            {\n                text: '📊 建立新制度 ($300)',
+                cost: { money: 300 },\n                result: '你引入了一套严格的管理制度，虽然初期有阻力但长期来看效率大大提升。',
+                effects: { money: -300, influence: 5, loyalty: -5, income_boost: 0.15 },
+                chance: 0.8,
+            },
+            {\n                text: '💀 严惩贪腐分子',
+                cost: { manpower: 1 },\n                result: '你抓了几个典型当众处刑，震慑了所有人。但损失了人手。',
+                effects: { manpower: -1, security: 10, loyalty: -10, notoriety: 8 },
+                chance: 0.7,
+            },
+            {\n                text: '😈 以毒攻毒',
+                cost: {},\n                result: '你放任他们贪，但暗中掌握了所有人的把柄。从此没人敢不听你的。',
+                effects: { influence: 5, loyalty: -15, security: -5, notoriety: 3 },
+                chance: 0.6,
+            },
+        ],
+    },
+
+    // ===== 天灾/意外 =====
+    natural_disaster: {\n        id: 'natural_disaster',\n        title: '🌊 突发灾难',\n        desc: '一场突如其来的暴风雨席卷了城市，你的几个据点受损严重。',
+        phase: 0,
+        choices: [
+            {\n                text: '💰 花钱修复 ($400)',
+                cost: { money: 400 },\n                result: '你花重金快速修复了所有据点，组织运转恢复正常。',
+                effects: { money: -400, security: 10, influence: 3 },
+                chance: 0.9,
+            },
+            {\n                text: '👷 动员人手修复 (人手≥4)',
+                cost: {},
+                req: { manpower: 4 },\n                result: '你动员所有兄弟日夜抢修，虽然辛苦但省下了钱。',
+                effects: { security: 5, loyalty: 5 },
+                chance: 0.8,
+            },
+            {\n                text: '🏚️ 放弃受损据点',
+                cost: {},\n                result: '你放弃了受损最严重的据点，收缩防线。损失了一些地盘。',
+                effects: { security: -10, money: -100, influence: -5 },
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 招募事件 =====
+    special_recruit: {\n        id: 'special_recruit',\n        title: '🌟 特殊人才出现',\n        desc: '一个神秘人物主动找上门来，声称有特殊技能可以帮助你壮大组织。',
+        phase: 1,
+        choices: [
+            {\n                text: '✅ 欢迎加入 ($500)',
+                cost: { money: 500 },\n                result: '这位神秘人展示了他的非凡才能，成为了你的得力干将！',
+                effects: { money: -500, manpower: 1, special_member: true, influence: 5 },
+                chance: 0.8,
+            },
+            {\n                text: '🔍 先调查背景 (情报≥15)',
+                cost: { intel: 5 },
+                req: { intel: 15 },\n                result: '你发现这人是敌对帮派派来的杀手！将他拿下反而获得了大量情报。',
+                effects: { intel: 15, security: 10, influence: 5 },
+                chance: 0.95,
+            },
+            {\n                text: '❌ 不信陌生人',
+                cost: {},\n                result: '你礼貌地拒绝了。小心驶得万年船。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 地盘扩建 =====
+    territory_expansion: {\n        id: 'territory_expansion',\n        title: '🗺️ 扩张良机',\n        desc: '你的邻居帮派内部发生火并，实力大减。现在是扩张地盘的好机会！',
+        phase: 1,
+        choices: [
+            {\n                text: '⚔️ 全面进攻 (人手≥6)',
+                cost: { manpower: 0 },
+                req: { manpower: 6 },\n                result: '你发动全面进攻，趁他病要他命！吞并了大片地盘。',
+                effects: { district_gain: 2, notoriety: 15, manpower: -2, security: -10 },
+                chance: 0.5,
+            },
+            {\n                text: '🕵️ 渗透蚕食 (情报≥12)',
+                cost: { intel: 5 },
+                req: { intel: 12 },\n                result: '你通过渗透和收买，不动声色地接管了对方的地盘。',
+                effects: { district_gain: 1, intel: -5, influence: 8 },
+                chance: 0.75,
+            },
+            {\n                text: '💰 花钱购买 ($800)',
+                cost: { money: 800 },\n                result: '你出钱买下了对方的地盘，双赢。',
+                effects: { money: -800, district_gain: 1, influence: 3 },
+                chance: 0.9,
+            },
+        ],
+    },
+
+    // ===== 腐败官员 =====
+    corrupt_official: {\n        id: 'corrupt_official',\n        title: '👔 腐败官员找上门',\n        desc: '一位市政府高官暗示可以为你提供"保护"，但需要你定期"孝敬"。',
+        phase: 2,
+        choices: [
+            {\n                text: '✅ 建立长期关系 ($200/月)',
+                cost: { money: 800 },\n                result: '你和高官建立了稳定的利益输送关系，从此警方的行动你都能提前获知。',
+                effects: { money: -800, influence: 10, security: 15, intel: 5 },
+                chance: 0.85,
+            },
+            {\n                text: '📸 秘密取证 (情报≥20)',
+                cost: { intel: 8 },
+                req: { intel: 20 },\n                result: '你暗中搜集了官员的受贿证据，反过来拿捏了他！从此他是你的棋子。',
+                effects: { intel: -5, influence: 15, security: 10 },
+                chance: 0.8,
+            },
+            {\n                text: '🚫 无视他',
+                cost: {},\n                result: '你拒绝了他的要求。他脸色铁青地离开了，这梁子算是结下了。',
+                effects: { influence: -10, security: -10 },
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 高科技机遇 =====
+    tech_opportunity: {\n        id: 'tech_opportunity',\n        title: '💻 暗网机遇',\n        desc: '一个匿名黑客在暗网上发布了一条加密信息，声称能入侵城市监控系统。',
+        phase: 2,
+        choices: [
+            {\n                text: '🤝 合作入股 ($600)',
+                cost: { money: 600 },\n                result: '你投资了黑客的项目，成功获取了城市监控系统的后门权限！',
+                effects: { money: -600, intel: 20, influence: 5, security: 5 },
+                chance: 0.7,
+            },
+            {\n                text: '🕵️ 招募该黑客 (情报≥10)',
+                cost: { intel: 5 },
+                req: { intel: 10 },\n                result: '你通过暗网联系上了黑客，用情报交换了他的忠诚。他加入了你的团队。',
+                effects: { intel: -5, manpower: 1, tech_boost: true },
+                chance: 0.8,
+            },
+            {\n                text: '🚨 举报给警方',
+                cost: {},\n                result: '你匿名举报了黑客，获得了警方的信任。这步棋以后会有用。',
+                effects: { influence: 5, security: 10, notoriety: -5 },
+                chance: 0.9,
+            },
+        ],
+    },
+
+    // ===== 高层博弈 =====
+    high_stakes: {\n        id: 'high_stakes',\n        title: '♟️ 高层博弈',\n        desc: '城市地下世界的格局即将改变。三大势力都在暗中布局，你需要选择立场。',
+        phase: 3,
+        choices: [
+            {\n                text: '👑 自立为王 (影响力≥50)',
+                cost: {},
+                req: { influence: 50 },\n                result: '你宣布独立，不依附任何势力。这是一条最艰难但也最辉煌的道路。',
+                effects: { influence: 20, notoriety: 20, security: -15, manpower: -3 },
+                chance: 0.4,
+            },
+            {\n                text: '🤝 联吴抗曹 (影响力≥30)',
+                cost: { influence: 5 },
+                req: { influence: 30 },\n                result: '你选择和一方势力结盟，共同对抗最强大的那个。手段精明。',
+                effects: { influence: 10, security: 10, intel: 10, manpower: 3 },
+                chance: 0.7,
+            },
+            {\n                text: '🕶️ 坐山观虎斗 (情报≥30)',
+                cost: { intel: 10 },
+                req: { intel: 30 },\n                result: '你让三方互相残杀，自己在暗中渔翁得利。等他们两败俱伤时，你将以雷霆之势出现。',
+                effects: { intel: 5, influence: 15, security: 5, district_gain: 2 },
+                chance: 0.65,
+            },
+        ],
+    },
+
+    // ===== 成员纠纷 =====
+    crew_dispute: {\n        id: 'crew_dispute',\n        title: '💢 内部纠纷',\n        desc: '两名得力干将因为分赃不均大打出手，整个据点都被他们搅得鸡犬不宁。',
+        phase: 1,
+        choices: [
+            {\n                text: '⚖️ 各打五十大板',
+                cost: {},\n                result: '你把两人都训斥了一顿，重新分配了利益。他们虽然不服但不敢再造次。',
+                effects: { loyalty: 5, influence: 3 },
+                chance: 0.7,
+            },
+            {\n                text: '👑 偏袒一方',
+                cost: { manpower: 1 },\n                result: '你偏袒了你更喜欢的那一个，另一个愤然离去。组织里少了一个人，但剩下来的更忠诚。',
+                effects: { manpower: -1, loyalty: 10, influence: -3 },
+                chance: 0.8,
+            },
+            {\n                text: '💀 调解无效，全部驱逐',
+                cost: {},\n                result: '你厌倦了这些内斗，把两人都赶出了组织。杀鸡儆猴，其他人再也不敢闹了。',
+                effects: { manpower: -2, loyalty: 15, notoriety: 5 },
+                chance: 0.9,
+            },
+        ],
+    },
+
+    // ===== 新人考验 =====
+    new_member_test: {\n        id: 'new_member_test',\n        title: '🔪 入会考验',\n        desc: '一个年轻人想要加入组织，按照规矩需要进行入会考验。',
+        phase: 0,
+        choices: [
+            {\n                text: '✅ 标准考验',
+                cost: {},\n                result: '年轻人通过了考验，展现了可靠的品质。新成员加入！',
+                effects: { manpower: 1, notoriety: 3 },
+                chance: 0.7,
+            },
+            {\n                text: '💰 让他交投名状 ($200)',
+                cost: { money: 200 },\n                result: '他交了足够的"诚意金"，证明了自己的忠诚和价值。',
+                effects: { money: 200, manpower: 1 },
+                chance: 0.85,
+            },
+            {\n                text: '❌ 拒绝他',
+                cost: {},\n                result: '你觉得他不够格，打发他走了。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 媒体危机 =====
+    media_crisis: {\n        id: 'media_crisis',\n        title: '📺 媒体曝光',\n        desc: '一名记者调查到了你的非法活动，准备在明天的头版曝光！',
+        phase: 1,
+        choices: [
+            {\n                text: '💰 收买记者 ($600)',
+                cost: { money: 600 },\n                result: '你用一个厚厚的信封和几个"独家消息"换来了记者的沉默。',
+                effects: { money: -600, influence: 3, notoriety: -5 },
+                chance: 0.8,
+            },
+            {\n                text: '🔫 威胁恐吓',
+                cost: { manpower: 1 },\n                result: '你派人"拜访"了记者，让他明白多管闲事的代价。他怂了。',
+                effects: { manpower: -1, notoriety: 10, security: -5 },
+                chance: 0.7,
+            },
+            {\n                text: '🔄 转移焦点',
+                cost: { money: 300 },\n                result: '你制造了一个更大的新闻，把公众注意力引开了。记者也被调去追别的线索了。',
+                effects: { money: -300, influence: -3, security: 5 },
+                chance: 0.75,
+            },
+        ],
+    },
+
+    // ===== 暗杀企图 =====
+    assassination_attempt: {\n        id: 'assassination_attempt',\n        title: '🔥 暗杀行动',\n        desc: '你收到线报：敌对帮派派出了顶级杀手来取你性命！',
+        phase: 2,
+        choices: [
+            {\n                text: '🛡️ 加强安保 ($500)',
+                cost: { money: 500 },\n                result: '你重金雇佣了顶尖保镖，杀手无功而返。',
+                effects: { money: -500, security: 15, influence: 3 },
+                chance: 0.9,
+            },
+            {\n                text: '🔄 反杀 (人手≥4)',
+                cost: { manpower: 0 },
+                req: { manpower: 4 },\n                result: '你不是等死的人。你反过来设伏，干掉了杀手还顺藤摸瓜找到了幕后主使！',
+                effects: { manpower: -1, intel: 12, influence: 8, notoriety: 10 },
+                chance: 0.5,
+            },
+            {\n                text: '🏃 暂时躲藏',
+                cost: { money: 200 },\n                result: '你暂时躲进了安全屋，等风声过了再出来。安全但有点丢面子。',
+                effects: { money: -200, security: 5, influence: -5 },
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 终极考验 =====
+    final_test: {\n        id: 'final_test',\n        title: '🏆 终极考验',\n        desc: '你的组织已经成为了城市地下世界不可忽视的力量。现在，真正的挑战来了——你需要证明自己有资格统治这一切。',
+        phase: 3,
+        choices: [
+            {\n                text: '⚔️ 武力征服 (人手≥10, 资金≥1000)',
+                cost: { money: 1000 },
+                req: { manpower: 10, money: 1000 },\n                result: '你发动了规模空前的战争机器，用铁与血征服了一切对手！',
+                effects: { money: -1000, manpower: -3, notoriety: 25, influence: 20, district_gain: 3 },
+                chance: 0.4,
+            },
+            {\n                text: '🎭 智取 (情报≥30, 影响力≥40)',
+                cost: { intel: 10 },
+                req: { intel: 30, influence: 40 },\n                result: '你用智慧和谋略，不费一兵一卒就瓦解了所有对手的联盟。所有人都臣服于你。',
+                effects: { intel: -5, influence: 25, security: 15 },
+                chance: 0.7,
+            },
+            {\n                text: '💰 金钱攻势 (资金≥3000)',
+                cost: { money: 3000 },
+                req: { money: 3000 },\n                result: '你花天价买通了从政府到黑道的所有人。没人能拒绝这样的价格。',
+                effects: { money: -3000, influence: 30, notoriety: 5 },
+                chance: 0.85,
+            },
+        ],
+    },
+
+    // ===== 卧底相关 =====
+    mole_suspicion: {\n        id: 'mole_suspicion',\n        title: '🕵️ 暗流涌动',\n        desc: '你注意到最近几次行动总是走漏风声。有人在暗中破坏。手下有人私下议论，说组织里可能有内鬼。',
+        phase: 0,
+        choices: [
+            {\n                text: '🔍 派情报员彻查 (需情报员)',
+                cost: { intel: 5 },
+                req: { intel: 5, hasSpy: true },\n                result: '情报员连夜排查，揪出了一个隐藏很深的卧底！原来是敌对帮派安插的眼线。',
+                effects: { intel: -3, security: 10 },
+                chance: 0.7,\n                special: 'reveal_mole',
+            },
+            {\n                text: '💀 宁可错杀，不可放过 (恶名+5)',
+                cost: { manpower: -1, notoriety: 5 },\n                result: '你处决了几个可疑分子，虽然不确定是否杀对了人，但短期内没人敢轻举妄动了。',
+                effects: { manpower: -1, notoriety: 5, security: 8 },
+                chance: 0.5,
+            },
+            {\n                text: '🤝 按兵不动，暗中观察',
+                cost: {},\n                result: '你决定不打草惊蛇，让手下留意异常。几周后，一条线索浮出水面。',
+                effects: { intel: 5 },
+                chance: 0.6,
+            },
+        ],
+    },
+
+    assassinate_attempt: {\n        id: 'assassinate_attempt',\n        title: '🗡️ 夜半杀机',\n        desc: '深夜，你被一阵异响惊醒。有人在黑暗中摸进了你的房间，刀光一闪——',
+        phase: 1,
+        choices: [
+            {\n                text: '🛡️ 贴身保镖抵挡 (需人手≥3)',
+                cost: { manpower: 0 },
+                req: { manpower: 3 },\n                result: '你的贴身护卫与刺客搏斗，击退了袭击者。刺客在被抓住前服毒自尽了。从他身上的纹身看，是敌对帮派派来的死士。',
+                effects: { notoriety: 3 },
+                chance: 0.8,
+            },
+            {\n                text: '🔫 亲自还击',
+                cost: {},\n                result: '你从枕头下抽出枪，对着黑影连开三枪。刺客倒地，但你大腿上也中了一刀。你的威望反而因此提升——老大亲自干掉了刺客。',
+                effects: { influence: 5, hp: -20 },
+                chance: 0.6,
+            },
+            {\n                text: '🏃 跳窗逃跑',
+                cost: {},\n                result: '你从二楼窗口跳出，摔伤了脚踝。虽然狼狈，但你活了下来。这件事让你意识到安保必须加强。',
+                effects: { security: -5, money: -200 },
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 独行侠/捡到成员 =====
+    lone_wolf: {\n        id: 'lone_wolf',\n        title: '🌙 雨夜来客',\n        desc: '暴雨夜，一个浑身是伤的年轻人敲开了你的后门。他说他的村子被敌对帮派屠了，全家只剩他一人。他跪在地上，请求你收留他。',
+        phase: 0,
+        choices: [
+            {\n                text: '🤝 收留下来 (可能成为得力干将)',
+                cost: { money: 100 },\n                result: '你给他换了身干净衣服，让他跟着手下学活。这小子有股狠劲，学得很快。',
+                effects: { money: -100 },
+                chance: 1.0,\n                special: 'recruit_lone_wolf_high',
+            },
+            {\n                text: '💰 给点钱打发走',
+                cost: { money: 50 },\n                result: '你给了他一些钱，让他去别的城市讨生活。他临走时看了你一眼，那眼神你忘不掉。',
+                effects: { money: -50, influence: 2 },
+                chance: 1.0,
+            },
+            {\n                text: '🔪 赶走，我们不是收容所',
+                cost: {},\n                result: '你关上了门。外面的雨声里，他的脚步声渐渐远去。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    street_fighter: {\n        id: 'street_fighter',\n        title: '👊 街斗高手',\n        desc: '你的手下说，最近城南有个独行侠在单挑码头帮的一整队人，还打赢了。他好像在找靠山。',
+        phase: 1,
+        choices: [
+            {\n                text: '🎩 亲自去请他 (需$500)',
+                cost: { money: 500 },\n                result: '你在酒馆里找到了他。一番交谈后，他决定跟你干。这人是个天生的打手。',
+                effects: { money: -500 },
+                chance: 0.8,\n                special: 'recruit_fighter',
+            },
+            {\n                text: '派手下去接触',
+                cost: { money: 200 },\n                result: '手下回报说，那人要求见老大本人。你错过了直接招募的机会。',
+                effects: { money: -200 },
+                chance: 0.4,
+            },
+            {\n                text: '不管，多一事不如少一事',
+                cost: {},\n                result: '后来你听说他被黑水社招走了。你错过了一个好苗子。',
+                effects: {},
+                chance: 1.0,
+            },
+        ],
+    },
+
+    // ===== 挖角相关 =====
+    poach_opportunity: {\n        id: 'poach_opportunity',\n        title: '💼 墙角的橄榄枝',\n        desc: '敌对帮派的一名中层偷偷派人传话，说他对现在的老大不满，想换个东家。他开了一个价。',
+        phase: 2,
+        choices: [
+            {\n                text: '💵 出钱挖过来 ($1500)',
+                cost: { money: 1500 },\n                result: '交易达成。他带着几个亲信投奔了你，还带来了敌对帮派的一些内部情报。',
+                effects: { money: -1500, intel: 8, influence: 5 },
+                chance: 0.7,\n                special: 'poach_enemy_member',
+            },
+            {\n                text: '🤔 让他当内应 (留在原地)',
+                cost: { money: 800 },\n                result: '你让他继续留在敌对帮派，定期给你提供情报。这是一步好棋。',
+                effects: { money: -800, intel: 12 },
+                chance: 0.6,\n                special: 'set_mole',
+            },
+            {\n                text: '⚠ 举报给敌对老大 (挑拨离间)',
+                cost: {},\n                result: '你匿名把消息捅给了对方老大。那个想叛变的人被当众处决，敌对帮派内部人人自危。',
+                effects: { notoriety: 3 },
+                chance: 0.5,\n                special: 'provoke_enemy',
+            },
+        ],
+    },
+};
+
+// ---- 忠诚度低事件 ----
+function showLoyaltyEvent(state, member) {
+    const eventHtml = `
+        <div class="event-modal-overlay" id="loyaltyEventModal">
+            <div class="event-modal">
+                <div class="event-header" style="background: linear-gradient(135deg, #c0392b, #8e44ad);">
+                    <span class="event-icon">😤</span>
+                    <h2>忠诚度危机</h2>
+                </div>
+                <div class="event-body">
+                    <div class="event-desc">
+                        <p>${member.name}（${member.class}）的忠诚度降到了 <span class="danger-text">${member.loyalty}</span>！</p>
+                        <p>他对你的统治感到不满，正在考虑叛变或离开。</p>
+                    </div>
+                    <div class="event-info">
+                        <span class="stat-badge">忠诚度: ${member.loyalty}/100</span>
+                        <span class="stat-badge">等级: ${member.level}</span>
+                        <span class="stat-badge">任务: ${member.missionsDone}次</span>
+                    </div>
+                    <div class="event-choices">\n                        <button class="btn-choice btn-gold" onclick="handleLoyaltyChoice('bribe', ${member.id})">
+                            💰 给好处安抚 ($200)
+                        </button>\n                        <button class="btn-choice btn-red" onclick="handleLoyaltyChoice('execute', ${member.id})">
+                            🗡️ 杀鸡儆猴
+                        </button>\n                        <button class="btn-choice btn-purple" onclick="handleLoyaltyChoice('talk', ${member.id})">
+                            🤝 谈话感化
+                        </button>\n                        <button class="btn-choice btn-gray" onclick="handleLoyaltyChoice('ignore', ${member.id})">
+                            👀 静观其变
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;\n    document.body.insertAdjacentHTML('beforeend', eventHtml);
+}
+
+function handleLoyaltyChoice(action, memberId) {\n    const modal = document.getElementById('loyaltyEventModal');
+    const member = getMemberById(G, memberId);
+    if (!member) {
+        if (modal) modal.remove();
+        return;
+    }
+
+    switch (action) {\n        case 'bribe':
+            if (spendMoney(G, 200)) {
+                member.loyalty = Math.min(100, member.loyalty + 25);\n                addMessage(`💰 ${member.name} 收了好处，暂时安分了`, 'info');\n                showToast(`${member.name} 忠诚度提升`, 'success');
+            } else {\n                showToast('资金不足!', 'error');
+                member.loyalty = Math.max(0, member.loyalty - 10);\n                addMessage(`${member.name} 因为得不到好处更加不满`, 'error');
+            }
+            break;\n        case 'execute':\n            member.status = 'dead';
+            G.crew = G.crew.filter(m => m.id !== memberId);
+            addNotoriety(G, 10);
+            // 其他人的忠诚度提升（恐惧）
+            for (const m of G.crew) {
+                m.loyalty = Math.min(100, m.loyalty + 5);
+            }\n            addMessage(`💀 ${member.name} 被处决，其他人噤若寒蝉`, 'warning');\n            showToast(`${member.name} 已被处决`, 'error');
+            break;\n        case 'talk':
+            if (G.influence >= 20) {
+                member.loyalty = Math.min(100, member.loyalty + 20);\n                addMessage(`🤝 你和 ${member.name} 谈了心，他决定再信你一次`, 'info');\n                showToast('谈话感化成功', 'success');
+            } else {
+                member.loyalty = Math.max(0, member.loyalty - 15);\n                addMessage(`${member.name} 觉得你在画大饼，更加失望了`, 'error');\n                showToast('你的影响力不足以说服他', 'error');
+            }
+            break;\n        case 'ignore':
+            if (Math.random() < 0.4) {\n                member.status = 'dead';
+                G.crew = G.crew.filter(m => m.id !== memberId);\n                addMessage(`🏃 ${member.name} 叛逃了！还带走了一批人手`, 'error');
+                G.manpower = Math.max(0, G.manpower - 1);\n                showToast(`${member.name} 叛逃了!`, 'error');
+            } else {
+                member.loyalty = Math.min(100, member.loyalty + 5);\n                addMessage(`${member.name} 自己冷静了下来`, 'info');
+            }
+            break;
+    }
+    if (modal) modal.remove();
+    renderCrewTab();
+    updateUI();
+}
+
+// ---- 触发随机事件 ----
+function triggerRandomEvent(state) {
+    const available = [];
+    for (const key of Object.keys(EVENTS)) {
+        const evt = EVENTS[key];
+        if (state.triggeredEvents.includes(evt.id)) continue;
+        if (evt.phase > state.phase) continue;
+        // 阶段性事件冷却
+        available.push(evt);
+    }
+    // 如果没有可用事件，放宽限制
+    if (available.length === 0) {
+        for (const key of Object.keys(EVENTS)) {
+            const evt = EVENTS[key];
+            if (evt.phase > state.phase) continue;
+            available.push(evt);
+        }
+    }
+    if (available.length === 0) return;
+    const event = available[Math.floor(Math.random() * available.length)];
+    showEventModal(state, event);
+}
+
+// ---- 显示事件弹窗 ----
+function showEventModal(state, event) {\n    let choicesHtml = '';
+    let validChoices = 0;
+
+    for (let i = 0; i < event.choices.length; i++) {
+        const choice = event.choices[i];
+        let canChoose = true;\n        let reqText = '';
+
+        if (choice.req) {
+            const reqs = [];\n            if (choice.req.money && state.money < choice.req.money) reqs.push('资金不足');\n            if (choice.req.manpower && state.manpower < choice.req.manpower) reqs.push('人手不足');\n            if (choice.req.intel && state.intel < choice.req.intel) reqs.push('情报不足');\n            if (choice.req.influence && state.influence < choice.req.influence) reqs.push('影响力不足');
+            if (reqs.length > 0) {
+                canChoose = false;\n                reqText = `<span class="req-text">(需要：${reqs.join(', ')})</span>`;
+            }
+        }
+        if (choice.cost.money && state.money < choice.cost.money) {
+            canChoose = false;
+            reqText = `<span class="req-text">(资金不足)</span>`;
+        }
+        if (choice.cost.intel && state.intel < choice.cost.intel) {
+            canChoose = false;
+            reqText = `<span class="req-text">(情报不足)</span>`;
+        }
+
+        choicesHtml += `\n            <button class="btn-choice btn-${canChoose ? 'gold' : 'gray'}" \n                    onclick="${canChoose ? `handleEventChoice(${i})` : ''}"\n                    ${canChoose ? '' : 'disabled'}>
+                ${choice.text} ${reqText}
+            </button>
+        `;
+        if (canChoose) validChoices++;
+    }
+
+    const modalHtml = `
+        <div class="event-modal-overlay" id="eventModal">
+            <div class="event-modal">
+                <div class="event-header" style="background: linear-gradient(135deg, #6c3483, #2e86c1);">\n                    <span class="event-icon">${event.title.split(' ')[0]}</span>
+                    <h2>${event.title}</h2>
+                </div>
+                <div class="event-body">
+                    <div class="event-desc">${event.desc}</div>
+                    <div class="event-choices">
+                        ${choicesHtml}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+\n    const old = document.getElementById('eventModal');
+    if (old) old.remove();\n    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // 如果没有任何可选选项，自动跳过
+    if (validChoices === 0) {
+        setTimeout(() => {\n            const m = document.getElementById('eventModal');
+            if (m) m.remove();
+        }, 2000);
+    }
+}
+
+// ---- 处理事件选择 ----
+let _currentEvent = null;
+
+function handleEventChoice(index) {\n    const modal = document.getElementById('eventModal');
+    const event = _currentEvent;
+    if (!event) return;
+
+    const choice = event.choices[index];
+    const success = Math.random() < choice.chance;
+
+    // 消耗资源
+    if (choice.cost.money) {
+        const cost = Math.abs(choice.cost.money);
+        spendMoney(G, cost);
+    }
+    if (choice.cost.intel) {
+        const cost = Math.abs(choice.cost.intel);
+        G.intel = Math.max(0, G.intel - cost);
+    }
+    if (choice.cost.manpower) {
+        const loss = Math.abs(choice.cost.manpower);
+        // 从现有成员中随机减少
+        for (let i = 0; i < loss; i++) {\n            const alive = state.crew.filter(m => m.status !== 'dead');
+            if (alive.length === 0) break;
+            const victim = alive[Math.floor(Math.random() * alive.length)];\n            victim.status = 'dead';
+        }\n        state.crew = state.crew.filter(m => m.status !== 'dead');
+        state.manpower = state.crew.length;
+    }
+    if (choice.cost.notoriety) {
+        addNotoriety(G, choice.cost.notoriety);
+    }
+
+    let resultText = choice.result;
+    const effects = { ...choice.effects };
+
+    if (!success) {\n                resultText += '\n\nâ ä½æ¯äºæå¹¶æ²¡ææè®¡ååå±...';
+// 失败惩罚
+        if (effects.money) effects.money = -Math.abs(effects.money);
+        if (effects.manpower) effects.manpower = -Math.abs(effects.manpower);
+        if (effects.notoriety) effects.notoriety = Math.abs(effects.notoriety);
+        if (effects.security) effects.security = -Math.abs(effects.security);
+        if (effects.influence) effects.influence = -Math.abs(effects.influence);
+        if (effects.intel) effects.intel = -Math.abs(effects.intel);
+    }
+
+    // 应用效果
+    if (effects.money) G.money = Math.max(0, G.money + effects.money);
+    if (effects.manpower) G.manpower = Math.max(0, G.manpower + effects.manpower);
+    if (effects.notoriety) addNotoriety(G, effects.notoriety);
+    if (effects.security) changeSecurity(G, effects.security);
+    if (effects.influence) addInfluence(G, effects.influence);
+    if (effects.intel) addIntel(G, effects.intel);
+    if (effects.district_gain) {
+        const gained = gainRandomDistrict(G, effects.district_gain);
+        if (gained > 0) resultText += `
+
+🏴 获得了 ${gained} 个新地盘！`;
+    }
+    if (effects.special_member) {
+        const special = createSpecialMember(G);
+        if (special) {
+            G.crew.push(special);
+            resultText += `
+
+🌟 ${special.name}（${special.class}）加入了你的组织！`;
+        }
+    }
+    if (effects.loyalty) {
+        for (const m of G.crew) {
+            m.loyalty = Math.min(100, Math.max(0, m.loyalty + effects.loyalty));
+        }
+    }
+
+    // 处理特殊效果
+    if (choice.special) {
+        handleEventSpecial(G, choice.special);
+    }
+
+    if (!G.triggeredEvents.includes(event.id)) {
+        G.triggeredEvents.push(event.id);
+    }
+\n    addMessage(`📜 [事件] ${event.title} - ${resultText.split('
+')[0]}`, 'info');\n    showToast(resultText, success ? 'success' : 'error');
+
+    if (modal) {\n        modal.querySelector('.event-desc').innerHTML = resultText.replace(/\n/g, '<br>');\n        modal.querySelector('.event-choices').innerHTML = `<button class="btn-choice btn-gold" onclick="closeEventModal()">✅ 继续</button>`;
+    }
+    _currentEvent = null;
+    updateUI();
+}
+
+function closeEventModal() {\n    const modal = document.getElementById('eventModal');
+    if (modal) modal.remove();
+    updateUI();
+}
+
+function createSpecialMember(state) {
+    const member = createNewMember(state);
+    member.level = Math.min(10, state.level + 3);
+    member.combat += 10;
+    member.intel += 10;
+    member.loyalty = 80;
+    return member;
+}
+
+function gainRandomDistrict(state, count) {
+    let gained = 0;
+    const unlocked = CONFIG.DISTRICTS.filter(d => {
+        if (state.districts[d.id]) return false;
+        const idx = CONFIG.DISTRICTS.indexOf(d);
+        if (idx > state.phase * 2 + 1) return false;
+        return true;
+    });
+    for (let i = 0; i < count && i < unlocked.length; i++) {
+        const target = unlocked[Math.floor(Math.random() * unlocked.length)];
+        if (!state.districts[target.id]) {
+            state.districts[target.id] = {
+                id: target.id,
+                control: 100,
+                income: target.baseIncome,
+                security: target.baseSecurity,
+                gangId: null,
+            };
+            state.districtCount++;
+            gained++;\n            addMessage(`🏴 获得了新地盘: ${target.id}`, 'success');
+        }
+    }
+    return gained;
+}
+
+// ==== 事件特殊效果处理 ====
+function handleEventSpecial(state, special) {
+    switch (special) {\n        case 'reveal_mole': {
+            // 揪出一个隐藏的卧底\n            const moles = state.crew.filter(m => m._isMole && m.status !== 'dead');
+            if (moles.length > 0) {
+                const mole = moles[Math.floor(Math.random() * moles.length)];
+                showMoleReveal(mole);\n                addMessage('卧底曝光: ' + mole.emoji + mole.name + ' (' + mole._moleFaction + ')', 'error');
+            }
+            break;
+        }\n        case 'recruit_lone_wolf_high': {
+            const m = createNewMember(state, { lv: 3 + Math.floor(Math.random() * 3), loyalty: 75 });
+            m.stat = (m.stat || 5) + 3;
+            state.crew.push(m);
+            state.manpower = state.crew.length;\n            addMessage('独行侠 ' + m.emoji + m.name + ' (' + m.className + ') Lv.' + m.lv + ' 加入', 'success');\n            showToast(m.emoji + m.name + ' 加入了你的组织！', 'success');
+            break;
+        }\n        case 'recruit_fighter': {
+            const m = createNewMember(state, { lv: 4 + Math.floor(Math.random() * 3), loyalty: 65 });\n            m.class = 'thug';\n            m.className = '打手';\n            m.emoji = '💪';
+            m.stat = (m.stat || 5) + 5;
+            state.crew.push(m);
+            state.manpower = state.crew.length;\n            addMessage('街斗高手 ' + m.emoji + m.name + ' Lv.' + m.lv + ' 加入', 'success');\n            showToast('💪 ' + m.name + ' 加入！战力惊人', 'success');
+            break;
+        }\n        case 'poach_enemy_member': {
+            const m = createNewMember(state, { lv: 5 + Math.floor(Math.random() * 3), loyalty: 30 });
+            state.crew.push(m);
+            state.manpower = state.crew.length;
+            // 可能是敌对反向安插的卧底
+            if (Math.random() < 0.2) {
+                m._isMole = true;\n                m._moleFaction = '被挖角的帮派';
+            }\n            addMessage('挖来 ' + m.emoji + m.name + ' Lv.' + m.lv + ' (忠诚' + m.loyalty + ')', 'info');\n            showToast('挖角成功！' + m.emoji + m.name, 'success');
+            break;
+        }\n        case 'set_mole': {
+            state._hasMole = true;
+            state._moleIntel = (state._moleIntel || 0) + 3;\n            addMessage('你在敌对帮派中安插了一个内应', 'success');\n            showToast('内应就位！', 'success');
+            break;
+        }\n        case 'provoke_enemy': {
+            // 挑拨离间，削弱某个敌对
+            const enemies = (state.enemies || []).filter(e => e.alive);
+            if (enemies.length > 0) {
+                const target = enemies[Math.floor(Math.random() * enemies.length)];
+                target.power = Math.max(3, target.power - 5);\n                addMessage('挑拨离间成功！' + target.name + ' 内部混乱，战力-5', 'success');\n                showToast(target.name + ' 内部出现分裂', 'success');
+            }
+            break;
+        }
+    }
+}
+
+// 卧底曝光弹窗
+function showMoleReveal(mole) {
+    if (!mole) return;\n    const factionName = mole._moleFaction || '未知势力';
+    const html = `
+        <div class="modal-overlay show" id="moleModal">
+            <div class="modal-content" style="border:2px solid #f87171">
+                <div class="modal-header"><span>🕵️ 卧底曝光！</span></div>
+                <div style="font-size:.75em;line-height:1.8;padding:8px 0">
+                    <p style="color:#f87171;font-weight:bold">${mole.emoji} ${mole.name}（${mole.className}）竟然是 ${factionName} 派来的卧底！</p>
+                    <p>他在组织里潜伏了 ${Math.max(1, (state.turn || 1) - mole.joinedAt)} 个回合，执行过 ${mole.missions || 0} 次任务，杀害了 ${mole._killCount || 0} 名弟兄。</p>
+                </div>
+                <div class="event-choices">\n                    <button class="btn-choice btn-gold" onclick="turnMole(state, ${mole.id});closeModal('moleModal')">🤝 策反他（双面间谍）</button>\n                    <button class="btn-choice btn-red" onclick="executeMember(state, ${mole.id});closeModal('moleModal')">💀 处决（恶名+5）</button>\n                    <button class="btn-choice btn-gray" onclick="expelMember(state, ${mole.id});closeModal('moleModal')">🚪 逐出组织</button>
+                </div>
+            </div>
+        </div>
+    `;\n    const old = document.getElementById('moleModal');
+    if (old) old.remove();\n    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// ===== 道具系统 v2 =====
+
+// 行动结束后有概率掉落道具
+function rollItemDrop() {
+    if (Math.random() > 0.2) return null;  // 20%概率掉落
+    const drops = [\n        { id: 'razor_hat', weight: 25 },\n        { id: 'pocket_watch', weight: 10 },\n        { id: 'moonshine', weight: 30 },\n        { id: 'medkit', weight: 20 },\n        { id: 'bribe_doc', weight: 5 },\n        { id: 'black_umbrella', weight: 10 },
+    ];
+    const total = drops.reduce((s, d) => s + d.weight, 0);
+    let r = Math.random() * total;
+    for (const d of drops) {
+        r -= d.weight;
+        if (r <= 0) return d.id;
+    }
+    return null;
+}
+
+// 任务完成后检查道具掉落
+function checkMissionDrop() {
+    const itemId = rollItemDrop();
+    if (!itemId) return null;
+    const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
+    if (!itemDef) return null;
+    addItemToInventory(state, itemId);\n    addMessage('任务中捡到了 ' + itemDef.emoji + itemDef.name + '！已放入背包', 'success');
+    return itemId;
+}
+
+// 打开商店
+function openShop() {\n    let html = '<div class="modal-overlay show" id="shopModal"><div class="modal-content shop-modal">';\n    html += '<div class="modal-header"><span>🏪 黑市商店</span><button class="btn-close" onclick="closeModal(\'shopModal\')">✕</button></div>';\n    html += '<div class="shop-grid">';
+    CONFIG.ITEMS.forEach(item => {
+        const canBuy = state.money >= item.cost;\n        html += '<div class="shop-item ' + (canBuy ? '' : 'shop-item-disabled') + '">';\n        html += '<div class="shop-item-icon">' + item.emoji + '</div>';\n        html += '<div class="shop-item-info">';\n        html += '<div class="shop-item-name">' + item.name + '</div>';\n        html += '<div class="shop-item-desc">' + (item.desc_long || item.desc) + '</div>';\n        html += '<div class="shop-item-effect">' + item.desc + '</div></div>';\n        html += '<div class="shop-item-footer">';\n        html += '<span class="shop-item-price">$' + item.cost + '</span>';\n        html += '<button class="btn-sm btn-gold" onclick="buyItem(\'' + item.id + '\')" ' + (canBuy ? '' : 'disabled') + '>购买</button>';\n        html += '</div></div>';
+    });\n    html += '</div>';\n    html += '<div class="shop-footer"><span>$' + state.money + '</span><button class="btn btn-gray" onclick="closeModal(\'shopModal\')">关闭</button></div>';\n    html += '</div></div>';\n    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+function buyItem(itemId) {
+    const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
+    if (!itemDef) return;\n    if (state.money < itemDef.cost) { showToast('资金不足!', 'error'); return; }
+    state.money -= itemDef.cost;
+    addItemToInventory(state, itemId);\n    addMessage('买了 ' + itemDef.emoji + itemDef.name + ' $' + itemDef.cost, 'info');\n    showToast('购得 ' + itemDef.name, 'success');\n    closeModal('shopModal');
+    updateUI();
+}
+
+// 打开背包（含送礼功能）
+function openInventory() {
+    if (!state.inventory || state.inventory.length === 0) {\n        showToast('背包空空如也', 'info');
+        return;
+    }
+    
+    // 获取可送礼的成员列表\n    const idleCrew = state.crew.filter(m => m.status === 'idle' || m.status === 'working');
+    \n    let html = '<div class="modal-overlay show" id="inventoryModal"><div class="modal-content">';\n    html += '<div class="modal-header"><span>🎒 背包</span><button class="btn-close" onclick="closeModal(\'inventoryModal\')">✕</button></div>';\n    html += '<div class="inv-grid">';
+    
+    state.inventory.forEach((inv, idx) => {
+        const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
+        if (!itemDef) return;\n        html += '<div class="inv-card" style="border:1px solid #333;border-radius:6px;padding:8px;margin-bottom:4px">';\n        html += '<div style="display:flex;justify-content:space-between;align-items:center">';\n        html += '<span>' + itemDef.emoji + ' <strong>' + itemDef.name + '</strong> x' + (inv.count || 1) + '</span>';\n        html += '<span style="font-size:.6em;color:#888">$' + itemDef.cost + '</span>';\n        html += '</div>';\n        html += '<div style="font-size:.65em;color:#666;margin:2px 0">' + itemDef.desc + '</div>';
+        
+        // 操作按钮\n        html += '<div style="display:flex;gap:4px;margin-top:4px">';
+        
+        // 送礼按钮
+        if (idleCrew.length > 0) {\n            html += '<select class="gift-select" onchange="giftItem(' + idx + ', this.value)" style="flex:1;font-size:.65em;background:#1a1a2e;color:#ccc;border:1px solid #444;border-radius:4px;padding:3px">';\n            html += '<option value="">— 赠送给 —</option>';
+            idleCrew.forEach(m => {\n                html += '<option value="' + m.id + '">' + m.emoji + ' ' + m.name + ' (忠诚' + m.loyalty + ')</option>';
+            });\n            html += '</select>';
+        }
+        
+        // 使用按钮（仅在背包数量>0时显示）
+        if (inv.count && inv.count > 0) {\n            html += '<button class="btn-sm" onclick="useItem(' + idx + ')" style="font-size:.6em">使用</button>';
+        }
+        \n        html += '</div></div>';
+    });
+    \n    html += '</div>';\n    html += '<button class="btn" onclick="closeModal(\'inventoryModal\')" style="margin-top:6px">关闭</button>';\n    html += '</div></div>';
+    \n    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// 送礼给成员
+function giftItem(invIdx, memberId) {
+    if (!memberId) return;
+    const m = state.crew.find(c => c.id === parseInt(memberId));
+    if (!m) return;
+    
+    const inv = state.inventory[invIdx];
+    if (!inv) return;
+    
+    const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
+    if (!itemDef) return;
+    
+    // 消耗一个道具
+    inv.count = (inv.count || 1) - 1;
+    if (inv.count <= 0) state.inventory.splice(invIdx, 1);
+    
+    // 忠诚度提升（根据道具价值）
+    const loyaltyGain = Math.floor(itemDef.cost / 80) + 5;
+    m.loyalty = Math.min(100, (m.loyalty || 50) + loyaltyGain);
+    
+    // 某些道具还有额外效果\n    let extra = '';\n    if (inv.id === 'razor_hat') {
+        m.equipped = m.equipped || [];\n        m.equipped.push('razor_hat');\n        extra = ' 且装备上了';
+    }
+    \n    showToast(m.emoji + m.name + ' 忠诚+' + loyaltyGain + extra, 'success');\n    addMessage('赠送' + itemDef.emoji + itemDef.name + '给' + m.name + '，忠诚+' + loyaltyGain + extra, 'info');\n    closeModal('inventoryModal');
+    updateUI();
+}
+
+// 使用道具
+function useItem(invIdx) {
+    const inv = state.inventory[invIdx];
+    if (!inv) return;
+    const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);
+    if (!itemDef) return;
+    
+    inv.count = (inv.count || 1) - 1;
+    if (inv.count <= 0) state.inventory.splice(invIdx, 1);
+    
+    // 道具效果\n    let msg = '';
+    switch (inv.id) {\n        case 'medkit':
+            const injured = state.crew.filter(m => m.hp && m.hp < 80);
+            if (injured.length > 0) {
+                injured.forEach(m => m.hp = Math.min(100, (m.hp || 80) + 30));\n                msg = '治疗了 ' + injured.length + ' 名受伤成员';
+            } else {
+                state.security = Math.min(100, state.security + 5);\n                msg = '无成员受伤，提高了据点卫生安全';
+            }
+            break;\n        case 'bribe_doc':
+            state.influence += 10;\n            msg = '影响力+10';
+            break;\n        case 'black_umbrella':
+            state.notoriety = Math.max(0, state.notoriety - 10);\n            msg = '恶名-10';
+            break;\n        case 'encrypted_phone':
+            state._intelBoost = (state._intelBoost || 0) + 0.2;\n            msg = '情报效率永久+20%';
+            break;
+        default:\n            msg = '此道具不能直接使用，试试送给成员';
+    }
+    \n    showToast(msg, 'info');\n    addMessage('使用了' + itemDef.emoji + itemDef.name + ': ' + msg, 'info');\n    closeModal('inventoryModal');
+    updateUI();
+}
+
+// 道具在事件中使用的检测（事件系统调用）
+function hasItem(state, itemId) {
+    return state.inventory && state.inventory.some(i => i.id === itemId && i.count > 0);
+}
+
+// ===== 情报系统 v2（深度化） =====
+
+// 情报内容库 - 每条都有具体叙事，含可信度和可能的陷阱
+const INTEL_RUMORS = {
+  tier1: [\n    { text: '码头帮在3号仓库卸了一箱军火，好像是走私货', cred: 60, trap: false },\n    { text: '巷子里有人倒卖警用对讲机，开价不高', cred: 75, trap: false },\n    { text: '黑市在卖一批来路不明的奢侈品，据说价格很低', cred: 50, trap: true },\n    { text: '铁血盟在北区招兵买马，开价很高', cred: 65, trap: false },\n    { text: '警方下周三好像要搞一次突击检查', cred: 40, trap: false },\n    { text: '商业区有人在收"保护费"，但不是我们的人', cred: 55, trap: false },
+  ],
+  tier2: [\n    { text: '码头帮主力今晚要去北区火并，老巢空虚', cred: 45, trap: true, action: 'ambush_dock' },\n    { text: '黑水社在大量收购武器，可能要搞大事', cred: 60, trap: false },\n    { text: '暗影会的洗钱通道走一家虚拟币交易所', cred: 70, trap: false, action: 'crack_money' },\n    { text: '警方高层有人参与洗钱网络，收钱办事', cred: 55, trap: false },\n    { text: '铁血盟的据点在废弃钢厂二楼，防守薄弱', cred: 50, trap: true, action: 'raid_steel' },\n    { text: '码头帮跟黑水社闹翻了，可能要内讧', cred: 65, trap: false },
+  ],
+  tier3: [\n    { text: '市议员跟黑水社有隐秘资金往来，证据在保险柜里', cred: 70, trap: false, action: 'expose_council' },\n    { text: '一批军用级加密设备流入黑市，买家是铁血盟', cred: 65, trap: false },\n    { text: '警方高层有人被暗影会收买，扫荡路线已泄露', cred: 60, trap: true },\n    { text: '夜枭团在港口准备一批大货，后天到岸', cred: 55, trap: true, action: 'port_heist' },\n    { text: '血手党内部有人想反水，在找新东家', cred: 75, trap: false, action: 'flip_enemy' },
+  ],
+  tier4: [\n    { text: '国安部门已渗透进金融系统，在查大额洗钱', cred: 70, trap: false },\n    { text: '国际刑警组织已盯上这座城市，线人已潜入', cred: 65, trap: false },\n    { text: '一场大清洗即将到来，各方都在准备后路', cred: 80, trap: false },\n    { text: '三家银行的高管涉及洗钱，证据链已完整', cred: 60, trap: false, action: 'bank_blackmail' },\n    { text: '敌对帮派放出假消息设局，说他们主力不在想引你去', cred: 85, trap: false },
+  ],
+};
+
+// 情报日志：带可信度的具体情报
+let intelLog = [];
+let intelBuyCooldown = 0;  // 购买冷却
+
+// 收集情报（自己派情报员）
+function gatherIntel(state) {
+    const cost = 1;\n    if (state.ap < cost) { showToast('行动力不足!', 'error'); return false; }
+    
+    // 情报员加成\n    const hasSpy = state.crew.some(m => m.class === '情报员' && m.status === 'idle');
+    let gain = 2 + Math.floor(Math.random() * 3);
+    if (hasSpy) gain += 2;
+    
+    state.ap -= cost;
+    addIntel(state, gain);
+    
+    // 生成一条具体情报（自己收集，可信度偏高）\n    const tierKey = 'tier' + Math.min(state.intelLevel + 1, 4);
+    const pool = INTEL_RUMORS[tierKey] || INTEL_RUMORS.tier1;
+    const rumor = pool[Math.floor(Math.random() * pool.length)];
+    const credBonus = hasSpy ? 15 : 0;  // 情报员+15%可信度
+    const credibility = Math.min(100, rumor.cred + credBonus + Math.floor(Math.random() * 10));
+    
+    const logEntry = {
+        text: rumor.text,
+        credibility: credibility,
+        isTrap: rumor.trap && credibility < 50,  // 可信度低且是陷阱标记
+        action: rumor.action || null,\n        source: 'collect',
+        turn: state.turn,
+    };
+    state._intelLog = state._intelLog || [];
+    state._intelLog.unshift(logEntry);
+    if (state._intelLog.length > 20) state._intelLog.pop();
+    \n    showToast('情报+' + gain + ' [' + credibility + '%可信]', 'info');\n    addMessage('收集到情报: ' + rumor.text + ' (可信度' + credibility + '%)', 'info');
+    updateUI();
+    return true;
+}
+
+// 购买情报（一回合一次）
+function buyIntel(state) {
+    if (state._intelBuyCooldown && state._intelBuyCooldown > state.turn) {\n        showToast('今日情报已买过，下回合再来', 'error');
+        return;
+    }\n    if (state.money < 300) { showToast('需要$300', 'error'); return; }
+    
+    state.money -= 300;
+    // 买的情报可信度随机，可能很低\n    const tierKey = 'tier' + Math.min(state.intelLevel + 1, 4);
+    const pool = INTEL_RUMORS[tierKey] || INTEL_RUMORS.tier1;
+    const rumor = pool[Math.floor(Math.random() * pool.length)];
+    const credibility = Math.max(15, rumor.cred - 20 + Math.floor(Math.random() * 30) - 15);
+    
+    const logEntry = {
+        text: rumor.text,
+        credibility: credibility,
+        isTrap: credibility < 35,  // 可信度太低就当是假情报
+        action: rumor.action || null,\n        source: 'bought',
+        turn: state.turn,
+    };
+    state._intelLog = state._intelLog || [];
+    state._intelLog.unshift(logEntry);
+    if (state._intelLog.length > 20) state._intelLog.pop();
+    
+    state._intelBuyCooldown = state.turn + 1;
+    addIntel(state, 1 + Math.floor(Math.random() * 2));
+    \n    showToast('买来一条情报 ($300)', credibility < 35 ? 'error' : 'info');
+    if (credibility < 30) {\n        addMessage('黑市买的情报: ' + rumor.text + ' (可信度极低' + credibility + '%，可能是假消息)', 'error');
+    } else {\n        addMessage('黑市买的情报: ' + rumor.text + ' (可信度' + credibility + '%)', 'info');
+    }
+    updateUI();
+}
+
+// 执行情报触发的特殊行动（偷袭巢穴等）
+function executeIntelAction(state, actionId) {
+    // 消耗情报点数执行行动\n    if (state.intel < 8) { showToast('情报不足(需8)', 'error'); return; }\n    if (state.ap < 1) { showToast('行动力不足', 'error'); return; }
+    
+    state.intel -= 8;
+    state.ap -= 1;
+    
+    // 检查该情报是否可能是陷阱（可信度低于35%时，行动必败且损失惨重）
+    const recentIntel = (state._intelLog || []).filter(l => l.action === actionId);
+    const isTrap = recentIntel.some(l => l.isTrap);
+    \n    let msg = '', success = false;
+    const roll = Math.random();
+    
+    if (isTrap) {
+        // 陷阱！敌军有埋伏
+        const losses = 2 + Math.floor(Math.random() * 3);\n        state.crew.filter(() => Math.random() < 0.3).forEach(m => { m.status = 'dead'; });\n        const deadCount = state.crew.filter(m => m.status === 'dead').length;\n        state.crew = state.crew.filter(m => m.status !== 'dead');
+        state.manpower = state.crew.length;\n        msg = '陷阱！这是敌对故意放出的假消息！你中了埋伏！损失' + deadCount + '名兄弟，幸存的忠诚度大降';
+        state.crew.forEach(m => { m.loyalty = Math.max(5, m.loyalty - 25); });\n        showToast('中了陷阱！损失惨重！', 'error');\n        addMessage('💀 ' + msg, 'error');
+        updateUI();
+        return;
+    }
+    
+    // 正常执行特殊行动
+    switch (actionId) {\n        case 'ambush_dock':\n        case 'raid_steel':
+            if (roll < 0.55) {
+                const money = 500 + Math.floor(Math.random() * 500);
+                state.money += money;
+                state.influence += 8;\n                msg = '偷袭成功！端掉敌对据点，缴获$' + money + '，影响力+8';
+                success = true;
+            } else {
+                const loss = 1 + Math.floor(Math.random() * 2);\n                state.crew.filter(() => Math.random() < 0.2).forEach(m => { m.status = 'dead'; });\n                state.crew = state.crew.filter(m => m.status !== 'dead');
+                state.manpower = state.crew.length;\n                msg = '偷袭失败！损失' + loss + '人';
+                success = false;
+            }
+            break;\n        case 'expose_council':
+            if (roll < 0.5) {
+                state.influence += 15;
+                state.money += 1000;\n                msg = '拿到市议员的把柄！影响力+15，敲诈$1000';
+                success = true;
+            } else {
+                state.security = Math.max(0, state.security - 15);\n                msg = '事情败露，警方加强了对你的监控，安全度-15';
+                success = false;
+            }
+            break;\n        case 'port_heist':
+            if (roll < 0.4) {
+                state.money += 2000;
+                state.notoriety += 15;\n                msg = '港口大劫案成功！$2000到手，但恶名大涨';
+                success = true;
+            } else {\n                state.crew.filter(() => Math.random() < 0.25).forEach(m => { m.status = 'dead'; });\n                state.crew = state.crew.filter(m => m.status !== 'dead');
+                state.manpower = state.crew.length;\n                msg = '港口行动失败，遭遇埋伏！损失惨重';
+                success = false;
+            }
+            break;\n        case 'flip_enemy':
+            if (roll < 0.6) {
+                const nm = createNewMember(state);
+                nm.loyalty = 35;
+                state.crew.push(nm);
+                state.manpower = state.crew.length;
+                state.influence += 5;\n                msg = '成功策反敌对成员！' + nm.name + '(' + nm.class + ')加入，但忠诚不高';
+                success = true;
+            } else {\n                msg = '策反对象被灭口了';
+                success = false;
+            }
+            break;
+        default:\n            msg = '该情报行动暂未实现';
+    }
+    \n    addMessage('[情报行动] ' + msg, success ? 'success' : 'error');\n    showToast(msg, success ? 'success' : 'error');
+    updateUI();
+}
+
+// ===== 外交系统 v1 =====
+
+// 初始化所有关系
+function initDiplomacy(state) {\n    const gangNames = ['码头帮', '黑水社', '暗影会', '铁血盟', '血手党', '夜枭团'];
+    gangNames.forEach((name, i) => {
+        // 弱小的帮派初始关系差，强大的初始中立偏负
+        const baseRelation = -10 + i * 3;  // 排越后面越强，关系越差
+        state.gangRelations[name] = baseRelation + Math.floor(Math.random() * 10) - 5;
+    });
+    state.policeRelation = -20 + Math.floor(Math.random() * 10);  // 初始跟警察关系冷淡
+}
+
+// 获取关系等级文本
+function getRelationText(value) {\n    if (value <= -80) return '死敌';\n    if (value <= -50) return '敌对';\n    if (value <= -20) return '紧张';\n    if (value <= 0) return '冷淡';\n    if (value <= 25) return '缓和';\n    if (value <= 50) return '友好';\n    if (value <= 75) return '信任';\n    return '同盟';
+}
+
+function getRelationColor(value) {\n    if (value <= -50) return '#f87171';\n    if (value <= -20) return '#fb923c';\n    if (value <= 0) return '#a1a1aa';\n    if (value <= 25) return '#60a5fa';\n    if (value <= 50) return '#34d399';\n    return '#fbbf24';
+}
+
+// 主动改善帮派关系（送礼/谈判）
+function improveGangRelation(state, gangName) {
+    if (state._diplomacyCooldown > state.turn) {\n        showToast('外交还在冷却中（剩' + (state._diplomacyCooldown - state.turn) + '回合）', 'error');
+        return;
+    }
+    
+    const enemies = (state.enemies || []).find(e => e.name === gangName);\n    if (!enemies || !enemies.alive) { showToast(gangName + '已不存在', 'error'); return; }
+    
+    const currentRel = state.gangRelations[gangName] || 0;
+    const powerDiff = (enemies.power || 10) - (state.level * 2 + state.crew.length);
+    
+    // 实力越弱，改善关系越难
+    const baseCost = 500;
+    const powerMalus = Math.max(0, powerDiff * 20);
+    const relationMalus = Math.max(0, -currentRel * 3);
+    const totalCost = baseCost + powerMalus + relationMalus;
+    
+    if (state.money < totalCost) {\n        showToast('需要$' + totalCost + '（实力差惩罚+$' + powerMalus + '，关系差惩罚+$' + relationMalus + '）', 'error');
+        return;
+    }
+    
+    state.money -= totalCost;
+    state._diplomacyCooldown = state.turn + 2;
+    
+    const baseChance = 0.4 + state.influence * 0.003;
+    const powerMod = -Math.max(0, powerDiff * 0.01);
+    const chance = Math.max(0.1, Math.min(0.9, baseChance + powerMod));
+    
+    if (Math.random() < chance) {
+        const gain = 15 + Math.floor(Math.random() * 15);
+        state.gangRelations[gangName] = Math.min(100, currentRel + gain);\n        showToast(gangName + ' 关系+' + gain + '，当前:' + getRelationText(state.gangRelations[gangName]), 'success');\n        addMessage('外交成功: 与' + gangName + '关系+' + gain + ' (花费$' + totalCost + ')', 'info');
+    } else {
+        state.gangRelations[gangName] = Math.max(-100, currentRel - 5);\n        showToast(gangName + ' 拒绝了你的示好，关系反而恶化了', 'error');\n        addMessage('外交失败: 与' + gangName + '关系-5', 'error');
+    }
+    updateUI();
+}
+
+// 提议联盟
+function proposeAlliance(state, gangName) {
+    if (state._diplomacyCooldown > state.turn) {\n        showToast('外交冷却中', 'error'); return;
+    }
+    const rel = state.gangRelations[gangName] || 0;
+    if (rel < 40) {\n        showToast('关系不够好（需≥40，当前' + rel + '）', 'error'); return;
+    }\n    if (state.money < 2000) { showToast('需要$2000作为盟约金', 'error'); return; }
+    
+    state.money -= 2000;
+    state._diplomacyCooldown = state.turn + 5;
+    
+    const chance = 0.3 + rel * 0.005;
+    if (Math.random() < chance) {
+        state.alliance = gangName;
+        state.gangRelations[gangName] = Math.min(100, rel + 20);\n        showToast('⭐ 与' + gangName + '结盟！同盟期限内不会互相攻击', 'success');\n        addMessage('与' + gangName + '正式结盟！', 'success');
+    } else {
+        state.gangRelations[gangName] = Math.max(-100, rel - 15);\n        showToast(gangName + '拒绝结盟，关系恶化', 'error');\n        addMessage(gangName + '拒绝了联盟提议', 'error');
+    }
+    updateUI();
+}
+
+// 解除联盟
+function breakAlliance(state) {\n    if (!state.alliance) { showToast('没有盟友', 'error'); return; }
+    state.gangRelations[state.alliance] = -40;\n    addMessage('解除了与' + state.alliance + '的联盟', 'info');\n    showToast('已解除联盟', 'info');
+    state.alliance = null;
+    updateUI();
+}
+
+// 改善警察关系
+function improvePoliceRelation(state) {
+    if (state._policeBribeCooldown > state.turn) {\n        showToast('贿赂冷却中', 'error'); return;
+    }
+    const cost = 800 + Math.max(0, -state.policeRelation * 5);\n    if (state.money < cost) { showToast('需要$' + cost, 'error'); return; }
+    
+    state.money -= cost;
+    state._policeBribeCooldown = state.turn + 3;
+    
+    const chance = 0.5 + state.influence * 0.002;
+    if (Math.random() < chance) {
+        const gain = 10 + Math.floor(Math.random() * 10);
+        state.policeRelation = Math.min(100, state.policeRelation + gain);
+        state.security = Math.min(100, state.security + 5);\n        showToast('警方关系+' + gain + '，安全度+5', 'success');\n        addMessage('贿赂成功: 警方关系+' + gain, 'info');
+    } else {
+        state.policeRelation = Math.max(-100, state.policeRelation - 5);
+        state.notoriety = Math.min(100, state.notoriety + 5);\n        showToast('贿赂被拒！警方震怒，关系恶化', 'error');\n        addMessage('贿赂警察失败，关系恶化', 'error');
+    }
+    updateUI();
+}
+
+// 每天更新关系
+function updateDiplomacy(state) {
+    // 警察关系影响安全度
+    state.security = Math.max(5, Math.min(100, state.security + Math.floor(state.policeRelation * 0.05)));
+    
+    // 警察关系影响恶名衰减
+    if (state.policeRelation > 0 && state.notoriety > 0) {
+        state.notoriety = Math.max(0, state.notoriety - Math.floor(state.policeRelation * 0.02));
+    }
+    
+    // 高恶名恶化警察关系
+    if (state.notoriety > 50) {
+        state.policeRelation = Math.max(-100, state.policeRelation - 1);
+    }
+    
+    // 与警察关系好会恶化帮派关系
+    if (state.policeRelation > 30) {
+        Object.keys(state.gangRelations).forEach(gName => {
+            state.gangRelations[gName] = Math.max(-100, state.gangRelations[gName] - 1);
+        });
+    }
+    
+    // 自然回复（小幅度向0靠拢）
+    Object.keys(state.gangRelations).forEach(gName => {
+        const r = state.gangRelations[gName];
+        if (r < -20) state.gangRelations[gName] = Math.min(-20, r + 1);
+        else if (r > 20) state.gangRelations[gName] = Math.max(20, r - 1);
+    });
+}
+
+// 检查敌对行动（基于关系）
+function checkEnemyAction(state) {
+    const enemies = (state.enemies || []).filter(e => e.alive);
+    if (enemies.length === 0) return null;
+    
+    // 关系最差的帮派最可能搞事
+    let worstRel = 100, worstGang = enemies[0];
+    enemies.forEach(e => {
+        const rel = state.gangRelations[e.name] || 0;
+        const r = rel - (e.power || 10) * 0.5;  // 越强越有底气搞事
+        if (r < worstRel) { worstRel = r; worstGang = e; }
+    });
+    
+    if (worstRel > -20) return null;  // 关系没差到动手的程度
+    if (Math.random() > 0.15) return null;  // 15%概率
+    
+    return worstGang;
+}
+
+// 外交页面渲染
+function renderDiplomacyOverlay(state) {
+    const enemies = (state.enemies || []).filter(e => e.alive);\n    let html = '<div class="modal-overlay show" id="diplomacyModal"><div class="modal-content" style="max-width:400px">';\n    html += '<div class="modal-header"><span>🤝 外交关系</span><button class="btn-close" onclick="closeModal(\'diplomacyModal\')">✕</button></div>';
+    
+    // 帮派关系\n    html += '<div style="font-size:.7em;margin:6px 0;color:#a78bfa">帮派关系</div>';
+    enemies.forEach(e => {
+        const rel = state.gangRelations[e.name] || 0;
+        const color = getRelationColor(rel);
+        const text = getRelationText(rel);
+        const isAlly = state.alliance === e.name;
+        const canImprove = !isAlly && state._diplomacyCooldown <= state.turn;\n        html += '<div style="border:1px solid #333;border-radius:6px;padding:6px 8px;margin-bottom:4px">';\n        html += '<div style="display:flex;justify-content:space-between">';\n        html += '<span style="font-weight:600;font-size:.7em">' + e.name + ' ⚔️' + (e.power || '?') + '</span>';\n        html += '<span style="color:' + color + ';font-size:.65em">' + text + ' (' + rel + ')</span>';\n        html += '</div>';
+        // 关系条
+        const barPct = (rel + 100) / 2;\n        html += '<div style="height:3px;background:#1e1e38;border-radius:2px;margin:3px 0;overflow:hidden">';\n        html += '<div style="width:' + barPct + '%;height:100%;background:' + color + ';border-radius:2px"></div></div>';
+        // 操作按钮
+        if (isAlly) {\n            html += '<div style="display:flex;gap:4px;margin-top:3px">';\n            html += '<span style="font-size:.6em;color:#fbbf24;flex:1">⭐ 盟友</span>';\n            html += '<button class="btn-sm" onclick="breakAlliance();closeModal(\'diplomacyModal\')" style="font-size:.55em;border-color:#f87171">解除联盟</button>';\n            html += '</div>';
+        } else if (rel >= 40) {\n            html += '<div style="display:flex;gap:4px;margin-top:3px">';\n            html += '<button class="btn-sm" onclick="improveGangRelation(state,\'' + e.name + '\');renderDiplomacyOverlay(state)" ' + (canImprove?'':'disabled') + ' style="font-size:.55em">🤝 改善关系</button>';\n            html += '<button class="btn-sm btn-gold" onclick="proposeAlliance(state,\'' + e.name + '\');renderDiplomacyOverlay(state)" style="font-size:.55em">🤝 提议联盟</button>';\n            html += '</div>';
+        } else {\n            html += '<div style="margin-top:3px">';\n            html += '<button class="btn-sm" onclick="improveGangRelation(state,\'' + e.name + '\');renderDiplomacyOverlay(state)" ' + (canImprove?'':'disabled') + ' style="font-size:.55em">🤝 改善关系</button>';\n            html += '</div>';
+        }\n        html += '</div>';
+    });
+    
+    // 警察关系\n    html += '<div style="margin-top:8px;font-size:.7em;color:#a78bfa">👮 警方关系</div>';
+    const pRel = state.policeRelation || 0;
+    const pColor = getRelationColor(pRel);
+    const pText = getRelationText(pRel);\n    html += '<div style="border:1px solid #333;border-radius:6px;padding:6px 8px">';\n    html += '<div style="display:flex;justify-content:space-between">';\n    html += '<span style="font-weight:600;font-size:.7em">👮 警察局</span>';\n    html += '<span style="color:' + pColor + ';font-size:.65em">' + pText + ' (' + pRel + ')</span>';\n    html += '</div>';
+    const pBar = (pRel + 100) / 2;\n    html += '<div style="height:3px;background:#1e1e38;border-radius:2px;margin:3px 0;overflow:hidden">';\n    html += '<div style="width:' + pBar + '%;height:100%;background:' + pColor + ';border-radius:2px"></div></div>';\n    html += '<div style="display:flex;gap:4px;margin-top:3px">';
+    const canBribe = state._policeBribeCooldown <= state.turn;\n    html += '<button class="btn-sm" onclick="improvePoliceRelation(state);renderDiplomacyOverlay(state)" ' + (canBribe?'':'disabled') + ' style="font-size:.55em">💰 贿赂 (需$' + (800 + Math.max(0, -pRel * 5)) + ')</button>';\n    html += '</div></div>';
+    
+    // 关系影响说明\n    html += '<div style="margin-top:6px;font-size:.6em;color:#555;line-height:1.6">';\n    html += '💡 与警察关系好 → 安全度高 · 恶名衰减快 · 但帮派反感<br>';\n    html += '💡 实力越弱 → 改善关系越难越贵<br>';\n    html += '💡 关系≤-20 → 敌对帮派可能主动搞事';\n    html += '</div>';
+    \n    html += '<button class="btn" onclick="closeModal(\'diplomacyModal\')" style="margin-top:6px">关闭</button>';\n    html += '</div></div>';
+    \n    const old = document.getElementById('diplomacyModal');
+    if (old) old.remove();\n    document.body.insertAdjacentHTML('beforeend', html);
+}
+
+// ===== 战斗系统 v2（策略化 + 选人机制） =====
+
+// 战斗策略
+const COMBAT_STRATEGIES = [
+    {\n        id: 'assault',\n        name: '强攻',\n        emoji: '⚡',\n        desc: '正面发动猛烈进攻，简单粗暴，伤亡大',
+        baseChance: 0.45,
+        manpowerMin: 5,
+        powerMul: 1.0,
+        failLoss: 0.3,      // 失败损失30%参战成员
+        failLoyalDrop: 15,
+    },
+    {\n        id: 'infiltrate',\n        name: '渗透',\n        emoji: '🕵️',\n        desc: '派精锐潜入内部，里应外合，需情报支持',
+        baseChance: 0.55,
+        manpowerMin: 5,
+        powerMul: 0.8,
+        intelCost: 8,
+        failLoss: 0.15,
+        failLoyalDrop: 8,
+    },
+    {\n        id: 'encircle',\n        name: '围困',\n        emoji: '🔥',\n        desc: '围而不攻，断水断粮，逼迫投降，耗时久',
+        baseChance: 0.35,
+        manpowerMin: 6,
+        powerMul: 0.7,
+        failLoss: 0.1,
+        failLoyalDrop: 5,
+    },
+    {\n        id: 'bomb',\n        name: '爆破',\n        emoji: '💣',\n        desc: '使用爆炸物强行突破，需要爆破手',
+        baseChance: 0.50,
+        manpowerMin: 4,
+        powerMul: 1.2,
+        intelCost: 5,
+        requireBomber: true,
+        failLoss: 0.25,
+        failLoyalDrop: 12,
+    },
+];
+
+// 执行抢地盘战斗（选人模式）
+function openDistrictBattle(districtId) {
+    const dist = state.districts[districtId];
+    if (!dist) return;\n    if (dist.owner === 'player') { showToast('这是你的地盘', 'info'); return; }
+    
+    // 检查可用成员\n    const available = state.crew.filter(m => m.status === 'idle');
+    if (available.length < 5) {\n        showToast('需要至少5名可用成员参加战斗！当前仅' + available.length + '人', 'error');
+        return;
+    }
+    
+    // 构建选人界面\n    const enemyName = dist.owner === 'neutral' ? '本地守卫' : dist.enemyName || '敌对帮派';
+    const defPower = dist.defense || 10;
+    \n    let html = '<div class="modal-overlay show" id="battleModal"><div class="modal-content">';\n    html += '<div class="modal-header"><span>⚔️ 夺取 ' + dist.icon + ' ' + dist.name + '</span></div>';\n    html += '<p style="font-size:.75em;color:#888;margin:4px 0">目标防御: ' + defPower + ' | 守方: ' + enemyName + '</p>';\n    html += '<p style="font-size:.65em;color:#f87171;margin:4px 0">⚠ 至少选择5人，战斗有伤亡风险</p>';
+    
+    // 策略选择\n    html += '<div style="margin:8px 0">';
+    COMBAT_STRATEGIES.forEach((s, i) => {\n        html += '<label class="strat-option" onclick="selectStrat(' + i + ')" id="strat-' + i + '" style="display:block;border:1px solid #333;border-radius:6px;padding:6px 8px;margin-bottom:4px;font-size:.7em;cursor:pointer">';\n        html += '<input type="radio" name="strategy" value="' + i + '" ' + (i === 0 ? 'checked' : '') + ' style="margin-right:4px">';\n        html += '<strong>' + s.emoji + ' ' + s.name + '</strong> — ' + s.desc;\n        html += '<span style="float:right;color:#888">成功率' + Math.floor(s.baseChance * 100) + '%</span>';\n        html += '</label>';
+    });\n    html += '</div>';
+    
+    // 成员选择\n    html += '<div style="font-size:.7em;color:#888;margin:4px 0">选择参战成员 (选中的点一下):</div>';\n    html += '<div id="battle-selection" style="display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;max-height:180px;overflow-y:auto">';
+    available.forEach(m => {\n        html += '<div class="crew-chip" data-id="' + m.id + '" onclick="toggleBattleMember(' + m.id + ')" style="border:1px solid #444;border-radius:20px;padding:3px 10px;font-size:.65em;cursor:pointer;background:transparent">';\n        html += m.emoji + ' ' + m.name + ' Lv.' + m.lv + ' ⚡' + getMemberPower(m);\n        html += '</div>';
+    });\n    html += '</div>';
+    \n    html += '<div style="font-size:.65em;color:#888;margin:4px 0">已选: <span id="battle-count">0</span>/' + available.length + ' 人 | 总战力: <span id="battle-power">0</span></div>';\n    html += '<div class="btn-group" style="margin-top:6px">';\n    html += '<button class="btn btn-red" onclick="executeBattle('' + districtId + '')">⚔️ 发起进攻</button>';\n    html += '<button class="btn" onclick="closeBattle()">取消</button>';\n    html += '</div></div></div>';
+    \n    document.body.insertAdjacentHTML('beforeend', html);
+    state._selectedBattleStrat = 0;
+    state._selectedBattleMembers = [];
+}
+
+function selectStrat(idx) {
+    state._selectedBattleStrat = idx;\n    document.querySelectorAll('.strat-option').forEach((el, i) => {\n        el.style.borderColor = i === idx ? '#a78bfa' : '#333';
+    });
+}
+
+function toggleBattleMember(memberId) {
+    const idx = state._selectedBattleMembers.indexOf(memberId);
+    if (idx >= 0) {
+        state._selectedBattleMembers.splice(idx, 1);
+    } else {\n        const avail = state.crew.filter(m => m.status === 'idle');
+        if (state._selectedBattleMembers.length >= avail.length) return;
+        state._selectedBattleMembers.push(memberId);
+    }
+    updateBattleUI();
+}
+
+function updateBattleUI() {
+    const count = state._selectedBattleMembers.length;
+    const totalPower = state._selectedBattleMembers.reduce((s, id) => {
+        const m = state.crew.find(c => c.id === id);
+        return s + (m ? getMemberPower(m) : 0);
+    }, 0);\n    const el = document.getElementById('battle-count');\n    const el2 = document.getElementById('battle-power');
+    if (el) el.textContent = count;
+    if (el2) el2.textContent = totalPower;
+    
+    // 高亮已选\n    document.querySelectorAll('.crew-chip').forEach(chip => {
+        const id = parseInt(chip.dataset.id);
+        const selected = state._selectedBattleMembers.includes(id);\n        chip.style.borderColor = selected ? '#34d399' : '#444';\n        chip.style.background = selected ? 'rgba(52,211,153,0.1)' : 'transparent';
+    });
+}
+
+// 执行战斗
+function executeBattle(districtId) {
+    const strat = COMBAT_STRATEGIES[state._selectedBattleStrat || 0];
+    const members = state._selectedBattleMembers;
+    
+    if (!strat || !members || members.length < strat.manpowerMin) {\n        showToast('至少选择' + strat.manpowerMin + '人！', 'error');
+        return;
+    }
+    
+    // 检查条件
+    if (strat.intelCost && state.intel < strat.intelCost) {\n        showToast('情报不足(需' + strat.intelCost + ')', 'error');
+        return;
+    }
+    if (strat.requireBomber && !members.some(id => {
+        const m = state.crew.find(c => c.id === id);\n        return m && m.class === '爆破手';
+    })) {\n        showToast('需要爆破手参与！', 'error');
+        return;
+    }
+    
+    if (strat.intelCost) state.intel -= strat.intelCost;
+    
+    // 计算成功率
+    const dist = state.districts[districtId];
+    const defPower = dist.defense || 10;
+    const totalPower = members.reduce((s, id) => {
+        const m = state.crew.find(c => c.id === id);
+        return s + (m ? getMemberPower(m) : 0);
+    }, 0);
+    
+    let chance = strat.baseChance;
+    chance += (totalPower - defPower) * 0.015;  // 战力差影响
+    chance = Math.max(0.1, Math.min(0.9, chance));
+    
+    // 开战！
+    closeBattle();
+    
+    const roll = Math.random();\n    let msg = '';
+    
+    if (roll < chance) {
+        // 胜利\n        dist.owner = 'player';
+        dist.defense = Math.max(3, Math.floor(defPower * 0.4));
+        state.influence += 5 + Math.floor(Math.random() * 5);
+        state.notoriety += 5;\n        state.districtCount = Object.values(state.districts).filter(d => d.owner === 'player').length;
+        
+        // 胜利也有伤亡
+        const casualtyCount = Math.floor(members.length * 0.1 * Math.random() * 2);
+        for (let i = 0; i < casualtyCount; i++) {
+            const idx = Math.floor(Math.random() * members.length);
+            const mid = members[idx];
+            const m = state.crew.find(c => c.id === mid);
+            if (m && Math.random() < 0.3) {\n                m.status = 'dead';\n                msg += m.name + '阵亡... ';
+            } else if (m) {
+                m.loyalty = Math.max(5, m.loyalty - 5);
+            }
+        }
+        
+        const income = dist.income || 50;\n        msg = '胜利！拿下' + dist.name + '！收入+' + income + '/回合' + (casualtyCount > 0 ? ' 但损失' + casualtyCount + '人' : '');\n        showToast(msg, 'success');
+    } else {
+        // 失败 - 严重惩罚
+        const casualtyRate = strat.failLoss || 0.3;
+        const loyalDrop = strat.failLoyalDrop || 15;
+        
+        let deadCount = 0;
+        members.forEach(mid => {
+            const m = state.crew.find(c => c.id === mid);
+            if (!m) return;
+            if (Math.random() < casualtyRate * 0.6) {  // 阵亡概率\n                m.status = 'dead';
+                deadCount++;
+            } else {
+                m.loyalty = Math.max(5, m.loyalty - loyalDrop);
+            }
+        });
+        
+        // 最坏情况：全军覆没
+        if (deadCount === members.length) {\n            msg = '全军覆没！所有参战成员全部阵亡！你的组织遭受毁灭性打击！';\n            showToast('全军覆没！！', 'error');
+        } else {\n            msg = '惨败！损失' + deadCount + '人，幸存的忠诚度大降' + loyalDrop + '点';\n            showToast('惨败！损失' + deadCount + '人', 'error');
+        }
+        
+        state.security = Math.max(0, state.security - 10);
+        state.influence = Math.max(0, state.influence - 3);
+    }
+    
+    // 清理阵亡\n    state.crew = state.crew.filter(m => m.status !== 'dead');
+    state.manpower = state.crew.length;
+    \n    addMessage('[战斗] ' + msg, roll < chance ? 'success' : 'error');
+    updateUI();
+}
+
+function closeBattle() {\n    const el = document.getElementById('battleModal');
+    if (el) el.remove();
+    state._selectedBattleStrat = undefined;
+    state._selectedBattleMembers = undefined;
+}
+
+// 计算成员战力
+function getMemberPower(m) {
+    let power = m.lv * 2 + (m.stat || 5);\n    if (m.equipped && m.equipped.includes('razor_hat')) power += Math.floor(power * 0.05);
+    return power;
+}
+
+// ===== 地盘系统 =====
+
+function getDailyIncome(state) {
+    let income = 0;
+    // 基础收入
+    income += state.stronghold * 5;
+
+    // 地盘收入
+    for (const dId of Object.keys(state.districts)) {
+        const d = state.districts[dId];
+        const districtDef = CONFIG.DISTRICTS.find(dd => dd.id === dId);
+        if (!districtDef) continue;
+        let districtIncome = districtDef.baseIncome * (d.control / 100);
+        // 职业加成\n        const smugglers = countCrewByClass(state, '走私贩');
+        districtIncome *= (1 + smugglers * 0.1);
+        // 商业区加成\n        if (dId === '商业区') districtIncome *= 1.25;
+        // 港口区加成\n        if (dId === '港口区') districtIncome *= 1.30;
+        income += districtIncome;
+    }
+
+    // 额外加成
+    if (state._incomeBoost) {
+        income *= (1 + state._incomeBoost);
+    }
+
+    // 安全度过低会影响收入
+    if (state.security < 30) {
+        income *= 0.7;
+    } else if (state.security < 50) {
+        income *= 0.85;
+    }
+
+    return Math.floor(income);
+}
+
+function getUpgradeCost(currentLevel) {
+    return 200 + currentLevel * 150;
+}
+
+function upgradeStronghold(state) {
+    const cost = getUpgradeCost(state.stronghold);
+    if (state.money < cost) {\n        showToast(`资金不足! 需要 $${cost}`, 'error');
+        return false;
+    }
+    if (state.stronghold >= 5) {\n        showToast('据点等级已达上限!', 'info');
+        return false;
+    }
+    state.money -= cost;
+    state.stronghold++;
+    state.security = Math.min(100, state.security + 10);\n    addMessage(`🏢 据点升级! 等级 ${state.stronghold}`, 'success');\n    showToast(`据点升级到 ${state.stronghold} 级`, 'success');
+    updateUI();
+    return true;
+}
+
+function collectDistrictIncome(state, districtId) {
+    const d = state.districts[districtId];
+    if (!d) return 0;
+
+    const districtDef = CONFIG.DISTRICTS.find(dd => dd.id === districtId);
+    if (!districtDef) return 0;
+
+    let income = Math.floor(districtDef.baseIncome * (d.control / 100) * (1 + Math.random() * 0.3));
+    income = Math.max(5, income);
+
+    // 走私贩加成\n    const smugglers = countCrewByClass(state, '走私贩');
+    income = Math.floor(income * (1 + smugglers * 0.15));
+
+    state.money += income;\n    addMessage(`💰 ${districtId} 收入 +$${income}`, 'info');
+    return income;
+}
+
+function defendDistrict(state, districtId) {
+    const d = state.districts[districtId];
+    if (!d) return;
+
+    if (state.ap < 1) {\n        showToast('行动力不足!', 'error');
+        return;
+    }
+
+    if (!spendMoney(state, 50)) {\n        showToast('资金不足!', 'error');
+        return;
+    }
+
+    state.ap -= 1;
+    d.security = Math.min(100, (d.security || 50) + 10);
+    changeSecurity(state, 3);\n    addMessage(`🛡️ 加强了 ${districtId} 的防御`, 'info');\n    showToast(`${districtId} 防御提升`, 'success');
+    updateUI();
+}
+
+function abandonDistrict(state, districtId) {
+    if (!state.districts[districtId]) return;
+
+    if (state.districtCount <= 1) {\n        showToast('你至少需要保留一个地盘!', 'error');
+        return;
+    }
+
+    const refund = 100 + Math.floor(Math.random() * 50);
+    state.money += refund;
+    delete state.districts[districtId];
+    state.districtCount--;
+    addInfluence(state, -3);\n    addMessage(`🏚️ 放弃了 ${districtId}，获得 $${refund} 遣散费`, 'warning');\n    showToast(`已放弃 ${districtId}`, 'info');
+    updateUI();
+}
+
+// ---- 帮派敌对系统 ----
+function getActiveGangs(state) {
+    const gangs = [];
+    for (let i = 0; i < CONFIG.GANGS.length; i++) {
+        if (i < state.activeGangId) continue;
+        const gang = CONFIG.GANGS[i];
+        gangs.push({
+            ...gang,
+            hostility: Math.min(100, state.notoriety + state.districtCount * 5),
+            index: i,
+        });
+    }
+    return gangs;
+}
+
+function getGangHostility(gangIndex) {
+    // 每个帮派的敌对度与玩家的恶名和势力范围相关
+    return Math.min(100, G.notoriety + G.districtCount * 5 + gangIndex * 3);
+}
+
+// ===== 全局状态 =====
+let G = null;
+let _messageTimeout = null;
+let _eventCooldown = 0;
+
+// ===== 初始化 =====
+function startNewGame() {
+    G = initGameState();
+    G._loyaltyCheckCooldown = 0;\n    document.getElementById('startScreen').style.display = 'none';\n    document.getElementById('gameScreen').style.display = 'flex';\n    addMessage('🌃 暗潮涌动，你的地下帝国从此开始...', 'special');\n    addMessage('💡 提示: 通过底部菜单进行管理，⚠️ 注意行动力管理!', 'info');\n    switchTab('overview');
+    updateUI();
+}
+
+function loadSavedGame() {
+    const saved = loadGame();
+    if (saved) {
+        G = saved;
+        if (G._loyaltyCheckCooldown === undefined) G._loyaltyCheckCooldown = 0;\n        document.getElementById('startScreen').style.display = 'none';\n        document.getElementById('gameScreen').style.display = 'flex';\n        addMessage('📂 读取存档成功，继续你的地下事业', 'success');\n        switchTab('overview');
+        updateUI();
+    } else {\n        showToast('没有找到存档', 'error');
+    }
+}
+\ndocument.addEventListener('DOMContentLoaded', () => {
+    if (hasSave()) {\n        document.getElementById('continueBtn').style.display = 'block';
+    }
+});
+
+// ===== 标签页切换 =====\nlet _currentTab = 'overview';
+
+function switchTab(tab) {
+    _currentTab = tab;\n    document.querySelectorAll('.nav-btn').forEach(btn => {\n        btn.classList.toggle('active', btn.dataset.tab === tab);
+    });
+    switch (tab) {\n        case 'overview': renderOverview(); break;\n        case 'districts': renderDistrictsTab(); break;\n        case 'intel': renderIntelTab(); break;\n        case 'actions': renderActionsTab(); break;\n        case 'crew': renderCrewTab(); break;\n        case 'development': renderDevTab(); break;
+    }
+}
+
+// ===== 显示Toast =====
+function showToast(text, type) {\n    const container = document.getElementById('toastContainer');\n    const toast = document.createElement('div');\n    toast.className = `toast toast-${type || 'info'}`;
+    toast.textContent = text;
+    container.appendChild(toast);
+    setTimeout(() => {\n        toast.style.opacity = '0';\n        toast.style.transform = 'translateX(100px)';\n        toast.style.transition = 'all 0.3s';
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
+}
+
+// ===== 添加消息 =====
+function addMessage(text, type) {\n    const log = document.getElementById('messageLog');\n    const msg = document.createElement('div');\n    msg.className = `msg msg-${type || 'info'}`;
+    msg.textContent = text;
+    log.appendChild(msg);
+    log.scrollTop = log.scrollHeight;
+    // 限制消息数量
+    while (log.children.length > 50) {
+        log.removeChild(log.firstChild);
+    }
+    // 清除之前的自动隐藏计时器
+    if (_messageTimeout) {
+        clearTimeout(_messageTimeout);
+        _messageTimeout = null;
+    }
+}
+
+// ===== 关闭Modal =====
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+}
+
+// ===== 更新UI =====
+function updateUI() {
+    if (!G) return;
+
+    // 资源\n    document.getElementById('resMoney').textContent = '$' + G.money;\n    document.getElementById('resManpower').textContent = G.manpower;\n    document.getElementById('resIntel').textContent = G.intel;\n    document.getElementById('resInfluence').textContent = G.influence;\n    document.getElementById('resSecurity').textContent = G.security;\n    document.getElementById('resNotoriety').textContent = G.notoriety;
+
+    // 信息\n    document.getElementById('resStronghold').textContent = 'Lv.' + G.stronghold;\n    document.getElementById('resDay').textContent = '第' + G.day + '天';\n    document.getElementById('resLevel').textContent = 'Lv.' + G.level + ' ' + CONFIG.PHASES[G.phase].name;
+
+    // AP\n    document.getElementById('resAp').textContent = G.ap + '/' + G.maxAp;\n    document.getElementById('apFill').style.width = (G.ap / G.maxAp * 100) + '%';
+
+    // 重新渲染当前标签
+    const tab = _currentTab;
+    switch (tab) {\n        case 'overview': renderOverview(); break;\n        case 'districts': renderDistrictsTab(); break;\n        case 'intel': renderIntelTab(); break;\n        case 'actions': renderActionsTab(); break;\n        case 'crew': renderCrewTab(); break;\n        case 'development': renderDevTab(); break;
+    }
+}
+
+// ===== 渲染: 概况 =====
+function renderOverview() {\n    const el = document.getElementById('tabContent');
+    const phase = CONFIG.PHASES[G.phase];
+    const expNext = expToNext(G);
+    const expPct = G.level >= CONFIG.MAX_LEVEL ? 100 : (G.exp / expNext * 100);
+    const income = getDailyIncome(G);
+
+    el.innerHTML = `
+        <div class="card">
+            <div class="card-header">\n                <span class="card-title">${CONFIG.PHASES[G.phase].emoji || '📊'} 组织概况</span>
+                <span class="phase-badge phase-${G.phase}">${phase.name}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">📅 天数</span>
+                <span class="stat-value">第 ${G.day} 天</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">⭐ 等级</span>\n                <span class="stat-value">Lv.${G.level} ${G.level >= CONFIG.MAX_LEVEL ? 'MAX' : ''}</span>
+            </div>
+            ${G.level < CONFIG.MAX_LEVEL ? `
+            <div class="mt-8">
+                <div class="flex-between"><span class="text-muted" style="font-size:11px;">经验值</span><span class="text-muted" style="font-size:11px;">${G.exp}/${expNext}</span></div>
+                <div class="progress-bar"><div class="progress-fill" style="width:${expPct}%; background: linear-gradient(90deg, var(--accent-purple), var(--accent-pink));"></div></div>\n            </div>` : ''}
+            <div class="stat-row">
+                <span class="stat-label">💰 日收入</span>
+                <span class="stat-value text-success">+$${income}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">🏴 地盘</span>
+                <span class="stat-value">${G.districtCount} / 8</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">👥 成员</span>
+                <span class="stat-value">${G.crew.length} / ${G.crewSlots}</span>
+            </div>
+            <div class="stat-row">
+                <span class="stat-label">💀 恶名</span>\n                <span class="stat-value ${G.notoriety > 60 ? 'text-danger' : G.notoriety > 30 ? 'text-warning' : ''}">${G.notoriety}/100</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">⚡ 快速行动</span>
+            </div>
+            <div class="flex gap-8" style="flex-wrap:wrap;">
+                <button class="btn-sm btn-purple" onclick="doNextDay()">📅 下一天 (恢复AP)</button>
+                <button class="btn-sm btn-gold" onclick="openShop()">🏪 黑市商店</button>
+                <button class="btn-sm btn-green" onclick="gatherIntel(G)">📡 收集情报</button>\n                <button class="btn-sm ${G.inventory.length > 0 ? 'btn-purple' : 'btn-gray'}" onclick="openInventory()">
+                    🎒 背包 (${G.inventory.length})
+                </button>\n                <button class="btn-sm btn-gray" onclick="saveGame(G); showToast('存档成功', 'success')">💾 保存</button>
+            </div>
+        </div>
+
+        ${G.crew.length === 0 ? `
+        <div class="card" style="border-color: var(--accent-gold);">
+            <div class="card-header">
+                <span class="card-title">🤝 招募提示</span>
+            </div>
+            <p class="text-muted" style="font-size:12px;">你的组织还没有成员！前往「成员」标签页招募第一批手下。</p>\n            <button class="btn-sm btn-purple mt-8" onclick="switchTab('crew')">前往招募 →</button>\n        </div>` : ''}
+    `;
+}
+
+// ===== 渲染: 地盘 =====
+function renderDistrictsTab() {\n    const el = document.getElementById('tabContent');
+    const income = getDailyIncome(G);
+
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">🏴 地盘管理</span>
+                <span class="stat-value text-success">日收入: +$${income}</span>
+            </div>
+            <div class="flex gap-8" style="flex-wrap:wrap; margin-bottom:10px;">\n                <button class="btn-sm btn-purple" onclick="upgradeStronghold(G)" ${G.money < getUpgradeCost(G.stronghold) || G.stronghold >= 5 ? 'disabled' : ''}>
+                    🏢 升级据点 ($${getUpgradeCost(G.stronghold)})
+                </button>\n                ${G.districtCount > 0 ? `<button class="btn-sm btn-gold" onclick="collectAllIncome()">💰 收取所有收入</button>` : ''}\n                <button class="btn-sm btn-gray" onclick="showToast('${G.districts['唐人街'] ? '唐人街加成: 情报效率+15% 已激活' : '占领唐人街可解锁情报加成'}', 'info')">ℹ️ 地盘加成</button>
+            </div>
+            <p class="text-muted" style="font-size:11px; margin-bottom:8px;">据点等级 ${G.stronghold} | 安全度 ${G.security}</p>
+        </div>
+
+        <div class="district-grid">
+    `;
+
+    for (const district of CONFIG.DISTRICTS) {
+        const owned = G.districts[district.id];
+        const canAttack = !owned && G.phase >= Math.floor(CONFIG.DISTRICTS.indexOf(district) / 2);
+        html += `\n            <div class="district-card ${owned ? 'owned' : ''}">
+                <div class="district-name">
+                    ${district.id}\n                    ${owned ? '✅' : '🔒'}
+                </div>
+                ${owned ? `
+                    <div class="district-income">+$${Math.floor(district.baseIncome * (owned.control/100))}/天</div>
+                    <div class="district-desc">控制度: ${Math.floor(owned.control)}% | 安保: ${owned.security || district.baseSecurity}</div>
+                    <div class="flex gap-4 mt-8">\n                        <button class="btn-sm btn-green" style="flex:1; font-size:9px;" onclick="collectDistrictIncome(G, '${district.id}'); updateUI();">💰 收租</button>\n                        <button class="btn-sm btn-purple" style="flex:1; font-size:9px;" onclick="defendDistrict(G, '${district.id}'); updateUI();">🛡️ 防御</button>\n                        <button class="btn-sm btn-red" style="flex:1; font-size:9px;" onclick="if(confirm('确定放弃${district.id}吗?')){ abandonDistrict(G, '${district.id}'); updateUI(); }">🏚️ 放弃</button>
+                    </div>
+                ` : `
+                    <div class="district-desc">${district.desc}</div>\n                    <div class="district-desc text-gold mt-8">${district.special || '无特殊效果'}</div>
+                    ${canAttack ? `\n                        <button class="btn-sm btn-red mt-8" onclick="showCombatModal('${district.id}')">⚔️ 争夺</button>
+                    ` : `
+                        <span class="text-muted" style="font-size:9px;">阶段${Math.floor(CONFIG.DISTRICTS.indexOf(district)/2)+1}解锁</span>
+                    `}
+                `}
+            </div>
+        `;
+    }
+
+    html += `</div>`;
+
+    // 敌对帮派状态
+    html += `<div class="card mt-8"><div class="card-header"><span class="card-title">💀 敌对帮派</span><span>已消灭: ${G.gangsDestroyed}/6</span></div>`;
+    for (const gang of getActiveGangs(G)) {
+        const hostility = getGangHostility(gang.index);
+        html += `
+            <div class="stat-row">
+                <span><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${gang.color};margin-right:6px;"></span>${gang.name}</span>\n                <span class="${hostility > 70 ? 'text-danger' : hostility > 40 ? 'text-warning' : ''}">敌对: ${hostility}%</span>
+            </div>
+        `;
+    }
+    if (getActiveGangs(G).length === 0) {
+        html += `<p class="text-muted text-center" style="font-size:12px; padding:8px;">🎉 所有敌对帮派已被消灭!</p>`;
+    }
+    html += `</div>`;
+
+    el.innerHTML = html;
+}
+
+function collectAllIncome() {
+    let total = 0;
+    for (const dId of Object.keys(G.districts)) {
+        total += collectDistrictIncome(G, dId);
+    }\n    showToast(`共收取 $${total}`, 'success');
+    updateUI();
+}
+
+// ===== 渲染: 情报 =====
+function renderIntelTab() {\n    const el = document.getElementById('tabContent');
+    const intelLevel = CONFIG.INTEL_LEVELS.find(l => l.id === G.intelLevel) || CONFIG.INTEL_LEVELS[0];
+    const nextLevel = CONFIG.INTEL_LEVELS.find(l => l.id === G.intelLevel + 1);
+
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📡 情报网络</span>
+                <span class="phase-badge phase-${Math.min(3, G.intelLevel - 1)}">Lv.${intelLevel.id} ${intelLevel.name}</span>
+            </div>
+            <p style="font-size:12px; color:var(--text-secondary);">${intelLevel.desc}</p>
+            <div class="stat-row"><span class="stat-label">📊 情报点</span><span class="stat-value">${G.intel}</span></div>
+            ${nextLevel ? `
+            <div class="stat-row">
+                <span class="stat-label">下一级: ${nextLevel.name}</span>
+                <span class="stat-value text-muted">需要 ${nextLevel.minIntel} 情报</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:${Math.min(100, G.intel / nextLevel.minIntel * 100)}%; background: linear-gradient(90deg, var(--accent-cyan), var(--accent-blue));"></div>\n            </div>` : '<p class="text-success mt-8" style="font-size:12px;">🌟 情报等级已满!</p>'}\n            <button class="btn btn-purple mt-8" onclick="gatherIntel(G)" ${G.ap < 1 ? 'disabled' : ''}>
+                📡 收集情报 (1AP)
+            </button>
+        </div>
+    `;
+
+    // 情报行动
+    if (G.intelActions.length > 0) {
+        html += `<div class="card"><div class="card-header"><span class="card-title">🎯 情报行动</span></div>`;
+        for (const action of G.intelActions) {
+            const canUse = G.intel >= action.intelReq && G.ap >= 1;
+            html += `\n                <div class="strategy-card ${canUse ? '' : 'strategy-disabled'}">
+                    <div class="flex-between">
+                        <span class="strategy-name">${action.name}</span>
+                        <span class="text-muted" style="font-size:11px;">情报: ${action.intelCost} | AP: 1</span>
+                    </div>
+                    <div class="strategy-desc">${action.desc}</div>\n                    <button class="btn-sm ${canUse ? 'btn-purple' : 'btn-gray'}" \n                            onclick="executeIntelAction(G, '${action.id}')" ${canUse ? '' : 'disabled'}>\n                        ${canUse ? '执行' : '条件不足'}
+                    </button>
+                </div>
+            `;
+        }
+        html += `</div>`;
+    } else {
+        html += `
+            <div class="card">
+                <p class="text-muted text-center" style="font-size:12px; padding:8px;">
+                    🔒 持续收集情报来解锁特殊行动<br>
+                    <span style="font-size:10px;">情报≥8解锁: 举报 | 情报≥10解锁: 截货 | 情报≥12解锁: 策反 | 情报≥15解锁: 突袭</span>
+                </p>
+            </div>
+        `;
+    }
+
+    el.innerHTML = html;
+}
+
+// ===== 渲染: 行动 =====
+function renderActionsTab() {\n    const el = document.getElementById('tabContent');
+
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">⚡ 行动力管理</span>
+                <span class="stat-value">${G.ap} / ${G.maxAp}</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width:${G.ap / G.maxAp * 100}%; background: linear-gradient(90deg, var(--accent-gold), #f97316);"></div>
+            </div>
+            <button class="btn btn-green mt-8" onclick="doNextDay()" style="width:100%;">
+                📅 进入下一天 (恢复全部AP)
+            </button>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📋 可执行任务</span>
+            </div>
+            <div class="mission-list">
+    `;
+
+    for (const mission of CONFIG.MISSIONS) {
+        const unlocked = mission.phase <= G.phase;
+        const canDo = canDoMission(G, mission);
+        const matchingCrew = getAvailableCrew(G);
+
+        html += `\n            <div class="mission-card ${unlocked ? '' : 'locked'}">
+                <div class="flex-between">\n                    <span class="mission-name">${unlocked ? mission.id : '🔒 ' + mission.id}</span>
+                    <span class="mission-reward">$${calculateMissionReward(G, mission)}</span>
+                </div>\n                <div class="mission-desc">${unlocked ? mission.desc : '阶段' + (mission.phase + 1) + '解锁'}</div>
+                ${unlocked ? `
+                <div class="mission-stats">
+                    <span>⚔️ 战斗: ${mission.combatReq}</span>
+                    <span>📡 情报: ${mission.intelReq}</span>
+                    <span>⚠️ 风险: ${mission.baseRisk}%</span>
+                    <span>👥 需要: ${mission.minCrew || 1}人</span>
+                </div>\n                <button class="btn-sm ${canDo && matchingCrew.length >= (mission.combatReq || 1) ? 'btn-gold' : 'btn-gray'}" \n                        onclick="openMissionSetup('${mission.id}')" \n                        ${canDo && matchingCrew.length >= (mission.minCrew || 1) ? '' : 'disabled'}>\n                    ${canDo ? '⚡ 选人执行 (1AP)' : G.ap < 1 ? '行动力不足' : matchingCrew.length < (mission.minCrew || 1) ? '人手不足' : '条件不足'}
+                </button>\n                ` : ''}
+            </div>
+        `;
+    }
+
+    html += `</div></div>`;
+
+    el.innerHTML = html;
+}
+
+function calculateMissionReward(state, mission) {
+    let reward = mission.baseReward;
+    // 等级加成
+    reward += state.level * 10;
+    // 走私贩加成\n    const smugglers = countCrewByClass(state, '走私贩');
+    reward = Math.floor(reward * (1 + smugglers * 0.15));
+    // 商业区加成\n    if (state.districts['商业区']) reward = Math.floor(reward * 1.1);
+    return reward;
+}
+
+function executeMission(missionId) {
+    const mission = CONFIG.MISSIONS.find(m => m.id === missionId);
+    if (!mission) return;
+    if (!canDoMission(G, mission)) {\n        showToast('条件不足', 'error');
+        return;
+    }
+
+    G.ap -= 1;
+    const reward = calculateMissionReward(G, mission);
+
+    // 分配成员
+    const assigned = assignMissionCrew(G, missionId, mission.combatReq || 1);
+    const assignIds = assigned.map(m => m.id);
+
+    // 计算成功率
+    let successRate = 0.5;
+    successRate += G.level * 0.015;
+    successRate += G.influence * 0.002;
+    // 职业匹配
+    for (const m of assigned) {\n        if (m.class === '打手' && mission.combatReq > 0) successRate += 0.05;\n        if (m.class === '情报员' && mission.intelReq > 0) successRate += 0.05;\n        if (m.class === '杀手') successRate += 0.03;\n        if (m.class === '狙击手') successRate += 0.03;
+    }
+    // 剃刀帽加成
+    for (const m of assigned) {\n        if (m.items && m.items.includes('razorhat')) successRate += 0.05;
+    }
+    successRate = Math.min(0.95, successRate);
+
+    const isSuccess = Math.random() < successRate;
+
+    if (isSuccess) {
+        // 成功
+        G.money += reward;
+        addExp(G, 10 + Math.floor(Math.random() * 15));
+        addNotoriety(G, mission.baseRisk / 10);
+        addInfluence(G, 1);
+        G.missionHistory.push({ id: mission.id, success: true, day: G.day });
+        completeMissionCrew(G, assignIds, true);\n        addMessage(`✅ ${mission.id} 成功! 获得 $${reward}`, 'success');\n        showToast(`任务成功! +$${reward}`, 'success');
+
+        // 随机触发事件
+        if (Math.random() < 0.15) {
+            setTimeout(() => triggerRandomEvent(G), 500);
+        }
+    } else {
+        // 失败
+        const penalty = Math.floor(reward * 0.3);
+        G.money = Math.max(0, G.money - penalty);
+        addNotoriety(G, mission.baseRisk / 5);
+        G.missionHistory.push({ id: mission.id, success: false, day: G.day });
+        completeMissionCrew(G, assignIds, false);\n        addMessage(`❌ ${mission.id} 失败! 损失 $${penalty}`, 'error');\n        showToast(`任务失败! -$${penalty}`, 'error');
+
+        // 战损
+        if (Math.random() < 0.2) {
+            const casualty = assigned.length > 0 ? assigned[0] : null;
+            if (casualty && Math.random() < 0.3) {\n                casualty.status = 'dead';
+                G.crew = G.crew.filter(m => m.id !== casualty.id);\n                addMessage(`💀 ${casualty.name} 在任务中阵亡`, 'error');\n                showToast(`${casualty.name} 阵亡...`, 'error');
+            }
+        }
+    }
+
+    checkEndings(G);
+    renderActionsTab();
+    updateUI();
+}
+
+// ===== 渲染: 成员 =====
+function renderCrewTab() {\n    const el = document.getElementById('tabContent');
+    const available = getAvailableCrew(G);
+    const cost = getRecruitCost(G);
+
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">👥 成员管理</span>
+                <span>${G.crew.length} / ${G.crewSlots}</span>
+            </div>
+            <div class="flex gap-8" style="flex-wrap:wrap;">
+                <button class="btn-sm btn-purple" onclick="recruitMember(G); updateUI();" \n                    ${G.money >= cost && G.crew.length < G.crewSlots ? '' : 'disabled'}>
+                    🤝 招募 ($${cost})
+                </button>
+                <button class="btn-sm btn-green" onclick="healWounded(G); updateUI();"\n                    ${G.crew.filter(m => m.status === 'wounded').length > 0 && G.money >= 50 ? '' : 'disabled'}>
+                    💊 治疗伤员
+                </button>\n                <button class="btn-sm btn-gray" onclick="showToast('招募成功率: ' + Math.round(getRecruitChance(G) * 100) + '%', 'info')">
+                    ℹ️ 成功率 ${Math.round(getRecruitChance(G) * 100)}%
+                </button>
+            </div>
+        </div>
+    `;
+
+    if (G.crew.length === 0) {
+        html += `
+            <div class="card">
+                <p class="text-muted text-center" style="font-size:13px; padding:12px;">
+                    🤷 组织里空无一人<br>
+                    <span style="font-size:11px;">点击招募按钮寻找志同道合的伙伴</span>
+                </p>
+            </div>
+        `;
+    } else {
+        html += `<div class="card"><div class="card-header"><span class="card-title">成员列表</span></div>`;
+
+        for (const member of G.crew) {\n            const statusMap = { idle: '🟢 空闲', mission: '🔵 任务中', wounded: '🔴 受伤', dead: '💀 阵亡' };
+            const className = CONFIG.CLASSES[member.class];\n            const loyalColor = member.loyalty < 30 ? 'text-danger' : member.loyalty < 60 ? 'text-warning' : 'text-success';
+
+            html += `
+                <div class="strategy-card" style="margin-bottom:6px;">
+                    <div class="flex-between">
+                        <span><strong>${member.name}</strong></span>
+                        <span class="class-badge">${member.class}</span>
+                    </div>
+                    <div style="font-size:11px; color:var(--text-secondary); margin:4px 0;">
+                        Lv.${member.level} | ⚔️ ${member.combat} 🧠 ${member.intel} 
+                        | 忠诚: <span class="${loyalColor}">${member.loyalty}</span>\n                        | ${statusMap[member.status] || '❓'}
+                        | 任务: ${member.missionsDone}次
+                    </div>
+                    ${member.items && member.items.length > 0 ? `
+                    <div style="font-size:10px; color:var(--accent-cyan);">
+                        装备: ${member.items.map(itemId => {
+                            const itemDef = CONFIG.ITEMS.find(i => i.id === itemId);
+                            return itemDef ? itemDef.emoji + itemDef.name : itemId;\n                        }).join(', ')}\n                    </div>` : ''}
+                    <div class="flex gap-4 mt-8">\n                        ${member.status === 'idle' ? `\n                            <button class="btn-sm btn-red" onclick="if(confirm('确定驱逐 ${member.name}?')){ removeMember(G, ${member.id}); updateUI(); }">
+                                🚫 驱逐
+                            </button>\n                        ` : ''}\n                        <button class="btn-sm btn-gray" onclick="showToast('${className ? className.special : '无特殊能力'}', 'info')">\n                            ℹ️ ${className ? className.special : ''}
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+        html += `</div>`;
+    }
+
+    // 职业统计
+    html += `<div class="card"><div class="card-header"><span class="card-title">📊 职业分布</span></div><div style="display:flex; flex-wrap:wrap; gap:4px;">`;
+    const classCounts = {};
+    for (const m of G.crew) { classCounts[m.class] = (classCounts[m.class] || 0) + 1; }
+    for (const [cls, count] of Object.entries(classCounts)) {
+        const def = CONFIG.CLASSES[cls];
+        html += `<span class="class-badge" style="font-size:11px;">${def.emoji} ${cls} x${count}</span>`;
+    }
+    if (Object.keys(classCounts).length === 0) html += `<span class="text-muted" style="font-size:11px;">暂无成员</span>`;
+    html += `</div></div>`;
+
+    el.innerHTML = html;
+}
+
+// ===== 渲染: 发展 =====
+function renderDevTab() {\n    const el = document.getElementById('tabContent');
+    const phase = CONFIG.PHASES[G.phase];
+
+    let html = `
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">📈 发展进度</span>
+                <span class="phase-badge phase-${G.phase}">${phase.name}</span>
+            </div>
+            <p class="text-muted" style="font-size:12px;">${phase.desc}</p>
+            <div class="stat-row"><span class="stat-label">等级</span><span class="stat-value">Lv.${G.level} / ${CONFIG.MAX_LEVEL}</span></div>
+            <div class="stat-row"><span class="stat-label">已过天数</span><span class="stat-value">${G.day} 天</span></div>
+            <div class="stat-row"><span class="stat-label">累计收入</span><span class="stat-value text-success">$${G.totalIncomeCollected}</span></div>
+            <div class="stat-row"><span class="stat-label">累计经验</span><span class="stat-value">${G.totalExpEarned}</span></div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <span class="card-title">🏁 结局条件</span>
+            </div>
+    `;
+
+    for (const ending of CONFIG.ENDINGS) {\n        if (ending.id === 'death') continue;
+        const canReach = checkEndingProgress(G, ending);
+        const progress = calculateEndingProgress(G, ending);
+        html += `
+            <div class="stat-row">
+                <span>${ending.emoji} ${ending.name}</span>\n                <span class="${canReach ? 'text-success' : 'text-muted'}" style="font-size:11px;">\n                    ${progress}% ${canReach ? '✅' : ''}
+                </span>
+            </div>
+        `;
+    }
+    html += `</div>`;
+
+    // 任务完成统计
+    const successMissions = G.missionHistory.filter(m => m.success).length;
+    const failMissions = G.missionHistory.filter(m => !m.success).length;
+    const totalMissions = successMissions + failMissions;
+    html += `
+        <div class="card">
+            <div class="card-header"><span class="card-title">📋 任务统计</span></div>
+            <div class="stat-row"><span class="stat-label">总任务</span><span class="stat-value">${totalMissions}</span></div>
+            <div class="stat-row"><span class="stat-label">成功</span><span class="stat-value text-success">${successMissions}</span></div>
+            <div class="stat-row"><span class="stat-label">失败</span><span class="stat-value text-danger">${failMissions}</span></div>
+            ${totalMissions > 0 ? `
+            <div class="stat-row">
+                <span class="stat-label">成功率</span>\n                <span class="stat-value ${successMissions/totalMissions >= 0.7 ? 'text-success' : 'text-danger'}">
+                    ${Math.round(successMissions/totalMissions * 100)}%
+                </span>\n            </div>` : ''}
+        </div>
+    `;
+
+    // 道具一览
+    html += `
+        <div class="card">
+            <div class="card-header"><span class="card-title">🎒 背包</span></div>
+            ${G.inventory.length > 0 ? `
+            <div style="display:flex; flex-wrap:wrap; gap:8px;">
+                ${G.inventory.map(inv => {
+                    const itemDef = CONFIG.ITEMS.find(i => i.id === inv.id);\n                    if (!itemDef) return '';
+                    return `<span style="font-size:12px; background:var(--bg-card); padding:4px 8px; border-radius:6px; border:1px solid var(--border-color);">
+                        ${itemDef.emoji} ${itemDef.name} x${inv.count || 1}
+                    </span>`;\n                }).join('')}\n            </div>` : '<p class="text-muted" style="font-size:12px;">背包空空如也</p>'}
+        </div>
+    `;
+
+    el.innerHTML = html;
+}
+
+// ===== 结局进度计算 =====
+function checkEndingProgress(state, ending) {
+    switch (ending.id) {\n        case 'empire':
+            return state.notoriety >= 80 && state.influence >= 80 && state.districtCount >= 8;\n        case 'tycoon':
+            return state.money >= 5000 && state.influence >= 50;\n        case 'shadow':
+            return state.intel >= 60 && state.influence >= 60 && state.notoriety <= 30;\n        case 'warlord':
+            return state.manpower >= 50 && state.gangsDestroyed >= 6;\n        case 'escape':
+            return state.money >= 3000 && state.notoriety <= 20 && state.influence >= 30;
+        default:
+            return false;
+    }
+}
+
+function calculateEndingProgress(state, ending) {
+    // 粗略计算完成度百分比
+    let progress = 0;
+    let total = 0;
+    switch (ending.id) {\n        case 'empire':
+            progress = (state.notoriety/80)*30 + (state.influence/80)*30 + (state.districtCount/8)*40;
+            total = 100;
+            break;\n        case 'tycoon':
+            progress = (state.money/5000)*50 + (state.influence/50)*50;
+            total = 100;
+            break;\n        case 'shadow':
+            progress = (state.intel/60)*30 + (state.influence/60)*30 + (state.notoriety <= 30 ? 40 : Math.max(0, 40 - (state.notoriety - 30) * 2));
+            total = 100;
+            break;\n        case 'warlord':
+            progress = (state.manpower/50)*50 + (state.gangsDestroyed/6)*50;
+            total = 100;
+            break;\n        case 'escape':
+            progress = (state.money/3000)*30 + (state.notoriety <= 20 ? 35 : Math.max(0, 35 - (state.notoriety - 20) * 2)) + (state.influence/30)*35;
+            total = 100;
+            break;
+        default:
+            progress = 0;
+            total = 100;
+    }
+    return Math.min(100, Math.round(progress));
+}
+
+// ===== 下一天 =====
+function doNextDay() {
+    G.day++;
+    recoverAp(G); // 恢复1点
+    G.ap = G.maxAp; // 完全恢复
+
+    // 自动收入
+    const income = getDailyIncome(G);
+    G.money += income;
+    G.totalIncomeCollected += income;
+
+    // 日常消耗
+    const upkeep = G.crew.length * 10;
+    G.money = Math.max(0, G.money - upkeep);
+\n    addMessage(`📅 第 ${G.day} 天 - 收入 +$${income}，维护费 -$${upkeep}`, 'info');
+
+    // 安全度自然变化
+    if (G.security < 50) {
+        changeSecurity(G, 1);
+    }
+    if (G.notoriety > 50 && Math.random() < 0.15) {
+        changeSecurity(G, -2);\n        addMessage('⚠️ 过高的恶名引起了警方注意，安全度下降', 'warning');
+    }
+
+    // 成员忠诚度变化
+    for (const m of G.crew) {\n        if (m.status === 'idle') {
+            m.daysInCrew++;
+            // 长期不用的成员忠诚度微降
+            if (m.daysInCrew % 5 === 0 && m.missionsDone < 3) {
+                m.loyalty = Math.max(0, m.loyalty - 2);
+            }
+        }
+    }
+
+    // 检查忠诚度事件
+    checkLoyaltyEvents(G);
+
+    // 随机事件 (20%概率)
+    _eventCooldown = Math.max(0, _eventCooldown - 1);
+    if (Math.random() < 0.20 && _eventCooldown === 0) {
+        _eventCooldown = 2; // 事件冷却
+        setTimeout(() => triggerRandomEvent(G), 300);
+    }
+
+    // 检查结局
+    checkEndings(G);
+\n    addMessage(`💰 日收入 +$${income} | 维护费 -$${upkeep} | AP已恢复`, 'info');
+    updateUI();
+}
+
+// ===== 结局画面 =====
+function renderEndingScreen(state, ending) {
+    setTimeout(() => {\n        const overlay = document.createElement('div');\n        overlay.className = 'ending-overlay';\n        overlay.id = 'endingOverlay';
+        overlay.innerHTML = `
+            <div class="ending-screen">
+                <div class="ending-emoji">${ending.emoji}</div>
+                <div class="ending-title">${ending.name}</div>\n                <div class="ending-desc">${ending.desc || '你的黑道生涯在此画上句号。'}</div>
+                <div class="ending-stats">
+                    <div class="ending-stat"><span class="stat-label">最终等级</span> <span class="stat-value">Lv.${state.level}</span></div>
+                    <div class="ending-stat"><span class="stat-label">存活天数</span> <span class="stat-value">${state.day} 天</span></div>
+                    <div class="ending-stat"><span class="stat-label">总资产</span> <span class="stat-value text-gold">$${state.totalIncomeCollected}</span></div>
+                    <div class="ending-stat"><span class="stat-label">累计经验</span> <span class="stat-value">${state.totalExpEarned}</span></div>
+                    <div class="ending-stat"><span class="stat-label">占领地盘</span> <span class="stat-value">${state.districtCount}/8</span></div>
+                    <div class="ending-stat"><span class="stat-label">消灭帮派</span> <span class="stat-value">${state.gangsDestroyed}/6</span></div>
+                    <div class="ending-stat"><span class="stat-label">组织成员</span> <span class="stat-value">${state.crew.length} 人</span></div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:8px;">
+                    <button class="btn-start" onclick="location.reload()">🔄 重新开始</button>\n                    <button class="btn-start btn-start-secondary" onclick="document.getElementById('endingOverlay').remove(); addMessage('⏸️ 已返回游戏', 'info');">📖 回顾游戏</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+    }, 500);
+}
+
+// ===== 快捷键 =====\ndocument.addEventListener('keydown', (e) => {
+    if (!G || G.isGameOver) return;
+    switch (e.key) {\n        case '1': switchTab('overview'); break;\n        case '2': switchTab('districts'); break;\n        case '3': switchTab('intel'); break;\n        case '4': switchTab('actions'); break;\n        case '5': switchTab('crew'); break;\n        case '6': switchTab('development'); break;\n        case ' ': e.preventDefault(); doNextDay(); break;\n        case 's': if (e.ctrlKey) { e.preventDefault(); saveGame(G); showToast('存档成功', 'success'); } break;\n        case 'Escape':\n            ['eventModal', 'shopModal', 'inventoryModal', 'combatModal', 'equipModal', 'loyaltyEventModal'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+            });
+            break;
+    }
+});
+
+// ===== 追加结束 =====\nconsole.log('🌊 暗潮·地下组织模拟器 v2.0 已加载');\nconsole.log('🎮 快捷键: 1-6 切换标签 | Space 下一天 | Ctrl+S 保存 | Esc 关闭弹窗');
